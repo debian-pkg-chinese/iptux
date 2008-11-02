@@ -1,0 +1,638 @@
+# translation of iptux.po to chinese
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# zh_CN <jally@domain.com>, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: iptux\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-10-30 01:03+0800\n"
+"PO-Revision-Date: 2008-10-30 01:06+0800\n"
+"Last-Translator: zh_CN <jally@domain.com>\n"
+"Language-Team: chinese <zh@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#: AboutIptux.cpp:40
+msgid "LiJinhui"
+msgstr ""
+
+#: AboutIptux.cpp:47
+msgid ""
+"LiJinhui\n"
+"LiuTao(revise)"
+msgstr ""
+
+#: AboutIptux.cpp:51 CoreThread.cpp:139 MainWindow.cpp:50 StatusIcon.cpp:47
+msgid "IpTux"
+msgstr ""
+
+#: AboutIptux.cpp:56
+msgid "Lan communication software"
+msgstr ""
+
+#: baling.cpp:47
+#, c-format
+msgid "act: allocate memory [%u],warning: %s\n"
+msgstr ""
+
+#: baling.cpp:65
+#, c-format
+msgid "act: create socket,warning: %s\n"
+msgstr ""
+
+#: baling.cpp:80
+#, c-format
+msgid "act: TCP accepts a new connect (%d),warning: %s\n"
+msgstr ""
+
+#: baling.cpp:98
+#, c-format
+msgid "act: connect to server '%s',warning: %s\n"
+msgstr ""
+
+#: baling.cpp:112
+#, c-format
+msgid "act: look up file's status '%s',warning: %s\n"
+msgstr ""
+
+#: baling.cpp:126
+#, c-format
+msgid "act: open file '%s',warning: %s\n"
+msgstr ""
+
+#: baling.cpp:133
+#, c-format
+msgid "act: create file '%s',warning: %s\n"
+msgstr ""
+
+#: baling.cpp:152
+#, c-format
+msgid "act: read data (%d)[%u],warning: %s\n"
+msgstr ""
+
+#: baling.cpp:175
+#, c-format
+msgid "act: write data (%d)[%u],warning: %s\n"
+msgstr ""
+
+#: baling.cpp:197 baling.cpp:224
+#, c-format
+msgid "act: read data (%d),warning: %s\n"
+msgstr ""
+
+#: baling.cpp:244
+#, c-format
+msgid "act: revise text '%s',warning: %s\n"
+msgstr ""
+
+#: baling.cpp:256
+#, c-format
+msgid "act: create directory '%s',warning: %s\n"
+msgstr ""
+
+#: Control.cpp:112
+#, Believe me, don't modify it!
+msgid "UTF-8"
+msgstr ""
+
+#: CoreThread.cpp:77
+#, c-format
+msgid "act: bind the UDP port(2425),warning: %s\n"
+msgstr ""
+
+#: CoreThread.cpp:89
+#, c-format
+msgid "accept %s> %s\n"
+msgstr ""
+
+#: CoreThread.cpp:107
+#, c-format
+msgid "act: bind the TCP port(2425),warning: %s\n"
+msgstr ""
+
+#: CoreThread.cpp:135
+msgid "The message is here!"
+msgstr ""
+
+#: DetectPal.cpp:42
+msgid "Detect the pals"
+msgstr ""
+
+#: DetectPal.cpp:45
+msgid "Detect"
+msgstr ""
+
+#: DetectPal.cpp:46 IptuxSetup.cpp:250 RevisePal.cpp:52 ShareFile.cpp:89
+msgid "Cancel"
+msgstr ""
+
+#: DetectPal.cpp:52
+msgid "Please input a legal address of IPv4:"
+msgstr ""
+
+#: DetectPal.cpp:57
+msgid "Please input a legal address of IPv4!"
+msgstr ""
+
+#: DetectPal.cpp:86 IptuxSetup.cpp:362 IptuxSetup.cpp:369
+#, c-format
+msgid ""
+"\n"
+"The address %s is illegal!"
+msgstr ""
+
+#: DetectPal.cpp:95
+#, c-format
+msgid ""
+"\n"
+"Sending a notice to %s is done!"
+msgstr ""
+
+#: DialogGroup.cpp:59
+msgid "Group message"
+msgstr ""
+
+#: DialogGroup.cpp:90
+msgid "Choose Pals"
+msgstr ""
+
+#: DialogGroup.cpp:104
+msgid "Send History"
+msgstr ""
+
+#: DialogGroup.cpp:117 DialogPeer.cpp:180
+msgid "Input Your Message"
+msgstr ""
+
+#: DialogGroup.cpp:129 DialogPeer.cpp:193 GroupMenuBar.cpp:57
+#: PeerMenuBar.cpp:72
+msgid "Close"
+msgstr ""
+
+#: DialogGroup.cpp:133 DialogPeer.cpp:197
+msgid "Send"
+msgstr ""
+
+#: DialogGroup.cpp:242 SendFile.cpp:298 SendFile.cpp:342
+msgid "send"
+msgstr ""
+
+#: DialogGroup.cpp:253
+msgid "pals"
+msgstr ""
+
+#: DialogGroup.cpp:311 DialogPeer.cpp:283
+msgid ""
+"<span weight=\"heavy\" underline=\"error\">\n"
+"Can't send an empty message!!</span>"
+msgstr ""
+
+#: DialogPeer.cpp:56
+#, c-format
+msgid "Communicate with %s"
+msgstr ""
+
+#: DialogPeer.cpp:106
+msgid "Pal's Infomation"
+msgstr ""
+
+#: DialogPeer.cpp:127
+#, c-format
+msgid ""
+"\n"
+"Version: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:131
+#, c-format
+msgid "Nickname: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:135
+#, c-format
+msgid "User: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:139
+#, c-format
+msgid "Host: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:144
+#, c-format
+msgid "Host IP: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:149
+#, c-format
+msgid "Compatibility: Microsoft\n"
+msgstr ""
+
+#: DialogPeer.cpp:151
+#, c-format
+msgid "Compatibility: GNU/Linux\n"
+msgstr ""
+
+#: DialogPeer.cpp:155
+#, c-format
+msgid "System Encode: %s\n"
+msgstr ""
+
+#: DialogPeer.cpp:168
+msgid "Chat History"
+msgstr ""
+
+#: DialogPeer.cpp:260
+#, c-format
+msgid ""
+"Sending the files' infomation to \n"
+"%s[%s] is done!"
+msgstr ""
+
+#: GroupMenuBar.cpp:39 MainMenuBar.cpp:51 PeerMenuBar.cpp:41
+msgid "File(_F)"
+msgstr ""
+
+#: GroupMenuBar.cpp:47
+msgid "Update List"
+msgstr ""
+
+#: GroupMenuBar.cpp:69 MainMenuBar.cpp:139 PeerMenuBar.cpp:84
+msgid "Help(_H)"
+msgstr ""
+
+#: IptuxSetup.cpp:99
+msgid "Iptux setup"
+msgstr ""
+
+#: IptuxSetup.cpp:126
+msgid "Personal Setup"
+msgstr ""
+
+#: IptuxSetup.cpp:131
+msgid "Your nickname:"
+msgstr ""
+
+#: IptuxSetup.cpp:134
+msgid "Please Input your nickname!"
+msgstr ""
+
+#: IptuxSetup.cpp:140
+msgid "Your head portrait:"
+msgstr ""
+
+#: IptuxSetup.cpp:147
+msgid "Save file to:"
+msgstr ""
+
+#: IptuxSetup.cpp:160
+msgid "System Setup"
+msgstr ""
+
+#: IptuxSetup.cpp:165
+msgid "Default network encode:"
+msgstr ""
+
+#: IptuxSetup.cpp:169
+msgid "Default network encode(before modify,you must understand what you are doing)"
+msgstr ""
+
+#: IptuxSetup.cpp:175
+msgid "Pal's default head portrait:"
+msgstr ""
+
+#: IptuxSetup.cpp:182
+msgid "Use the blacklist(not recommended)"
+msgstr ""
+
+#: IptuxSetup.cpp:190
+msgid "Filter the request for shared files"
+msgstr ""
+
+#: IptuxSetup.cpp:205
+msgid "IP Section Setup"
+msgstr ""
+
+#: IptuxSetup.cpp:210
+msgid "Begin:"
+msgstr ""
+
+#: IptuxSetup.cpp:212 IptuxSetup.cpp:306
+msgid "begin IPv4"
+msgstr ""
+
+#: IptuxSetup.cpp:214
+msgid "End:"
+msgstr ""
+
+#: IptuxSetup.cpp:216 IptuxSetup.cpp:315
+msgid "end IPv4"
+msgstr ""
+
+#: IptuxSetup.cpp:222
+msgid "Add"
+msgstr ""
+
+#: IptuxSetup.cpp:226
+msgid "Delete"
+msgstr ""
+
+#: IptuxSetup.cpp:231
+msgid "Added IPv4 section:"
+msgstr ""
+
+#: IptuxSetup.cpp:243 RevisePal.cpp:51 ShareFile.cpp:82
+msgid "OK"
+msgstr ""
+
+#: IptuxSetup.cpp:246 ShareFile.cpp:85
+msgid "Apply"
+msgstr ""
+
+#: IptuxSetup.cpp:283
+msgid "Save file to"
+msgstr ""
+
+#: MainMenuBar.cpp:59 StatusiconPopmenu.cpp:92
+msgid "Detect(_D)"
+msgstr ""
+
+#: MainMenuBar.cpp:71 StatusiconPopmenu.cpp:100
+msgid "Quit(_Q)"
+msgstr ""
+
+#: MainMenuBar.cpp:85
+msgid "Tool(_T)"
+msgstr ""
+
+#: MainMenuBar.cpp:93 StatusiconPopmenu.cpp:56
+msgid "Transport(_T)"
+msgstr ""
+
+#: MainMenuBar.cpp:101 StatusiconPopmenu.cpp:64
+msgid "Setup(_S)"
+msgstr ""
+
+#: MainMenuBar.cpp:109 StatusiconPopmenu.cpp:72
+msgid "Public(_P)"
+msgstr ""
+
+#: MainMenuBar.cpp:117 StatusiconPopmenu.cpp:80
+msgid "Group(_G)"
+msgstr ""
+
+#: MainMenuBar.cpp:125
+msgid "Update(_F)"
+msgstr ""
+
+#: MainWindow.cpp:59
+msgid "Icon file"
+msgstr ""
+
+#: MainWindow.cpp:59 MainWindow.cpp:191 MainWindow.cpp:203 StatusIcon.cpp:38
+msgid "is lost!"
+msgstr ""
+
+#: MainWindow.cpp:191 MainWindow.cpp:203 StatusIcon.cpp:38
+msgid "The notify icon"
+msgstr ""
+
+#: my_file.cpp:87
+#, c-format
+msgid "act: open directory '%s',warning: %s\n"
+msgstr ""
+
+#: output.cpp:68
+msgid "Warning"
+msgstr ""
+
+#: output.cpp:90
+msgid "Infomation"
+msgstr ""
+
+#: Pal.cpp:342
+msgid "<tips>"
+msgstr ""
+
+#: Pal.cpp:343
+msgid "It isn't online,or not receive the data packet!\n"
+msgstr ""
+
+#: PalviewPopmenu.cpp:35
+msgid "Send Message"
+msgstr ""
+
+#: PalviewPopmenu.cpp:41 PeerMenuBar.cpp:49
+msgid "Send File"
+msgstr ""
+
+#: PalviewPopmenu.cpp:47 PeerMenuBar.cpp:55
+msgid "Send Folder"
+msgstr ""
+
+#: PalviewPopmenu.cpp:53 PeerMenuBar.cpp:61
+msgid "Ask For Shared Files"
+msgstr ""
+
+#: PalviewPopmenu.cpp:59
+msgid "Change Information"
+msgstr ""
+
+#: PalviewPopmenu.cpp:65
+msgid "Delete Pal"
+msgstr ""
+
+#: RecvFile.cpp:83
+msgid "File receive management"
+msgstr ""
+
+#: RecvFile.cpp:97
+msgid "Receive"
+msgstr ""
+
+#: RecvFile.cpp:103 UdpData.cpp:380
+msgid "Refuse"
+msgstr ""
+
+#: RecvFile.cpp:151 ShareFile.cpp:115 ShareFile.cpp:180
+msgid "regular"
+msgstr ""
+
+#: RecvFile.cpp:153 ShareFile.cpp:118 ShareFile.cpp:183
+msgid "directory"
+msgstr ""
+
+#: RecvFile.cpp:155 Transport.cpp:628
+msgid "unknown"
+msgstr ""
+
+#: RecvFile.cpp:176 RecvFile.cpp:263
+msgid "receive"
+msgstr ""
+
+#: RecvFile.cpp:188 Transport.cpp:148
+msgid "filename"
+msgstr ""
+
+#: RecvFile.cpp:199
+msgid "belong"
+msgstr ""
+
+#: RecvFile.cpp:207 ShareFile.cpp:222 Transport.cpp:172
+msgid "length"
+msgstr ""
+
+#: RecvFile.cpp:215 ShareFile.cpp:230
+msgid "type"
+msgstr ""
+
+#: RevisePal.cpp:48
+msgid "Change pal's information"
+msgstr ""
+
+#: RevisePal.cpp:59
+msgid "Pal's nickname:"
+msgstr ""
+
+#: RevisePal.cpp:63
+msgid "Please input pal's new nickname!"
+msgstr ""
+
+#: RevisePal.cpp:70
+msgid "System encode:"
+msgstr ""
+
+#: RevisePal.cpp:74
+msgid "you must understand what you are doing!"
+msgstr ""
+
+#: RevisePal.cpp:81
+msgid "Head portrait:"
+msgstr ""
+
+#: SendFile.cpp:215
+msgid "Choose sending files"
+msgstr ""
+
+#: SendFile.cpp:248
+msgid "Choose sending folders"
+msgstr ""
+
+#: ShareFile.cpp:50
+msgid "Shared files management"
+msgstr ""
+
+#: ShareFile.cpp:67
+msgid "Add Files"
+msgstr ""
+
+#: ShareFile.cpp:71
+msgid "Add Folders"
+msgstr ""
+
+#: ShareFile.cpp:75
+msgid "Delete Shared"
+msgstr ""
+
+#: ShareFile.cpp:210
+msgid "file"
+msgstr ""
+
+#: ShareFile.cpp:254
+msgid "Choose shared files"
+msgstr ""
+
+#: ShareFile.cpp:281
+msgid "Choose shared folders"
+msgstr ""
+
+#: StatusiconPopmenu.cpp:41
+msgid "Hide(_H)"
+msgstr ""
+
+#: StatusiconPopmenu.cpp:44
+msgid "Show(_S)"
+msgstr ""
+
+#: Transport.cpp:131
+msgid "state"
+msgstr ""
+
+#: Transport.cpp:140
+msgid "task"
+msgstr ""
+
+#: Transport.cpp:156
+msgid "pal"
+msgstr ""
+
+#: Transport.cpp:164
+msgid "finished"
+msgstr ""
+
+#: Transport.cpp:180
+msgid "rate"
+msgstr ""
+
+#: Transport.cpp:188
+msgid "progress"
+msgstr ""
+
+#: Transport.cpp:200
+msgid "Transmission management"
+msgstr ""
+
+#: TransportPopMenu.cpp:33
+msgid "Terminate Job"
+msgstr ""
+
+#: TransportPopMenu.cpp:39
+msgid "Terminate All"
+msgstr ""
+
+#: TransportPopMenu.cpp:45
+msgid "Clear Tasklist"
+msgstr ""
+
+#: TreeviewPopmenu.cpp:29
+msgid "Choose All"
+msgstr ""
+
+#: TreeviewPopmenu.cpp:35
+msgid "Reverse All"
+msgstr ""
+
+#: TreeviewPopmenu.cpp:41
+msgid "Clear Up"
+msgstr ""
+
+#: UdpData.cpp:377
+msgid "Request for shared resources"
+msgstr ""
+
+#: UdpData.cpp:379
+msgid "Agree"
+msgstr ""
+
+#: UdpData.cpp:398
+#, c-format
+msgid ""
+"The pal (%s)[%s]\n"
+"is requesting for your shared resources,\n"
+"agree or not?"
+msgstr ""
+
+#: utils.cpp:47
+#, c-format
+msgid "act: create encode conversion table,warning: %s\n"
+msgstr ""
+
+#: utils.cpp:79
+#, c-format
+msgid "act: create a new thread,warning: %s\n"
+msgstr ""
+
