@@ -53,7 +53,7 @@ clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
 	rm -f config.sub config.guess
-	rm -f changelog
+	rm -f ChangeLog
 
 	dh_clean 
 
