@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=iptux
+Name[zh_CN]=信使(iptux)
+Comment=Send/Receive message
+Comment[zh_CN]=局域网通讯工具
+Exec=iptux
+Terminal=false
+Type=Application
+Icon=tux
+StartupNotify=true
+Categories=GTK;Network;

@@ -8,10 +8,10 @@ Homepage: http://code.google.com/p/iptux/
 
 Package: iptux
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}
 Description: IP Messenger client for Linux
  iptux is an IP Messenger client for Linux.
- 
+ . 
  It support:
   - auto detect other clients in the intranet.
   - send message to other clients.
