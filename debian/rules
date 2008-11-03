@@ -53,8 +53,7 @@ clean:
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
 	rm -f config.sub config.guess ChangeLog Makefile.in aclocal.m4 \
-	configure depcomp desktop/Makefile.in icons/Makefile.in \
-	install-sh missing src/Makefile.in
+	configure desktop/Makefile.in icons/Makefile.in src/Makefile.in     
 
 	dh_clean 
 
