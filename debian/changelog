@@ -1,4 +1,4 @@
-iptux (0.3.3+dfsg1-0ubuntu1) jaunty; urgency=low
+iptux (0.3.3+dfsg1-0ubuntu1~ppa1) intrepid; urgency=low
 
   * Initial release (LP: #292518)
 

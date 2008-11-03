@@ -1,3 +1,13 @@
+#! /bin/sh /usr/share/dpatch/dpatch-run
+## 02_dfsg.dpatch by LI Daobing <lidaobing@gmail.com>
+##
+## All lines beginning with `## DP:' are a description of the patch.
+## DP: some image with license problem was removed, in this file we fix
+## DP: the related source code and Makefile.am
+## DP: See: http://code.google.com/p/iptux/issues/detail?id=3
+
+@DPATCH@
+
 --- iptux-0.3.3.orig/src/Control.h
 +++ iptux-0.3.3/src/Control.h
 @@ -17,7 +17,7 @@
