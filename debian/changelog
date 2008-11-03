@@ -1,5 +1,5 @@
-iptux (0.3.3-0ubuntu1) jaunty; urgency=low
+iptux (0.3.3+dfsg1-0ubuntu1) jaunty; urgency=low
 
   * Initial release (LP: #292518)
 
- -- LI Daobing <lidaobing@gmail.com>  Sun, 02 Nov 2008 20:21:08 +0800
+ -- LI Daobing <lidaobing@gmail.com>  Mon, 03 Nov 2008 21:18:24 +0800
