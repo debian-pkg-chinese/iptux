@@ -2,9 +2,10 @@ Source: iptux
 Section: net
 Priority: optional
 Maintainer: LI Daobing <lidaobing@gmail.com>
-Build-Depends: debhelper (>= 7), dpatch, autotools-dev, libgtk2.0-dev
+Build-Depends: debhelper (>= 7), autotools-dev, libgtk2.0-dev
 Standards-Version: 3.8.0
 Homepage: http://code.google.com/p/iptux/
+Format: 3.0 (quilt)
 
 Package: iptux
 Architecture: any

@@ -9,8 +9,6 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-include /usr/share/dpatch/dpatch.make
-
 # These are used for cross-compiling and for saving the configure script
 # from having to guess our platform (since we know it already)
 DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
@@ -23,7 +21,7 @@ endif
 
 
 
-config.status: patch configure
+config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
 ifneq "$(wildcard /usr/share/misc/config.sub)" ""
@@ -46,8 +44,7 @@ build-stamp:  config.status
 
 	touch $@
 
-clean: clean0 unpatch
-clean0:
+clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp 
@@ -106,5 +103,4 @@ binary-arch: build install
 	dh_builddeb
 
 binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install clean0 \
-	unpatch patch
+.PHONY: build clean binary-indep binary-arch binary install
