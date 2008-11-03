@@ -21,9 +21,9 @@ endif
 
 
 
-config.status: configure
+config.status: configure.in
 	dh_testdir
-	autoreconf -i -f
+	autoreconf
 	# Add here commands to configure the package.
 ifneq "$(wildcard /usr/share/misc/config.sub)" ""
 	cp -f /usr/share/misc/config.sub config.sub
@@ -52,8 +52,9 @@ clean:
 
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
-	rm -f config.sub config.guess
-	rm -f ChangeLog
+	rm -f config.sub config.guess ChangeLog Makefile.in aclocal.m4 \
+	configure depcomp desktop/Makefile.in icons/Makefile.in \
+	install-sh missing src/Makefile.in
 
 	dh_clean 
 
