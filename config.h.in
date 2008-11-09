@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
+/* Define to 1 if the `closedir' function returns void instead of `int'. */
+#undef CLOSEDIR_VOID
+
 /* always defined to indicate that i18n is enabled */
 #undef ENABLE_NLS
 
@@ -95,6 +98,9 @@
 
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
+
+/* Define to 1 if you have the `strncasecmp' function. */
+#undef HAVE_STRNCASECMP
 
 /* Define to 1 if you have the `strpbrk' function. */
 #undef HAVE_STRPBRK

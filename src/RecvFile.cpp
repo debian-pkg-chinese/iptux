@@ -17,19 +17,19 @@
 #include "output.h"
 #include "baling.h"
 
- RecvFile::RecvFile(gpointer data):file_list(NULL),
+ RecvFile::RecvFile(gpointer data):filelist(NULL),
 packetn(0), file_model(NULL)
 {
-	pal = (Pal *) ((struct RECVFILE_PARA *)data)->data;
-	msg = ((struct RECVFILE_PARA *)data)->msg;
+	pal = (Pal *) ((struct recvfile_para *)data)->data;
+	msg = ((struct recvfile_para *)data)->msg;
 	free(data);
 }
 
 RecvFile::~RecvFile()
 {
 	free(msg);
-	g_slist_foreach(file_list, remove_each_info, GINT_TO_POINTER(FILEINFO));
-	g_slist_free(file_list);
+	g_slist_foreach(filelist, remove_each_info, GINT_TO_POINTER(FILEINFO));
+	g_slist_free(filelist);
 	//g_object_unref(file_model); //他处释放
 }
 
@@ -56,7 +56,7 @@ bool RecvFile::GetValidData()
 		return false;
 
 	free(msg);
-	if (!(pal->flags & BIT1)) {
+	if (!FLAG_ISSET(pal->flags, 0)) {
 		msg = transfer_encode(ptr, pal->encode, false);
 		free(ptr);
 	} else
@@ -71,7 +71,7 @@ void RecvFile::ParseExtra()
 
 	ptr = msg;
 	while (ptr && *ptr)
-		file_list = g_slist_append(file_list, DivideFileinfo(&ptr));
+		filelist = g_slist_append(filelist, DivideFileinfo(&ptr));
 }
 
 void RecvFile::CreateRecvWindow()
@@ -137,7 +137,7 @@ GtkTreeModel *RecvFile::CreateRecvModel()
 				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT,
 				   G_TYPE_UINT, G_TYPE_UINT, G_TYPE_POINTER);
-	tmp = file_list;
+	tmp = filelist;
 	while (tmp) {
 		file = (FileInfo *) tmp->data;
 		ptr = number_to_string(file->filesize);

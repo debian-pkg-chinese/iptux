@@ -16,6 +16,7 @@
 #include "SendFile.h"
 #include "Command.h"
 #include "baling.h"
+#include "utils.h"
 
  PalviewPopmenu::PalviewPopmenu():menu(NULL)
 {
@@ -52,7 +53,7 @@ void PalviewPopmenu::CreatePopMenu(gpointer data)
 
 	menu_item = gtk_menu_item_new_with_label(_("Ask For Shared Files"));
 	g_signal_connect_swapped(menu_item, "activate",
-				 G_CALLBACK(AskShareFiles), data);
+				 G_CALLBACK(AskSharedFiles), data);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
@@ -69,37 +70,36 @@ void PalviewPopmenu::CreatePopMenu(gpointer data)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 }
 
-void PalviewPopmenu::AskShareFiles(gpointer data)
+void PalviewPopmenu::AskSharedFiles(gpointer data)
 {
 	Command cmd;
 	int sock;
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	cmd.SendAskShare(sock, data);
+	cmd.SendAskShared(sock, data);
 	close(sock);
 }
 
 void PalviewPopmenu::DeletePal(gpointer data)
 {
 	extern UdpData udt;
-	GtkTreeModel *model;
-	GtkTreeIter iter;
+	GtkTreeIter iter,parent;
 	GList *tmp;
 	Pal *pal;
 
 	pal = (Pal *) data;
-	if (!UdpData::Ipv4GetPalPos(pal->ipv4))
+	if (!udt.Ipv4GetPalPos(pal->ipv4))
 		return;
 
-	model = UdpData::Ipv4GetPalModel(pal->ipv4);
-	if (UdpData::PalGetModelIter(pal, model, &iter))
-		gtk_list_store_remove(GTK_LIST_STORE(model), &iter);
-	tmp = (GList *) UdpData::PalGetMsgPos(pal);
+	udt.Ipv4GetParent(pal->ipv4, &parent);
+	if (udt.PalGetModelIter(pal, &parent, &iter))
+		gtk_tree_store_remove(GTK_TREE_STORE(udt.pal_model), &iter);
+	tmp = (GList *) udt.PalGetMsgPos(pal);
 	if (tmp) {
 		pthread_mutex_lock(&udt.mutex);
 		g_queue_delete_link(udt.msgqueue, tmp);
 		pthread_mutex_unlock(&udt.mutex);
 	}
-	pal->flags &= ~BIT2;
-	pal->flags |= BIT4;
+	FLAG_CLR(pal->flags, 1);
+	FLAG_SET(pal->flags, 3);
 }

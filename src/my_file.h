@@ -24,7 +24,7 @@ class my_file {
 	int stat(const char *filename, struct stat64 *st);
 	DIR *opendir();
  private:
-	char path[MAX_PATH_BUF];
+	 char path[MAX_PATHBUF];
 	bool flag;
 };
 

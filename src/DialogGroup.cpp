@@ -198,7 +198,6 @@ void DialogGroup::ViewScroll()
 GtkTreeModel *DialogGroup::CreateGroupModel()
 {
 	extern UdpData udt;
-	char filename[MAX_PATH_BUF];
 	GtkListStore *model;
 	GtkTreeIter iter;
 	GdkPixbuf *pixbuf;
@@ -212,11 +211,10 @@ GtkTreeModel *DialogGroup::CreateGroupModel()
 	while (tmp) {
 		pal = (Pal *) tmp->data;
 		tmp = tmp->next;
-		if (!(pal->flags & BIT2))
+		if (!FLAG_ISSET(pal->flags, 1))
 			continue;
-		snprintf(filename, MAX_PATH_BUF,
-			 __ICON_DIR "/%hhu.png", pal->icon);
-		pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
+		pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
+				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
 		gtk_list_store_append(model, &iter);
 		gtk_list_store_set(model, &iter, 0, TRUE, 1, pixbuf, 2,
 				   pal->name, 3, pal, -1);

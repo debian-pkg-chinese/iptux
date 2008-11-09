@@ -34,16 +34,18 @@ class Pal {
 
 	void CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans);
 	void UpdateInfo(const char *msg, size_t size, bool trans);
-	void SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter);
+	void SetPalmodelValue(GtkTreeModel *model, GtkTreeIter * iter);
 
 	bool CheckReply(uint32_t packetno, bool install);
 	void BufferInsertText(const char *str, enum INSERTTYPE type);
 	bool RecvMessage(const char *msg);
-	bool RecvAskShare(const char *msg);
+	bool RecvAskShared(const char *msg);
+	bool RecvIcon(const char *msg, size_t size);
 	void RecvReply(const char *msg);
 	void RecvFile(const char *msg, size_t size);
 
 	void SendAnsentry();
+	void SendMyIcon();
 	void SendReply(const char *msg);
 	void SendExit();
  private:
@@ -60,9 +62,9 @@ class Pal {
 	char *user;		//用户名
 	char *host;		//用户主机
 	char *name;		//昵称
-	uint8_t icon;		//头像编号
+	char *iconfile;		//好友头像
 	char *encode;		//用户编码
-	uint8_t flags;		//黑名单:更改:存在:兼容
+	uint8_t flags;		//3 黑名单:2 更改:1 在线:0 兼容
 
 	GtkTextBuffer *record;
 	pointer dialog;

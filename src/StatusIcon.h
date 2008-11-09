@@ -22,6 +22,8 @@ class StatusIcon {
 	void CreateStatusIcon();
  private:
 	 GtkStatusIcon * status_icon;
+ public:
+	 static void UpdateTips();
 //回调处理部分
  private:
 	static void StatusIconActivate();

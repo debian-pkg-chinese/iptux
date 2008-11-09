@@ -121,17 +121,20 @@
 #define MAILTO_STR		"mailto:"
 #endif				/* IPMSG_H */
 
-/*	@(#)Copyright (C) Jally 2008   iptux.h    Version 0.2 */
+/*	@(#)Copyright (C) Jally 2008   iptux.h    Version 0.3 */
 #ifdef __IP_TUX__
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
 #endif
 
-#define IPTUX_ASKSHARE	0x000000FFUL
+#define IPTUX_ASKSHARED	0x000000FFUL
+#define IPTUX_SENDICON	0x000000FEUL
 
-#define MAX_PATH_BUF		1024
-#define MAX_SHARE_FILE	10000
+#define MAX_PATHBUF		1024
+#define MAX_SHAREDFILE	10000
+#define MAX_ICONSIZE		30
+#define MAX_PREVIEWSIZE	150
 #define GINT(x) ((gint)(x))
 
 #endif

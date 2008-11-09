@@ -58,8 +58,8 @@ am_iptux_OBJECTS = AboutIptux.$(OBJEXT) Command.$(OBJEXT) \
 	StatusiconPopmenu.$(OBJEXT) Transport.$(OBJEXT) \
 	TransportPopMenu.$(OBJEXT) TreeviewPopmenu.$(OBJEXT) \
 	UdpData.$(OBJEXT) baling.$(OBJEXT) iptux.$(OBJEXT) \
-	my_entry.$(OBJEXT) my_file.$(OBJEXT) output.$(OBJEXT) \
-	support.$(OBJEXT) utils.$(OBJEXT)
+	my_chooser.$(OBJEXT) my_entry.$(OBJEXT) my_file.$(OBJEXT) \
+	output.$(OBJEXT) support.$(OBJEXT) utils.$(OBJEXT)
 iptux_OBJECTS = $(am_iptux_OBJECTS)
 am__DEPENDENCIES_1 =
 iptux_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -204,7 +204,7 @@ iptux_SOURCES = AboutIptux.cpp Command.cpp Control.cpp CoreThread.cpp \
 	MainMenuBar.cpp MainWindow.cpp Pal.cpp PalviewPopmenu.cpp PeerMenuBar.cpp RecvFile.cpp \
 	RevisePal.cpp SendFile.cpp ShareFile.cpp StatusIcon.cpp StatusiconPopmenu.cpp \
 	Transport.cpp TransportPopMenu.cpp TreeviewPopmenu.cpp UdpData.cpp baling.cpp \
-	iptux.cpp my_entry.cpp my_file.cpp output.cpp support.cpp utils.cpp
+	iptux.cpp my_chooser.cpp my_entry.cpp my_file.cpp output.cpp support.cpp utils.cpp
 
 
 # set the include path found by configure
@@ -219,7 +219,9 @@ INCLUDES = $(all_includes) \
 	-D__ICON_DIR=\""$(datadir)/iptux/icon"\" \
 	-D__TIP_DIR=\""$(datadir)/iptux/tip"\" \
 	-D__IP_TUX__ \
-	-DWARNING
+	-DWARNING \
+	-DMESSAGE \
+	-DDEBUG
 
 
 # the library search path.
@@ -229,8 +231,8 @@ noinst_HEADERS = AboutIptux.h Command.h Control.h CoreThread.h DetectPal.h \
 	DialogGroup.h DialogPeer.h GroupMenuBar.h IptuxSetup.h MainMenuBar.h MainWindow.h \
 	Pal.h PalviewPopmenu.h PeerMenuBar.h RecvFile.h RevisePal.h SendFile.h \
 	ShareFile.h StatusIcon.h StatusiconPopmenu.h Transport.h TransportPopMenu.h \
-	TreeviewPopmenu.h UdpData.h baling.h common.h face.h ipmsg.h my_entry.h my_file.h \
-	net.h output.h support.h sys.h udt.h utils.h
+	TreeviewPopmenu.h UdpData.h baling.h common.h face.h ipmsg.h my_chooser.h \
+	my_entry.h my_file.h net.h output.h support.h sys.h udt.h utils.h
 
 all: all-am
 
@@ -324,6 +326,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UdpData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baling.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iptux.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/my_chooser.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/my_entry.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/my_file.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/output.Po@am__quote@

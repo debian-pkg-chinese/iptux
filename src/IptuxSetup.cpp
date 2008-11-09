@@ -12,6 +12,7 @@
 #include "IptuxSetup.h"
 #include "Control.h"
 #include "my_entry.h"
+#include "my_chooser.h"
 #include "UdpData.h"
 #include "Command.h"
 #include "output.h"
@@ -41,48 +42,6 @@ void IptuxSetup::SetupEntry()
 	ipst = new IptuxSetup;
 	ipst->InitSetup();
 	ipst->CreateSetup();
-}
-
-//头像 2,0 pixbuf,1 icon
-GtkTreeModel *IptuxSetup::CreateIconModel()
-{
-	char buf[MAX_PATH_BUF];
-	GtkListStore *model;
-	GdkPixbuf *pixbuf;
-	GtkTreeIter iter;
-	uint8_t count;
-
-	model = gtk_list_store_new(2, GDK_TYPE_PIXBUF, G_TYPE_UINT);
-	count = 0;
-	while (count < Control::sum_icon) {
-		gtk_list_store_append(model, &iter);
-		snprintf(buf, MAX_PATH_BUF, __ICON_DIR "/%hhu.png", count);
-		pixbuf = gdk_pixbuf_new_from_file(buf, NULL);
-		gtk_list_store_set(model, &iter, 0, pixbuf, 1, count, -1);
-		if (pixbuf)
-			g_object_unref(pixbuf);
-		count++;
-	}
-
-	return GTK_TREE_MODEL(model);
-}
-
-GtkWidget *IptuxSetup::CreateComboBoxWithModel(GtkTreeModel * model,
-					       gint active)
-{
-	GtkWidget *combo;
-	GtkCellRenderer *renderer;
-
-	combo = gtk_combo_box_new_with_model(model);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active);
-	renderer = gtk_cell_renderer_pixbuf_new();
-	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo), renderer, FALSE);
-	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo), renderer,
-				       "pixbuf", 0, NULL);
-	gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(combo), 6);
-	gtk_widget_show(combo);
-
-	return combo;
 }
 
 void IptuxSetup::InitSetup()
@@ -119,8 +78,8 @@ void IptuxSetup::CreateSetup()
 void IptuxSetup::CreatePerson(GtkWidget * note)
 {
 	extern Control ctr;
-	GtkWidget *box, *label;
-	GtkWidget *hbox;
+	GtkWidget *label, *button;
+	GtkWidget *box, *hbox;
 
 	box = create_box();
 	label = create_label(_("Personal Setup"));
@@ -141,6 +100,9 @@ void IptuxSetup::CreatePerson(GtkWidget * note)
 	gtk_box_pack_start(GTK_BOX(hbox), myicon, FALSE, FALSE, 0);
 	myicon = CreateComboBoxWithModel(icon_model, ctr.myicon);
 	gtk_box_pack_start(GTK_BOX(hbox), myicon, TRUE, TRUE, 0);
+	button = create_button("...");
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon), myicon);
+	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
 	hbox = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 5);
@@ -153,8 +115,8 @@ void IptuxSetup::CreatePerson(GtkWidget * note)
 void IptuxSetup::CreateSystem(GtkWidget * note)
 {
 	extern Control ctr;
-	GtkWidget *box, *label;
-	GtkWidget *hbox;
+	GtkWidget *label, *button;
+	GtkWidget *box, *hbox;
 
 	box = create_box();
 	label = create_label(_("System Setup"));
@@ -165,8 +127,7 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	encode = create_label(_("Default network encode:"));
 	gtk_box_pack_start(GTK_BOX(hbox), encode, FALSE, FALSE, 0);
 	encode = my_entry::create_entry(ctr.encode,
-					_
-					("Default network encode(before modify,you must understand what you are doing)"),
+		_("Default network encode(before modify,you must understand what you are doing)"),
 					FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), encode, TRUE, TRUE, 0);
 
@@ -176,12 +137,15 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	gtk_box_pack_start(GTK_BOX(hbox), palicon, FALSE, FALSE, 0);
 	palicon = CreateComboBoxWithModel(icon_model, ctr.palicon);
 	gtk_box_pack_start(GTK_BOX(hbox), palicon, TRUE, TRUE, 0);
+	button = create_button("...");
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon), palicon);
+	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
 	black =
 	    gtk_check_button_new_with_label
 	    (_("Use the blacklist(not recommended)"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(black),
-				     ctr.flags & BIT2);
+				     FLAG_ISSET(ctr.flags, 1));
 	gtk_widget_show(black);
 	gtk_box_pack_start(GTK_BOX(box), black, FALSE, FALSE, 5);
 
@@ -189,7 +153,7 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	    gtk_check_button_new_with_label(_
 					    ("Filter the request for shared files"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(proof),
-				     ctr.flags & BIT1);
+				     FLAG_ISSET(ctr.flags, 0));
 	gtk_widget_show(proof);
 	gtk_box_pack_start(GTK_BOX(box), proof, FALSE, FALSE, 5);
 }
@@ -329,22 +293,120 @@ bool IptuxSetup::CheckExist()
 	return true;
 }
 
+//头像 2,0 pixbuf,1 iconfile
+GtkTreeModel *IptuxSetup::CreateIconModel()
+{
+	extern Control ctr;
+	GtkListStore *model;
+	GdkPixbuf *pixbuf;
+	GtkTreeIter iter;
+	GSList *tmp;
+
+	model = gtk_list_store_new(2, GDK_TYPE_PIXBUF, G_TYPE_STRING);
+	pthread_mutex_lock(&ctr.mutex);
+	tmp = ctr.iconlist;
+	while (tmp) {
+		pixbuf = gdk_pixbuf_new_from_file_at_size((char*)tmp->data,
+				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+		if (pixbuf) {
+			gtk_list_store_append(model, &iter);
+			gtk_list_store_set(model, &iter, 0, pixbuf, 1, (char*)tmp->data, -1);
+			g_object_unref(pixbuf);
+		}
+		tmp = tmp->next;
+	}
+	pthread_mutex_unlock(&ctr.mutex);
+
+	return GTK_TREE_MODEL(model);
+}
+
+GtkWidget *IptuxSetup::CreateComboBoxWithModel(GtkTreeModel * model,
+					       gchar *iconfile)
+{
+	GtkWidget *combo;
+	GtkCellRenderer *renderer;
+	gint active;
+
+	combo = gtk_combo_box_new_with_model(model);
+	renderer = gtk_cell_renderer_pixbuf_new();
+	gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(combo), renderer, FALSE);
+	gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(combo), renderer,
+				       "pixbuf", 0, NULL);
+	gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(combo), 6);
+	active = FileGetItemPos(iconfile, model);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active);
+	gtk_widget_show(combo);
+
+	return combo;
+}
+
+gint IptuxSetup::FileGetItemPos(const char *filename, GtkTreeModel *model)
+{
+	GdkPixbuf *pixbuf;
+	GtkTreeIter iter;
+	gchar *tmp;
+	gint pos;
+
+	pos = 0;
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			gtk_tree_model_get(model, &iter, 1, &tmp, -1);
+			if (strcmp(filename, tmp) == 0) {
+				g_free(tmp);
+				return pos;
+			}
+			g_free(tmp);
+			pos++;
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+	if (access(filename, F_OK) != 0 ||
+		   !(pixbuf = gdk_pixbuf_new_from_file_at_size(filename, MAX_ICONSIZE, MAX_ICONSIZE, NULL)))
+		return -1;
+	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, pixbuf, 1, filename, -1);
+	g_object_unref(pixbuf);
+
+	return pos;
+}
+
 void IptuxSetup::FreshMyInfo()
 {
+	extern Control ctr;
 	extern UdpData udt;
 	Command cmd;
 	GSList *tmp;
+	bool flag;
 	int sock;
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
+	flag = strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR));
 	pthread_mutex_lock(&udt.mutex);
 	tmp = udt.pallist;
 	while (tmp) {
 		cmd.SendAbsence(sock, tmp->data);
+		if (flag)
+			cmd.SendMyIcon(sock, tmp->data);
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&udt.mutex);
 	close(sock);
+}
+
+void IptuxSetup::AddPalIcon(gpointer data)
+{
+	GtkWidget *chooser;
+	GtkTreeModel *model;
+	gchar *filename;
+	gint active;
+
+	chooser = my_chooser::create_chooser(_("Please choose a head portrait"), setup);
+	filename = my_chooser::run_chooser(chooser);
+	if (!filename)
+		return;
+	model = gtk_combo_box_get_model(GTK_COMBO_BOX(data));
+	active = FileGetItemPos(filename, model);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(data), active);
+	g_free(filename);
 }
 
 void IptuxSetup::ClickAddIpseg(gpointer data)
@@ -407,10 +469,13 @@ void IptuxSetup::ClickOk(gpointer data)
 void IptuxSetup::ClickApply(gpointer data)
 {
 	extern Control ctr;
+	char buf[MAX_BUF];
+	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
 	IptuxSetup *ipst;
 	const char *text;
 	char *ipstr1, *ipstr2;
+	gint active;
 
 	ipst = (IptuxSetup *) data;
 
@@ -418,7 +483,17 @@ void IptuxSetup::ClickApply(gpointer data)
 	free(ctr.myname);
 	ctr.myname = Strdup(text);
 
-	ctr.myicon = gtk_combo_box_get_active(GTK_COMBO_BOX(ipst->myicon));
+	active = gtk_combo_box_get_active(GTK_COMBO_BOX(ipst->myicon));
+	snprintf(buf, MAX_BUF, "%d", active);
+	gtk_tree_model_get_iter_from_string(ipst->icon_model, &iter, buf);
+	free(ctr.myicon);
+	gtk_tree_model_get(ipst->icon_model, &iter, 1, &ctr.myicon, -1);
+	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR))) {
+		snprintf(buf, MAX_PATHBUF, "%s/.iptux/myicon",getenv("HOME"));
+		pixbuf = gdk_pixbuf_new_from_file_at_size(ctr.myicon, MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+		gdk_pixbuf_save(pixbuf, buf, "png", NULL, NULL);
+		g_object_unref(pixbuf);
+	}
 
 	free(ctr.path);
 	ctr.path =
@@ -428,16 +503,20 @@ void IptuxSetup::ClickApply(gpointer data)
 	free(ctr.encode);
 	ctr.encode = Strdup(text);
 
-	ctr.palicon = gtk_combo_box_get_active(GTK_COMBO_BOX(ipst->palicon));
+	active = gtk_combo_box_get_active(GTK_COMBO_BOX(ipst->palicon));
+	snprintf(buf, MAX_BUF, "%d", active);
+	gtk_tree_model_get_iter_from_string(ipst->icon_model, &iter, buf);
+	free(ctr.palicon);
+	gtk_tree_model_get(ipst->icon_model, &iter, 1, &ctr.palicon, -1);
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ipst->black)))
-		ctr.flags |= BIT2;
+		FLAG_SET(ctr.flags, 1);
 	else
-		ctr.flags &= ~BIT2;
+		FLAG_CLR(ctr.flags, 1);
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ipst->proof)))
-		ctr.flags |= BIT1;
+		FLAG_SET(ctr.flags, 0);
 	else
-		ctr.flags &= ~BIT1;
+		FLAG_CLR(ctr.flags, 0);
 
 	pthread_mutex_lock(&ctr.mutex);
 	g_slist_foreach(ctr.ipseg, remove_each_info, GINT_TO_POINTER(UNKNOWN));

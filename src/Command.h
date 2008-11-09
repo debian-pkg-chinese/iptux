@@ -34,13 +34,15 @@ class Command {
 			 uint32_t fileid, uint32_t offset);
 	bool SendAskFiles(int sock, pointer data, uint32_t packetno,
 			  uint32_t fileid);
-	void SendAskShare(int sock, pointer data);
-	void SendShareInfo(int sock, pointer data, const char *extra);
+	void SendAskShared(int sock, pointer data);
+	void SendSharedInfo(int sock, pointer data, const char *extra);
+	void SendMyIcon(int sock, pointer data);
  private:
 	void CreateCommand(uint32_t command, const char *attach);
 	void TransferEncode(const char *encode);
 	void CreateIptuxExtra();
 	void CreateIpmsgExtra(const char *extra);
+	void CreateIconExtra();
 
 	char buf[MAX_UDPBUF];
 	size_t size;

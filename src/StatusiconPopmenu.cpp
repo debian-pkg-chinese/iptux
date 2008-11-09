@@ -38,10 +38,10 @@ void StatusiconPopmenu::CreatePopMenu()
 
 	if (GTK_WIDGET_VISIBLE(inter.window))
 		menu_item =
-		    gtk_image_menu_item_new_with_mnemonic(_("Hide(_H)"));
+		    gtk_image_menu_item_new_with_mnemonic(_("_Hide"));
 	else
 		menu_item =
-		    gtk_image_menu_item_new_with_mnemonic(_("Show(_S)"));
+		    gtk_image_menu_item_new_with_mnemonic(_("_Show"));
 	image = gtk_image_new_from_file(__TIP_DIR "/desk.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -53,7 +53,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 	gtk_widget_show(menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Transport(_T)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Transport"));
 	image = gtk_image_new_from_file(__TIP_DIR "/trans.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -61,7 +61,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Setup(_S)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Setup"));
 	image = gtk_image_new_from_file(__TIP_DIR "/setup.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -69,7 +69,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Public(_P)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Public"));
 	image = gtk_image_new_from_file(__TIP_DIR "/share.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -77,7 +77,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Group(_G)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Group"));
 	image = gtk_image_new_from_file(__TIP_DIR "/net.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -89,7 +89,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 	gtk_widget_show(menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Detect(_D)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Detect"));
 	image = gtk_image_new_from_file(__TIP_DIR "/detect.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -97,7 +97,7 @@ void StatusiconPopmenu::CreatePopMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Quit(_Q)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Quit"));
 	image = gtk_image_new_from_file(__TIP_DIR "/out.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate", G_CALLBACK(iptux_quit), NULL);

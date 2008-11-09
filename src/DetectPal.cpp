@@ -36,7 +36,7 @@ void DetectPal::DetectEntry()
 
 void DetectPal::CreateDetect()
 {
-	extern interactive inter;
+	extern struct interactive inter;
 	GtkWidget *frame;
 
 	detect = gtk_dialog_new_with_buttons(_("Detect the pals"),
@@ -77,12 +77,11 @@ void DetectPal::SendDetect()
 {
 	const char *text;
 	Command cmd;
-	int sock, status;
 	in_addr_t ipv4;
+	int sock;
 
 	text = gtk_entry_get_text(GTK_ENTRY(ipstr));
-	status = inet_pton(AF_INET, text, &ipv4);
-	if (status <= 0) {
+	if (inet_pton(AF_INET, text, &ipv4) <= 0) {
 		pop_warning(detect, ipstr, _("\nThe address %s is illegal!"),
 			    text);
 		gtk_editable_select_region(GTK_EDITABLE(ipstr), 0, -1);
@@ -93,7 +92,7 @@ void DetectPal::SendDetect()
 	cmd.SendDetectPacket(sock, ipv4);
 	close(sock);
 	pop_info(detect, ipstr, _("\nSending a notice to %s is done!"), text);
-	gtk_entry_set_text(GTK_ENTRY(ipstr), "\0");
+	gtk_entry_set_text(GTK_ENTRY(ipstr), "");
 }
 
 bool DetectPal::CheckExsit()

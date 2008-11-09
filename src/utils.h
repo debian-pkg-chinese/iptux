@@ -20,6 +20,10 @@
 	/ 1000000.0f)
 #define percent(num1,num2) (100.0f*(num1)/(num2))
 
+#define FLAG_ISSET(num,bit) ((num)&(1<<(bit)))
+#define FLAG_SET(num,bit) ((num)|=(1<<(bit)))
+#define FLAG_CLR(num,bit) ((num)&=(~(1<<(bit))))
+
 void delay(time_t sec, long nsec);
 void little_endian(uint32_t * digit1, uint32_t * digit2);
 char *_iconv(const char *instr, const char *tocode, const char *fromcode);

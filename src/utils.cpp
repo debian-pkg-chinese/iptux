@@ -42,7 +42,7 @@ char *_iconv(const char *instr, const char *tocode, const char *fromcode)
 	size_t size, len;
 
 	cd = iconv_open(tocode, fromcode);
-	if ((int)cd == -1) {
+	if (cd == iconv_t(-1)) {
 		pwarning(Fail,
 			 _("act: create encode conversion table,warning: %s\n"),
 			 strerror(errno));

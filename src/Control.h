@@ -17,8 +17,6 @@
 
 class Control {
  public:
-	static const uint8_t sum_icon = 34;
- public:
 	 Control();
 	~Control();
 
@@ -26,21 +24,24 @@ class Control {
 	void WriteControl();
 
 	GSList *ipseg;		//通知登录
-	pthread_mutex_t mutex;
-	uint8_t palicon;	//默认头像
-	uint8_t myicon;		//自身头像
+	char *palicon;		//默认头像
+	char *myicon;		//自身头像
 	char *myname;		//昵称
 	char *encode;		//默认网络编码
 	char *path;		//文件存放路径
-	uint8_t flags;		//黑名单:共享过滤
+	uint8_t flags;		//1 黑名单:0 共享过滤
 	bool dirty;		//重写标记
 
 	GtkTextTagTable *table;
+	GSList *iconlist;
 	gfloat pix;
+
+	pthread_mutex_t mutex;
  private:
 	void CreateControl();
 	void ReadControl();
 	void CreateTagTable();
+	void GetSysIcon();
 	void GetRatio_PixMm();
 };
 

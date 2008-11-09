@@ -10,13 +10,16 @@
 //
 //
 #include "CoreThread.h"
+#include "MainWindow.h"
 #include "Control.h"
 #include "UdpData.h"
 #include "SendFile.h"
 #include "Command.h"
-#include "utils.h"
+#include "StatusIcon.h"
 #include "baling.h"
 #include "output.h"
+#include "support.h"
+#include "utils.h"
 
 bool CoreThread::udp_server = false;
  CoreThread::CoreThread():tcpsock(-1), udpsock(-1)
@@ -58,6 +61,7 @@ void CoreThread::NotifyAll()
 
 void CoreThread::RecvUdp()
 {
+	extern struct interactive inter;
 	extern CoreThread ctd;
 	extern UdpData udt;
 	char buf[MAX_UDPBUF];
@@ -67,7 +71,7 @@ void CoreThread::RecvUdp()
 	SI addr;
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	ctd.udpsock = sock;
+	inter.sock = ctd.udpsock = sock;
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
@@ -120,30 +124,19 @@ void CoreThread::RecvTcp()
 void CoreThread::WatchIptux()
 {
 	extern Control ctr;
-	extern UdpData udt;
 	extern SendFile sfl;
-	extern struct interactive inter;
 
 	Synchronism();
 	while (udp_server) {
 		delay(1, 0);
-		pthread_mutex_lock(&udt.mutex);
 		gdk_threads_enter();
-		if (g_queue_get_length(udt.msgqueue)) {
-			gtk_status_icon_set_blinking(inter.status_icon, TRUE);
-			gtk_status_icon_set_tooltip(inter.status_icon,
-						    _("The message is here!"));
-		} else {
-			gtk_status_icon_set_blinking(inter.status_icon, FALSE);
-			gtk_status_icon_set_tooltip(inter.status_icon,
-						    _("IpTux"));
-		}
+		StatusIcon::UpdateTips();
+		MainWindow::UpdateTips();
 		gdk_threads_leave();
-		pthread_mutex_unlock(&udt.mutex);
 		if (ctr.dirty)
 			ctr.WriteControl();
 		if (sfl.dirty)
-			sfl.WriteShare();
+			sfl.WriteShared();
 	}
 }
 

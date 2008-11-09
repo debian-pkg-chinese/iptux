@@ -36,7 +36,7 @@ void GroupMenuBar::CreateFileMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("File(_F)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_File"));
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 	gtk_widget_show(menu_item);
 
@@ -66,7 +66,7 @@ void GroupMenuBar::CreateHelpMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("Help(_H)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Help"));
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 

@@ -2111,7 +2111,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=iptux
- VERSION=0.3
+ VERSION=0.4
 
 
 cat >>confdefs.h <<_ACEOF
@@ -5861,6 +5861,78 @@ _ACEOF
 
 
 # Checks for library functions.
+{ echo "$as_me:$LINENO: checking whether closedir returns void" >&5
+echo $ECHO_N "checking whether closedir returns void... $ECHO_C" >&6; }
+if test "${ac_cv_func_closedir_void+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  if test "$cross_compiling" = yes; then
+  ac_cv_func_closedir_void=yes
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <$ac_header_dirent>
+#ifndef __cplusplus
+int closedir ();
+#endif
+
+int
+main ()
+{
+return closedir (opendir (".")) != 0;
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest$ac_exeext
+if { (ac_try="$ac_link"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_link") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval "echo \"\$as_me:$LINENO: $ac_try_echo\"") >&5
+  (eval "$ac_try") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_func_closedir_void=no
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+ac_cv_func_closedir_void=yes
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+
+fi
+{ echo "$as_me:$LINENO: result: $ac_cv_func_closedir_void" >&5
+echo "${ECHO_T}$ac_cv_func_closedir_void" >&6; }
+if test $ac_cv_func_closedir_void = yes; then
+
+cat >>confdefs.h <<\_ACEOF
+#define CLOSEDIR_VOID 1
+_ACEOF
+
+fi
+
 if test $ac_cv_c_compiler_gnu = yes; then
     { echo "$as_me:$LINENO: checking whether $CC needs -traditional" >&5
 echo $ECHO_N "checking whether $CC needs -traditional... $ECHO_C" >&6; }
@@ -6559,7 +6631,8 @@ done
 
 
 
-for ac_func in bzero getcwd gettimeofday inet_ntoa memmove mkdir socket strcasecmp strchr strerror strpbrk strrchr strstr
+
+for ac_func in bzero getcwd gettimeofday inet_ntoa memmove mkdir socket strcasecmp strchr strerror strncasecmp strpbrk strrchr strstr
 do
 as_ac_var=`echo "ac_cv_func_$ac_func" | $as_tr_sh`
 { echo "$as_me:$LINENO: checking for $ac_func" >&5

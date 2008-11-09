@@ -18,6 +18,8 @@ void iptux_init();
 void iptux_quit();
 
 void update_widget_bg(GtkWidget * widget, const gchar * file);
-GSList *get_sys_broadcast_addr(int sock);
+GSList *get_sys_broadcast_addr();
+GSList *get_sys_host_addr();
+char *get_sys_host_addr_string(GSList *ip_list);
 
 #endif

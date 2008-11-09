@@ -24,11 +24,11 @@ class ShareFile {
  private:
 	void InitShare();
 	void CreateShare();
-	void AddShareFiles(GSList * list, uint32_t fileattr);
+	void AddSharedFiles(GSList * list);
 	void FindInsertPosition(const gchar * path, uint32_t fileattr,
 				GtkTreeIter * iter);
-	GtkTreeModel *CreateShareModel();
-	GtkWidget *CreateShareView();
+	GtkTreeModel *CreateSharedModel();
+	GtkWidget *CreateSharedView();
 	static bool CheckExist();
 
 	GtkWidget *share_view;
@@ -42,6 +42,9 @@ class ShareFile {
 	static void ClickOk(gpointer data);
 	static void ClickApply(gpointer data);
 	static void ShareDestroy(gpointer data);
+	static void DragDataReceived(gpointer data, GdkDragContext * context,
+				     gint x, gint y, GtkSelectionData * select,
+				     guint info, guint time);
 };
 
 #endif
