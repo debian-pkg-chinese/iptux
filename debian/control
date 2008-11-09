@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 7), autotools-dev, libgtk2.0-dev
 Standards-Version: 3.8.0
 Homepage: http://code.google.com/p/iptux/
 Vcs-Browser: https://code.edge.launchpad.net/~lidaobing/iptux/ubuntu
-Vcs-Bzr: lp:iptux
+Vcs-Bzr: lp:~lidaobing/+junk/iptux
 
 Package: iptux
 Architecture: any
