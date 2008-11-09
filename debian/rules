@@ -23,7 +23,7 @@ endif
 
 
 
-config.status: patch-stamp configure.in
+config.status: configure
 	dh_testdir
 	autoreconf
 	# Add here commands to configure the package.
@@ -55,8 +55,7 @@ clean0:
 
 	# Add here commands to clean up after the build process.
 	[ ! -f Makefile ] || $(MAKE) distclean
-	rm -f config.sub config.guess ChangeLog Makefile.in aclocal.m4 \
-	configure desktop/Makefile.in icons/Makefile.in src/Makefile.in     
+	rm -f config.sub config.guess
 
 	dh_clean 
 
