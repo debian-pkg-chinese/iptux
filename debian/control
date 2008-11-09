@@ -1,7 +1,8 @@
 Source: iptux
 Section: net
 Priority: optional
-Maintainer: LI Daobing <lidaobing@gmail.com>
+Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+XSBC-Original-Maintainer: LI Daobing <lidaobing@gmail.com>
 Build-Depends: debhelper (>= 7), autotools-dev, libgtk2.0-dev
 Standards-Version: 3.8.0
 Homepage: http://code.google.com/p/iptux/
