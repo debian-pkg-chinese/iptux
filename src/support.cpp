@@ -68,9 +68,10 @@ void update_widget_bg(GtkWidget * widget, const gchar * file)
 	g_object_unref(style);
 }
 
-GSList *get_sys_broadcast_addr(int sock)
+GSList *get_sys_broadcast_addr()
 {
 	const uint8_t amount = 5;
+	extern struct interactive inter;
 	char buf[INET_ADDRSTRLEN];
 	struct ifconf ifc;
 	struct ifreq *ifr;
@@ -82,7 +83,7 @@ GSList *get_sys_broadcast_addr(int sock)
 	list = g_slist_append(NULL, Strdup("255.255.255.255"));
 	ifc.ifc_len = amount * sizeof(struct ifreq);
 	ifc.ifc_buf = (caddr_t) Malloc(ifc.ifc_len);
-	status = ioctl(sock, SIOCGIFCONF, &ifc);
+	status = ioctl(inter.sock, SIOCGIFCONF, &ifc);
 	if (status == -1)
 		return list;
 	sum = ifc.ifc_len / sizeof(struct ifreq);
@@ -91,10 +92,10 @@ GSList *get_sys_broadcast_addr(int sock)
 		ifr = ifc.ifc_req + count;
 		count++;
 
-		status = ioctl(sock, SIOCGIFFLAGS, ifr);
+		status = ioctl(inter.sock, SIOCGIFFLAGS, ifr);
 		if (status == -1 || !(ifr->ifr_flags & IFF_BROADCAST))
 			continue;
-		status = ioctl(sock, SIOCGIFBRDADDR, ifr);
+		status = ioctl(inter.sock, SIOCGIFBRDADDR, ifr);
 		if (status == -1)
 			continue;
 		addr = (SI *) & ifr->ifr_broadaddr;
@@ -103,4 +104,67 @@ GSList *get_sys_broadcast_addr(int sock)
 	}
 
 	return list;
+}
+
+GSList *get_sys_host_addr()
+{
+	const uint8_t amount = 5;
+	extern struct interactive inter;
+	char buf[INET_ADDRSTRLEN];
+	struct ifconf ifc;
+	struct ifreq *ifr;
+	SI *addr;
+	GSList *list;
+	uint8_t count, sum;
+	int status;
+
+	list = NULL;
+	ifc.ifc_len = amount * sizeof(struct ifreq);
+	ifc.ifc_buf = (caddr_t) Malloc(ifc.ifc_len);
+	status = ioctl(inter.sock, SIOCGIFCONF, &ifc);
+	if (status == -1)
+		return list;
+	sum = ifc.ifc_len / sizeof(struct ifreq);
+	count = 0;
+	while (count < sum) {
+		ifr = ifc.ifc_req + count;
+		count++;
+
+		if (strncasecmp(ifr->ifr_name,"lo",2) == 0)
+			continue;
+		status = ioctl(inter.sock, SIOCGIFFLAGS, ifr);
+		if (status == -1 || !(ifr->ifr_flags & IFF_UP))
+			continue;
+		status = ioctl(inter.sock, SIOCGIFADDR, ifr);
+		if (status == -1)
+			continue;
+		addr = (SI *) & ifr->ifr_broadaddr;
+		inet_ntop(AF_INET, &addr->sin_addr, buf, INET_ADDRSTRLEN);
+		list = g_slist_append(list, Strdup(buf));
+	}
+
+	return list;
+}
+
+char *get_sys_host_addr_string(GSList *ip_list)
+{
+	char *ipstr,*ptr;
+	GSList *tmp;
+	uint8_t sum;
+
+	if (!ip_list)
+		return NULL;
+
+	sum = g_slist_length(ip_list);
+	ipstr = ptr = (char*)Malloc(sum*INET_ADDRSTRLEN);
+	tmp = ip_list;
+	while (tmp) {
+		strcpy(ptr, (char*)tmp->data);
+		ptr += strlen(ptr) + 1;
+		*(ptr-1) = '\n';
+		tmp = tmp->next;
+	}
+	*(ptr-1) = '\0';
+
+	return ipstr;
 }

@@ -30,7 +30,7 @@ class RecvFile {
 
 	Pal *pal;
 	char *msg;
-	GSList *file_list;
+	GSList *filelist;
 	uint32_t packetn;
 	GtkTreeModel *file_model;
 //回调处理部分

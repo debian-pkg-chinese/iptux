@@ -12,7 +12,7 @@
 #ifndef IPTUXSETUP_H
 #define IPTUXSETUP_H
 
-#include "face.h"
+#include "udt.h"
 
 class IptuxSetup {
  public:
@@ -20,9 +20,6 @@ class IptuxSetup {
 	~IptuxSetup();
 
 	static void SetupEntry();
-	static GtkTreeModel *CreateIconModel();
-	static GtkWidget *CreateComboBoxWithModel(GtkTreeModel * model,
-						  gint active);
  private:
 	void InitSetup();
 	void CreateSetup();
@@ -34,7 +31,6 @@ class IptuxSetup {
 	GtkWidget *CreateFolderChooser(const char *folder);
 	GtkWidget *CreateIpsegView();
 	static bool CheckExist();
-	static void FreshMyInfo();
 
 	GtkTreeModel *icon_model, *ip_model;
 	GtkWidget *myname, *myicon, *save_path;
@@ -42,7 +38,15 @@ class IptuxSetup {
 	GtkWidget *entry1, *entry2;
 	GtkWidget *ipseg_view;
 	static GtkWidget *setup;
+ public:
+	 static GtkTreeModel *CreateIconModel();
+	 static GtkWidget *CreateComboBoxWithModel(GtkTreeModel * model, gchar *iconfile);
+	 static gint FileGetItemPos(const char *filename, GtkTreeModel *model);
+ private:
+	 static void FreshMyInfo();
 //回调处理部分
+ public:
+	 static void AddPalIcon(gpointer data);
  private:
 	static void ClickAddIpseg(gpointer data);
 	static void ClickDelIpseg(gpointer data);

@@ -24,7 +24,7 @@ class PalviewPopmenu {
 	GtkWidget *menu;
 //回调处理部分
  public:
-	static void AskShareFiles(gpointer data);
+	static void AskSharedFiles(gpointer data);
  private:
 	static void DeletePal(gpointer data);
 };

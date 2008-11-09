@@ -116,8 +116,8 @@ void DialogPeer::FillInfoBuffer(GtkTextBuffer * info)
 	GdkPixbuf *pixbuf;
 	GtkTextIter iter;
 
-	snprintf(buf, MAX_BUF, __ICON_DIR "/%hhu.png", pal->icon);
-	pixbuf = gdk_pixbuf_new_from_file(buf, NULL);
+	pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
+			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
 	if (pixbuf) {
 		gtk_text_buffer_get_end_iter(info, &iter);
 		gtk_text_buffer_insert_pixbuf(info, &iter, pixbuf);
@@ -145,7 +145,7 @@ void DialogPeer::FillInfoBuffer(GtkTextBuffer * info)
 	gtk_text_buffer_get_end_iter(info, &iter);
 	gtk_text_buffer_insert(info, &iter, buf, -1);
 
-	if (!(pal->flags & BIT1))
+	if (!FLAG_ISSET(pal->flags, 0))
 		snprintf(buf, MAX_BUF, _("Compatibility: Microsoft\n"));
 	else
 		snprintf(buf, MAX_BUF, _("Compatibility: GNU/Linux\n"));
@@ -215,7 +215,7 @@ bool DialogPeer::CheckExist(gpointer data)
 				   (((DialogPeer *) pal->dialog)->dialog));
 		return true;
 	}
-	tmp = (GList *) UdpData::PalGetMsgPos(data);
+	tmp = (GList *) udt.PalGetMsgPos(data);
 	if (tmp) {
 		pthread_mutex_lock(&udt.mutex);
 		g_queue_delete_link(udt.msgqueue, tmp);
@@ -310,6 +310,6 @@ void DialogPeer::ThreadSendMessage(gpointer data)
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
 	cmd.SendMessage(sock, peer->pal, ptr);
-	g_free(ptr);
 	close(sock);
+	g_free(ptr);
 }

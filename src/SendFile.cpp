@@ -19,7 +19,7 @@
 #include "utils.h"
 
  SendFile::SendFile():dirty(false), pbn(0),
-prn(MAX_SHARE_FILE), pblist(NULL), prlist(NULL)
+prn(MAX_SHAREDFILE), pblist(NULL), prlist(NULL)
 {
 	pthread_mutex_init(&mutex, NULL);
 }
@@ -37,17 +37,16 @@ SendFile::~SendFile()
 
 void SendFile::InitSelf()
 {
-	char buf[MAX_PATH_BUF];
+	char path[MAX_PATHBUF];
 	struct stat64 st;
-	char *ptr, *tmp, *ev;
+	char *ptr, *tmp;
 	FileInfo *file;
 	FILE *stream;
 	size_t n;
 
 	dirty = false;
-	ev = getenv("HOME");
-	snprintf(buf, MAX_PATH_BUF, "%s/.iptux/share", ev);
-	if (access(buf, F_OK) != 0 || !(stream = Fopen(buf, "r")))
+	snprintf(path, MAX_PATHBUF, "%s/.iptux/share", getenv("HOME"));
+	if (access(path, F_OK) != 0 || !(stream = Fopen(path, "r")))
 		return;
 	ptr = NULL, n = 0;
 	pthread_mutex_lock(&mutex);
@@ -69,20 +68,20 @@ void SendFile::InitSelf()
 	fclose(stream);
 }
 
-void SendFile::WriteShare()
+void SendFile::WriteShared()
 {
-	char buf[MAX_PATH_BUF], bufbak[MAX_PATH_BUF];
+	char file[MAX_PATHBUF], filebak[MAX_PATHBUF];
 	FILE *stream;
 	GSList *tmp;
-	char *ev;
+	char *env;
 
-	ev = getenv("HOME");
-	snprintf(buf, MAX_PATH_BUF, "%s/.iptux", ev);
-	if (access(buf, F_OK) != 0)
-		Mkdir(buf, 0777);
+	env = getenv("HOME");
+	snprintf(file, MAX_PATHBUF, "%s/.iptux", env);
+	if (access(file, F_OK) != 0)
+		Mkdir(file, 0777);
 
-	snprintf(bufbak, MAX_PATH_BUF, "%s/.iptux/share~", ev);
-	if (!(stream = Fopen(bufbak, "w")))
+	snprintf(filebak, MAX_PATHBUF, "%s/.iptux/share~", env);
+	if (!(stream = Fopen(filebak, "w")))
 		return;
 	pthread_mutex_lock(&mutex);
 	tmp = pblist;
@@ -93,13 +92,13 @@ void SendFile::WriteShare()
 	pthread_mutex_unlock(&mutex);
 	fclose(stream);
 
-	snprintf(buf, MAX_PATH_BUF, "%s/.iptux/share", ev);
-	rename(bufbak, buf);
+	snprintf(file, MAX_PATHBUF, "%s/.iptux/share", env);
+	rename(filebak, file);
 
 	dirty = false;
 }
 
-void SendFile::SendShareFiles(gpointer data)
+void SendFile::SendSharedFiles(gpointer data)
 {
 	extern SendFile sfl;
 	char buf[MAX_UDPBUF], *ptr, *filename;
@@ -130,7 +129,7 @@ void SendFile::SendShareFiles(gpointer data)
 	pthread_mutex_unlock(&sfl.mutex);
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	cmd.SendShareInfo(sock, data, buf);
+	cmd.SendSharedInfo(sock, data, buf);
 	close(sock);
 }
 
@@ -167,7 +166,7 @@ void SendFile::AddSendFile(GSList * list, gpointer data)
 	}
 
 	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	cmd.SendShareInfo(sock, data, buf);
+	cmd.SendSharedInfo(sock, data, buf);
 	close(sock);
 }
 
@@ -202,10 +201,9 @@ void SendFile::TcpDataEntry(int sock)
 void SendFile::SendRegular(gpointer data)
 {
 	extern SendFile sfl;
-	extern interactive inter;
+	extern struct interactive inter;
 	GtkWidget *dialog, *widget;
 	GSList *list;
-	char *ev;
 	Pal *pal;
 
 	pal = (Pal *) data;
@@ -219,8 +217,7 @@ void SendFile::SendRegular(gpointer data)
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	ev = getenv("HOME");
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), ev);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
@@ -235,10 +232,9 @@ void SendFile::SendRegular(gpointer data)
 void SendFile::SendFolder(gpointer data)
 {
 	extern SendFile sfl;
-	extern interactive inter;
+	extern struct interactive inter;
 	GtkWidget *dialog, *widget;
 	GSList *list;
-	char *ev;
 	Pal *pal;
 
 	pal = (Pal *) data;
@@ -252,8 +248,7 @@ void SendFile::SendFolder(gpointer data)
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	ev = getenv("HOME");
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), ev);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
@@ -268,6 +263,7 @@ void SendFile::SendFolder(gpointer data)
 void SendFile::SendFileData(int sock, char *buf)
 {
 	extern Transport trans;
+	extern UdpData udt;
 	const char *filename;
 	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
@@ -285,7 +281,7 @@ void SendFile::SendFileData(int sock, char *buf)
 
 	len = sizeof(addr);
 	getpeername(sock, (SA *) & addr, &len);
-	pal = (Pal *) UdpData::Ipv4GetPal(addr.sin_addr.s_addr);
+	pal = (Pal *) udt.Ipv4GetPal(addr.sin_addr.s_addr);
 	if (!pal)
 		return;
 
@@ -312,6 +308,7 @@ void SendFile::SendFileData(int sock, char *buf)
 void SendFile::SendDirFiles(int sock, char *buf)
 {
 	extern Transport trans;
+	extern UdpData udt;
 	const char *filename;
 	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
@@ -329,7 +326,7 @@ void SendFile::SendDirFiles(int sock, char *buf)
 
 	len = sizeof(addr);
 	getpeername(sock, (SA *) & addr, &len);
-	pal = (Pal *) UdpData::Ipv4GetPal(addr.sin_addr.s_addr);
+	pal = (Pal *) udt.Ipv4GetPal(addr.sin_addr.s_addr);
 	if (!pal)
 		return;
 
@@ -359,7 +356,7 @@ pointer SendFile::FindSendFileinfo(uint32_t fileid)
 	GSList *tmp;
 
 	pthread_mutex_lock(&mutex);
-	if (fileid >= MAX_SHARE_FILE)
+	if (fileid >= MAX_SHAREDFILE)
 		tmp = sfl.prlist;
 	else
 		tmp = sfl.pblist;

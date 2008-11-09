@@ -22,14 +22,14 @@ class SendFile {
 	~SendFile();
 
 	void InitSelf();
-	void WriteShare();
+	void WriteShared();
 
-	void SendShareFiles(gpointer data);
+	void SendSharedFiles(gpointer data);
 	void AddSendFile(GSList * list, gpointer data);
 
-	static void TcpDataEntry(int sock);
-	static void SendRegular(gpointer data);
-	static void SendFolder(gpointer data);
+	static void TcpDataEntry(int sock);	//线程入口
+	static void SendRegular(gpointer data);	//回调入口
+	static void SendFolder(gpointer data);	//回调入口
 
 	bool dirty;
  private:

@@ -43,13 +43,6 @@ enum INFO {
 	UNKNOWN
 };
 
-enum BIT {
-	BIT1 = 0x1,
-	BIT2 = 0x2,
-	BIT3 = 0x4,
-	BIT4 = 0x8
-};
-
 enum RESULT {
 	Success,
 	Fail,
@@ -58,10 +51,12 @@ enum RESULT {
 
 struct interactive {
 	GtkWidget *window;
+	GtkWidget *palsum;
 	GtkStatusIcon *status_icon;
+	int sock;
 };
 
-struct RECVFILE_PARA {
+struct recvfile_para {
 	gpointer data;
 	char *msg;
 };

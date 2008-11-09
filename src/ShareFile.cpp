@@ -38,17 +38,22 @@ void ShareFile::ShareEntry()
 
 void ShareFile::InitShare()
 {
-	share_model = CreateShareModel();
+	share_model = CreateSharedModel();
 }
 
 void ShareFile::CreateShare()
 {
+	GtkTargetEntry target = { "text/plain", 0, 0 };
 	GtkWidget *vbox, *hbox;
 	GtkWidget *bb, *button;
 	GtkWidget *sw;
 
 	share = create_window(_("Shared files management"), 132, 79);
 	gtk_container_set_border_width(GTK_CONTAINER(share), 5);
+	gtk_drag_dest_set(share, GTK_DEST_DEFAULT_ALL,
+			  &target, 1, GDK_ACTION_MOVE);
+	g_signal_connect_swapped(share, "drag-data-received",
+				 G_CALLBACK(DragDataReceived), this);
 	g_signal_connect_swapped(share, "destroy", G_CALLBACK(ShareDestroy),
 				 this);
 	gtk_container_set_border_width(GTK_CONTAINER(share), 5);
@@ -59,7 +64,7 @@ void ShareFile::CreateShare()
 	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
 	sw = create_scrolled_window();
 	gtk_box_pack_end(GTK_BOX(hbox), sw, TRUE, TRUE, 0);
-	share_view = CreateShareView();
+	share_view = CreateSharedView();
 	gtk_container_add(GTK_CONTAINER(sw), share_view);
 	bb = create_button_box();
 	gtk_button_box_set_layout(GTK_BUTTON_BOX(bb), GTK_BUTTONBOX_START);
@@ -92,7 +97,7 @@ void ShareFile::CreateShare()
 	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
 }
 
-void ShareFile::AddShareFiles(GSList * list, uint32_t fileattr)
+void ShareFile::AddSharedFiles(GSList * list)
 {
 	GdkPixbuf *pixbuf1, *pixbuf2;
 	GdkPixbuf *pixbuf;
@@ -106,11 +111,13 @@ void ShareFile::AddShareFiles(GSList * list, uint32_t fileattr)
 		if (Stat((char *)list->data, &st) == -1)
 			continue;
 		ptr = number_to_string(st.st_size);
-		FindInsertPosition((char *)list->data, fileattr, &iter);
+		FindInsertPosition((char *)list->data,
+			    S_ISREG(st.st_mode)?IPMSG_FILE_REGULAR:IPMSG_FILE_DIR, &iter);
 		gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 				   1, (char *)list->data, 2, ptr,
-				   4, (uint32_t) st.st_size, 5, fileattr, -1);
-		if (GET_MODE(fileattr) == IPMSG_FILE_REGULAR)
+				       4, (uint32_t) st.st_size, 5,
+			   S_ISREG(st.st_mode)?IPMSG_FILE_REGULAR:IPMSG_FILE_DIR, -1);
+		if (S_ISREG(st.st_mode))
 			gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 					   0, pixbuf1, 3, _("regular"), -1);
 		else
@@ -138,8 +145,9 @@ void ShareFile::FindInsertPosition(const gchar * path, uint32_t fileattr,
 	}
 	do {
 		gtk_tree_model_get(share_model, iter, 1, &tmp, 5, &attr, -1);
-		if (fileattr == IPMSG_FILE_DIR && attr != IPMSG_FILE_DIR ||
-		    fileattr == attr && strcmp(tmp, path) > 0) {
+		if (GET_MODE(fileattr) == IPMSG_FILE_DIR &&
+			  GET_MODE(attr) != IPMSG_FILE_DIR ||
+		  GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0) {
 			g_free(tmp), sibling = *iter;
 			gtk_list_store_insert_before(GTK_LIST_STORE
 						     (share_model), iter,
@@ -152,7 +160,7 @@ void ShareFile::FindInsertPosition(const gchar * path, uint32_t fileattr,
 }
 
 // 6,0 icon,1 path,2 size,3 type,4 size,5 type
-GtkTreeModel *ShareFile::CreateShareModel()
+GtkTreeModel *ShareFile::CreateSharedModel()
 {
 	extern SendFile sfl;
 	GdkPixbuf *pixbuf1, *pixbuf2;
@@ -193,7 +201,7 @@ GtkTreeModel *ShareFile::CreateShareModel()
 	return GTK_TREE_MODEL(model);
 }
 
-GtkWidget *ShareFile::CreateShareView()
+GtkWidget *ShareFile::CreateSharedView()
 {
 	GtkWidget *view;
 	GtkTreeViewColumn *column;
@@ -248,7 +256,6 @@ void ShareFile::AddRegular(gpointer data)
 {
 	GtkWidget *dialog;
 	GSList *list;
-	char *ev;
 
 	dialog =
 	    gtk_file_chooser_dialog_new(_("Choose shared files"),
@@ -258,12 +265,11 @@ void ShareFile::AddRegular(gpointer data)
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	ev = getenv("HOME");
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), ev);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		((ShareFile *) data)->AddShareFiles(list, IPMSG_FILE_REGULAR);
+		((ShareFile *) data)->AddSharedFiles(list);
 		g_slist_foreach(list, remove_each_info,
 				GINT_TO_POINTER(UNKNOWN));
 		g_slist_free(list);
@@ -275,7 +281,6 @@ void ShareFile::AddFolder(gpointer data)
 {
 	GtkWidget *dialog;
 	GSList *list;
-	char *ev;
 
 	dialog =
 	    gtk_file_chooser_dialog_new(_("Choose shared folders"),
@@ -285,12 +290,11 @@ void ShareFile::AddFolder(gpointer data)
 					GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
 					NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	ev = getenv("HOME");
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), ev);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		((ShareFile *) data)->AddShareFiles(list, IPMSG_FILE_DIR);
+		((ShareFile *) data)->AddSharedFiles(list);
 		g_slist_foreach(list, remove_each_info,
 				GINT_TO_POINTER(UNKNOWN));
 		g_slist_free(list);
@@ -366,4 +370,32 @@ void ShareFile::ShareDestroy(gpointer data)
 {
 	delete(ShareFile *) data;
 	share = NULL;
+}
+
+void ShareFile::DragDataReceived(gpointer data, GdkDragContext * context,
+				  gint x, gint y, GtkSelectionData * select,
+				  guint info, guint time)
+{
+	const char *prl = "file://";
+	char *tmp, *file;
+	ShareFile *sf;
+	GSList *list;
+
+	if (select->length <= 0 || select->format != 8 ||
+	    strcasestr((char *)select->data, prl) == NULL) {
+		gtk_drag_finish(context, FALSE, FALSE, time);
+		return;
+	}
+
+	list = NULL, tmp = (char *)select->data;
+	while (tmp = strcasestr(tmp, prl)) {
+		file = my_getline(tmp + strlen(prl));
+		list = g_slist_append(list, file);
+		tmp += strlen(prl) + strlen(file);
+	}
+	sf = (ShareFile *) data;
+	sf->AddSharedFiles(list);
+	g_slist_foreach(list, remove_each_info, GINT_TO_POINTER(UNKNOWN));
+	g_slist_free(list);
+	gtk_drag_finish(context, TRUE, FALSE, time);
 }

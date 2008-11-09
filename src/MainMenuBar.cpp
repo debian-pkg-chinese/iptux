@@ -48,7 +48,7 @@ void MainMenuBar::CreateFileMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("File(_F)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_File"));
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 
@@ -56,7 +56,7 @@ void MainMenuBar::CreateFileMenu()
 	gtk_widget_show(menu);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Detect(_D)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Detect"));
 	image = gtk_image_new_from_file(__TIP_DIR "/detect.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -68,7 +68,7 @@ void MainMenuBar::CreateFileMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Quit(_Q)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Quit"));
 	image = gtk_image_new_from_file(__TIP_DIR "/out.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate", G_CALLBACK(iptux_quit), NULL);
@@ -82,7 +82,7 @@ void MainMenuBar::CreateToolMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("Tool(_T)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Tools"));
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 
@@ -90,7 +90,7 @@ void MainMenuBar::CreateToolMenu()
 	gtk_widget_show(menu);
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Transport(_T)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Transport"));
 	image = gtk_image_new_from_file(__TIP_DIR "/trans.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -98,7 +98,7 @@ void MainMenuBar::CreateToolMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Setup(_S)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Setup"));
 	image = gtk_image_new_from_file(__TIP_DIR "/setup.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -106,7 +106,7 @@ void MainMenuBar::CreateToolMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Public(_P)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Public"));
 	image = gtk_image_new_from_file(__TIP_DIR "/share.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -114,7 +114,7 @@ void MainMenuBar::CreateToolMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Group(_G)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Group"));
 	image = gtk_image_new_from_file(__TIP_DIR "/net.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
@@ -122,7 +122,7 @@ void MainMenuBar::CreateToolMenu()
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
-	menu_item = gtk_image_menu_item_new_with_mnemonic(_("Update(_F)"));
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Update"));
 	image = gtk_image_new_from_file(__TIP_DIR "/fresh.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate", G_CALLBACK(FreshPalList), NULL);
@@ -136,7 +136,7 @@ void MainMenuBar::CreateHelpMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("Help(_H)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Help"));
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 
@@ -154,23 +154,21 @@ void MainMenuBar::CreateHelpMenu()
 void MainMenuBar::FreshPalList()
 {
 	extern UdpData udt;
+	GtkTreeIter iter;
 	uint8_t count;
 	GSList *tmp;
 
 	pthread_mutex_lock(&udt.mutex);
 	tmp = udt.pallist;
 	while (tmp) {
-		((Pal *) tmp->data)->flags &= ~BIT2;
+		FLAG_CLR(((Pal *) tmp->data)->flags, 1);
 		tmp = tmp->next;
 	}
 	g_queue_clear(udt.msgqueue);
 	pthread_mutex_unlock(&udt.mutex);
 
-	count = 0;
-	while (count <= udt.sumseg) {
-		gtk_list_store_clear(GTK_LIST_STORE(udt.pal_model[count]));
-		count++;
-	}
+	gtk_tree_store_clear(GTK_TREE_STORE(udt.pal_model));
+	udt.InitPalModel();
 
 	thread_create(ThreadFunc(CoreThread::NotifyAll), NULL, FALSE);
 }

@@ -15,7 +15,7 @@
 
 my_file::my_file(bool fg)
 {
-	if (!getcwd(path, MAX_PATH_BUF))
+	if (!getcwd(path, MAX_PATHBUF))
 		path[0] = '\0';
 	flag = fg;
 }
@@ -39,9 +39,9 @@ void my_file::chdir(const char *dir)
 	} else {
 		if (*dir != '/') {
 			len = strlen(path);
-			snprintf(path + len, MAX_PATH_BUF - len, "/%s", dir);
+			snprintf(path + len, MAX_PATHBUF - len, "/%s", dir);
 		} else
-			snprintf(path, MAX_PATH_BUF, "%s", dir);
+			snprintf(path, MAX_PATHBUF, "%s", dir);
 		if (flag)
 			Mkdir(path, 0777);
 	}

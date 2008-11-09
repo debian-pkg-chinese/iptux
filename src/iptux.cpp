@@ -43,7 +43,6 @@ int main(int argc, char *argv[])
 
 	window.CreateWindow();
 	window.CreateAllArea();
-	window.CreateExpanders();
 
 	gtk_main();
 	gdk_threads_leave();

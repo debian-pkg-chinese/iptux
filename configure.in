@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT(configure.in)
 AC_CONFIG_SRCDIR(src/iptux.cpp)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(iptux, 0.3)
+AM_INIT_AUTOMAKE(iptux, 0.4)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -46,12 +46,13 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT8_T
 
 # Checks for library functions.
+AC_FUNC_CLOSEDIR_VOID
 AC_PROG_GCC_TRADITIONAL
 AC_FUNC_MALLOC
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([bzero getcwd gettimeofday inet_ntoa memmove mkdir socket strcasecmp strchr strerror strpbrk strrchr strstr])
+AC_CHECK_FUNCS([bzero getcwd gettimeofday inet_ntoa memmove mkdir socket strcasecmp strchr strerror strncasecmp strpbrk strrchr strstr])
 
 gtk_modules="gtk+-2.0 >= 2.0.0"
 PKG_CHECK_MODULES(GTK, [$gtk_modules])

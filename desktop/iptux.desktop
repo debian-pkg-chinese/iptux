@@ -1,13 +1,12 @@
 [Desktop Entry]
-Version=0.1
 Encoding=UTF-8
 Name=iptux
 Name[zh_CN]=信使(iptux)
-Comment=Send/Receive message
+Comment=Lan communication software
 Comment[zh_CN]=局域网通讯工具
 Exec=iptux
 Terminal=false
 Type=Application
-Icon=tux.png
+Icon=ip-tux
 StartupNotify=true
-Categories=GTK;Application;Network;iptux;
+Categories=GTK;Network;

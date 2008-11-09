@@ -39,7 +39,7 @@ void Command::BroadCast(int sock)
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
-	list = tmp = get_sys_broadcast_addr(sock);
+	list = tmp = get_sys_broadcast_addr();
 	while (tmp) {
 		inet_pton(AF_INET, (char *)tmp->data, &addr.sin_addr);
 		sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -147,7 +147,6 @@ void Command::SendAbsence(int sock, pointer data)
 void Command::SendDetectPacket(int sock, in_addr_t ipv4)
 {
 	extern Control ctr;
-	uint8_t count;
 	SI addr;
 
 	CreateCommand(IPMSG_DIALUPOPT | IPMSG_ABSENCEOPT | IPMSG_BR_ENTRY,
@@ -160,11 +159,7 @@ void Command::SendDetectPacket(int sock, in_addr_t ipv4)
 	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
 	addr.sin_addr.s_addr = ipv4;
 
-	count = 0;
-	while (count < IPMSG_RETRY_TIMES) {
-		sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
-		count++;
-	}
+	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
 //发送消息
@@ -192,7 +187,7 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 		count++;
 	} while (!pal->CheckReply(packetno, false) &&
 		 count < IPMSG_RETRY_TIMES);
-	if (!pal->CheckReply(packetno, false))
+	 if (count >= IPMSG_RETRY_TIMES)
 		pal->BufferInsertText(NULL, ERROR);
 }
 
@@ -284,14 +279,13 @@ bool Command::SendAskFiles(int sock, pointer data, uint32_t packetno,
 	return true;
 }
 
-void Command::SendAskShare(int sock, pointer data)
+void Command::SendAskShared(int sock, pointer data)
 {
-	uint8_t count;
 	Pal *pal;
 	SI addr;
 
 	pal = (Pal *) data;
-	CreateCommand(IPTUX_ASKSHARE, NULL);
+	CreateCommand(IPTUX_ASKSHARED, NULL);
 	TransferEncode(pal->encode);
 
 	bzero(&addr, sizeof(addr));
@@ -302,9 +296,8 @@ void Command::SendAskShare(int sock, pointer data)
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
-void Command::SendShareInfo(int sock, pointer data, const char *extra)
+void Command::SendSharedInfo(int sock, pointer data, const char *extra)
 {
-	uint8_t count;
 	char *ptr;
 	Pal *pal;
 	SI addr;
@@ -324,9 +317,27 @@ void Command::SendShareInfo(int sock, pointer data, const char *extra)
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
+void Command::SendMyIcon(int sock, pointer data)
+{
+	Pal *pal;
+	SI addr;
+
+	pal = (Pal*)data;
+	CreateCommand(IPTUX_SENDICON, NULL);
+	TransferEncode(pal->encode);
+	CreateIconExtra();
+
+	bzero(&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_addr.s_addr = pal->ipv4;
+
+	sendto(sock, buf, size, 0, (SA*)&addr, sizeof(addr));
+}
+
 void Command::CreateCommand(uint32_t command, const char *attach)
 {
-	char *ptr, *ev;
+	char *ptr, *env;
 
 	snprintf(buf, MAX_UDPBUF, "%u", IPMSG_VERSION);
 	size = strlen(buf);
@@ -337,13 +348,13 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 	size += strlen(ptr);
 	ptr = buf + size;
 
-	ev = getenv("USERNAME");
-	snprintf(ptr, MAX_UDPBUF - size, ":%s", ev);
+	env = getenv("USERNAME");
+	snprintf(ptr, MAX_UDPBUF - size, ":%s", env);
 	size += strlen(ptr);
 	ptr = buf + size;
 
-	ev = getenv("HOSTNAME");
-	snprintf(ptr, MAX_UDPBUF - size, ":%s", ev);
+	env = getenv("HOSTNAME");
+	snprintf(ptr, MAX_UDPBUF - size, ":%s", env);
 	size += strlen(ptr);
 	ptr = buf + size;
 
@@ -351,10 +362,7 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 	size += strlen(ptr);
 	ptr = buf + size;
 
-	if (attach)
-		snprintf(ptr, MAX_UDPBUF - size, ":%s", attach);
-	else
-		snprintf(ptr, MAX_UDPBUF - size, ":");
+	snprintf(ptr, MAX_UDPBUF - size, ":%s", attach?attach:"");
 	size += strlen(ptr) + 1;
 }
 
@@ -371,14 +379,14 @@ void Command::TransferEncode(const char *encode)
 void Command::CreateIptuxExtra()
 {
 	extern Control ctr;
-	char *ptr, *ev;
+	char *ptr, *tmp;
 
 	ptr = buf + size;
-	snprintf(ptr, MAX_UDPBUF - size, "%hhu", ctr.myicon);
+	tmp = strrchr(ctr.myicon, '/');
+	snprintf(ptr, MAX_UDPBUF - size, "%s", tmp?tmp+1:ctr.myicon);
 	size += strlen(ptr) + 1;
 	ptr = buf + size;
-	ev = getenv("LANG");
-	snprintf(ptr, MAX_UDPBUF - size, "%s", strchr(ev, '.') + 1);
+	snprintf(ptr, MAX_UDPBUF - size, "UTF-8");
 	size += strlen(ptr) + 1;
 }
 
@@ -391,4 +399,20 @@ void Command::CreateIpmsgExtra(const char *extra)
 	if (tmp = strrchr(ptr, '\a'))
 		*(tmp + 1) = '\0';
 	size += strlen(ptr) + 1;
+}
+
+void Command::CreateIconExtra()
+{
+	char path[MAX_PATHBUF], *env;
+	ssize_t len;
+	int fd;
+
+	env = getenv("HOME");
+	snprintf(path, MAX_PATHBUF, "%s/.iptux/myicon", env);
+	if ((fd = Open(path, O_RDONLY)) == -1)
+		return;
+	len = Read(fd, buf + size, MAX_UDPBUF - size -1);
+	close(fd);
+	if (len != -1)
+		size += len;
 }

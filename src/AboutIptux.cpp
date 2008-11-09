@@ -36,10 +36,6 @@ void AboutIptux::CreateAbout()
 		"Jally\tjallyx@163.com",
 		NULL
 	};
-	const char *documenters[] = {
-		_("LiJinhui"),
-		NULL
-	};
 	const char *artists[] = {
 		"Jally\tjallyx@163.com",
 		NULL
@@ -49,7 +45,7 @@ void AboutIptux::CreateAbout()
 
 	about = gtk_about_dialog_new();
 	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about), _("IpTux"));
-	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about), "0.3");
+	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about), "0.4");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about),
 				       "Copyright @ 2008 Jally");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about),
@@ -59,7 +55,6 @@ void AboutIptux::CreateAbout()
 	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(about), "GPL 2+");
 	gtk_about_dialog_set_authors(GTK_ABOUT_DIALOG(about), authors);
 	gtk_about_dialog_set_artists(GTK_ABOUT_DIALOG(about), artists);
-	gtk_about_dialog_set_documenters(GTK_ABOUT_DIALOG(about), documenters);
 	gtk_about_dialog_set_translator_credits(GTK_ABOUT_DIALOG(about),
 						translators);
 	pixbuf = gdk_pixbuf_new_from_file(__LOGO_DIR "/tux.png", NULL);

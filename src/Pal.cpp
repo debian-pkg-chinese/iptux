@@ -20,7 +20,7 @@
 
  Pal::Pal():ipv4(0), version(NULL),
 packetn(0), user(NULL), host(NULL),
-name(NULL), icon(0), encode(NULL),
+name(NULL), iconfile(NULL),encode(NULL),
 flags(0), dialog(NULL), mypacketn(0), reply(true)
 {
 	extern Control ctr;
@@ -35,6 +35,7 @@ Pal::~Pal()
 	free(user);
 	free(host);
 	free(name);
+	free(iconfile);
 	free(encode);
 
 	g_object_unref(record);
@@ -52,7 +53,7 @@ void Pal::CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans)
 	IptuxGetIcon(msg, size);
 	IptuxGetEncode(msg, size);
 
-	if (trans || !(flags & BIT1))
+	if (trans || !FLAG_ISSET(flags, 0))
 		ptr = transfer_encode(msg, ctr.encode, false);
 	else
 		ptr = Strdup(msg);
@@ -62,7 +63,7 @@ void Pal::CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans)
 	host = iptux_get_section_string(ptr, 3);
 	name = ipmsg_get_attach(ptr, 5);
 	free(ptr);
-	flags |= BIT2;
+	FLAG_SET(flags, 1);
 }
 
 void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
@@ -70,13 +71,14 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 	extern Control ctr;
 	char *ptr;
 
-	if (!(flags & BIT3)) {
+	if (!FLAG_ISSET(flags, 2)) {
+		free(iconfile);
 		IptuxGetIcon(msg, size);
 		free(encode);
 		IptuxGetEncode(msg, size);
 	}
 
-	if (trans || !(flags & BIT1))
+	if (trans || !FLAG_ISSET(flags, 0))
 		ptr = transfer_encode(msg, ctr.encode, false);
 	else
 		ptr = Strdup(msg);
@@ -87,23 +89,25 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 	user = iptux_get_section_string(ptr, 2);
 	free(host);
 	host = iptux_get_section_string(ptr, 3);
-	if (!(flags & BIT3)) {
+	if (!FLAG_ISSET(flags, 2)) {
 		free(name);
 		name = ipmsg_get_attach(ptr, 5);
 	}
 	free(ptr);
-	flags |= BIT2;
+	FLAG_SET(flags, 1);
 }
 
-void Pal::SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter)
+void Pal::SetPalmodelValue(GtkTreeModel *model, GtkTreeIter * iter)
 {
 	GdkPixbuf *pixbuf;
-	char file[MAX_PATH_BUF];
+	char buf[MAX_BUF];
 
-	snprintf(file, MAX_PATH_BUF, __ICON_DIR "/%hhu.png", icon);
-	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-	gtk_list_store_set(GTK_LIST_STORE(model), iter, 0, pixbuf, 1, name, 2,
-			   this, -1);
+	pixbuf = gdk_pixbuf_new_from_file_at_size(iconfile,
+			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+	snprintf(buf, MAX_BUF, "<span font_family=\"PakTypeNaqsh\" "
+			"foreground=\"#52B838\">%s</span>", name);
+	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf,
+			   1, buf, 2, this, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
 }
@@ -150,7 +154,7 @@ bool Pal::RecvMessage(const char *msg)
 	GList *tmp;
 	char *ptr;
 
-	if (!(flags & BIT2))
+	if (!FLAG_ISSET(flags, 1))
 		return false;
 	packetno = iptux_get_dec_number(msg, 1);
 	if (packetno <= packetn)
@@ -163,7 +167,7 @@ bool Pal::RecvMessage(const char *msg)
 
 	BufferInsertText(ptr, PAL);
 	if (!dialog) {
-		tmp = (GList *) UdpData::PalGetMsgPos(this);
+		tmp = (GList *) udt.PalGetMsgPos(this);
 		if (!tmp) {
 			pthread_mutex_lock(&udt.mutex);
 			g_queue_push_tail(udt.msgqueue, this);
@@ -173,11 +177,11 @@ bool Pal::RecvMessage(const char *msg)
 	return true;
 }
 
-bool Pal::RecvAskShare(const char *msg)
+bool Pal::RecvAskShared(const char *msg)
 {
 	uint32_t packetno;
 
-	if (!(flags & BIT2))
+	if (!FLAG_ISSET(flags, 1))
 		return false;
 	packetno = iptux_get_dec_number(msg, 1);
 	if (packetno <= packetn)
@@ -185,6 +189,26 @@ bool Pal::RecvAskShare(const char *msg)
 	packetn = packetno;
 	return true;
 }
+
+bool Pal::RecvIcon(const char *msg, size_t size)
+{
+	char file[MAX_PATHBUF], *env;
+	size_t len;
+	int fd;
+
+	if (FLAG_ISSET(flags, 2) || (len = strlen(msg) + 1) >= size)
+		return FALSE;
+	env = getenv("HOME");
+	snprintf(file, MAX_PATHBUF, "%s/.iptux/%u", env, ipv4);
+	if ((fd = Open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
+			return FALSE;
+	Write(fd, msg + len, size - len);
+	close(fd);
+	free(iconfile);
+	iconfile = Strdup(file);
+	return TRUE;
+}
+
 
 void Pal::RecvReply(const char *msg)
 {
@@ -197,9 +221,9 @@ void Pal::RecvReply(const char *msg)
 
 void Pal::RecvFile(const char *msg, size_t size)
 {
-	struct RECVFILE_PARA *para;
+	struct recvfile_para *para;
 
-	para = (struct RECVFILE_PARA *)Malloc(sizeof(struct RECVFILE_PARA));
+	para = (struct recvfile_para *)Malloc(sizeof(struct recvfile_para));
 	para->data = this;
 	para->msg = Strndup(msg, size + 2);
 	memcpy(para->msg + size, "\0\0", 2);
@@ -215,6 +239,17 @@ void Pal::SendAnsentry()
 	cmd.SendAnsentry(sock, this);
 	close(sock);
 
+}
+
+void Pal::SendMyIcon()
+{
+	extern Control ctr;
+	Command cmd;
+	int sock;
+
+	sock = Socket(PF_INET, SOCK_DGRAM, 0);
+	cmd.SendMyIcon(sock, this);
+	close(sock);
 }
 
 void Pal::SendReply(const char *msg)
@@ -242,18 +277,21 @@ void Pal::SendExit()
 void Pal::IptuxGetIcon(const char *msg, size_t size)
 {
 	extern Control ctr;
-	const char *ptr;
+	char file[MAX_PATHBUF], *ptr;
 	size_t len;
-	int result;
 
 	len = strlen(msg) + 1;
 	if (len < size) {
-		ptr = msg + len;
-		result = sscanf(ptr, "%hhu", &icon);
-		if (result != 1 || icon >= Control::sum_icon)
-			icon = ctr.palicon;
-	} else
-		icon = ctr.palicon;
+		ptr = my_getline(msg + len);
+		snprintf(file, MAX_PATHBUF, __ICON_DIR"/%s", ptr);
+		free(ptr);
+		if (access(file, F_OK) == 0) {
+			iconfile = Strdup(file);
+			return;
+		}
+	}
+
+	iconfile = Strdup(ctr.palicon);
 }
 
 void Pal::IptuxGetEncode(const char *msg, size_t size)
@@ -262,16 +300,9 @@ void Pal::IptuxGetEncode(const char *msg, size_t size)
 	const char *ptr;
 	size_t len;
 
-	len = strlen(msg) + 1;
-	if (len >= size) {
-		flags &= ~BIT1;
-		encode = Strdup(ctr.encode);
-		return;
-	}
-
-	len += strlen(msg + len) + 1;
-	if (len >= size) {
-		flags &= ~BIT1;
+	if ((len = strlen(msg) + 1) >= size ||
+	    (len += strlen(msg+len) + 1) >= size) {
+		FLAG_CLR(flags, 0);
 		encode = Strdup(ctr.encode);
 		return;
 	}
@@ -280,14 +311,10 @@ void Pal::IptuxGetEncode(const char *msg, size_t size)
 	while (*ptr && !isalnum(*ptr))
 		ptr++;
 	if (*ptr) {
-		ptr = strchr(getenv("LANG"), '.') + 1;
-		if (strcasecmp(ptr, "UTF-8") == 0)
-			flags |= BIT1;
-		else
-			flags &= ~BIT1;
+		FLAG_SET(flags, 0);
 		encode = Strdup(ptr);
 	} else {
-		flags &= ~BIT1;
+		FLAG_CLR(flags, 0);
 		encode = Strdup(ctr.encode);
 	}
 }
@@ -298,7 +325,7 @@ void Pal::BufferInsertPal(const char *msg)
 	GtkTextIter iter;
 
 	ptr = (char *)msg;
-	if (!(flags & BIT1)) {
+	if (!FLAG_ISSET(flags, 0)) {
 		pptr = transfer_encode(ptr, encode, false);
 		free(ptr);
 	} else

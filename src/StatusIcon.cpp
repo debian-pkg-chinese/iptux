@@ -11,10 +11,13 @@
 //
 #include "StatusIcon.h"
 #include "StatusiconPopmenu.h"
+#include "CoreThread.h"
 #include "UdpData.h"
 #include "DialogPeer.h"
 #include "MainWindow.h"
 #include "output.h"
+#include "support.h"
+#include "utils.h"
 
  StatusIcon::StatusIcon():status_icon(NULL)
 {
@@ -27,14 +30,14 @@ StatusIcon::~StatusIcon()
 
 void StatusIcon::CreateStatusIcon()
 {
-	extern interactive inter;
+	extern struct interactive inter;
 	GdkPixbuf *pixbuf;
 	GdkScreen *screen;
 
-	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/tux.png",
+	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/ip-tux.png",
 						  20, 20, NULL);
 	if (!pixbuf) {
-		pop_warning(NULL, NULL, "\n%s \"" __LOGO_DIR "/tux.png\" %s",
+		pop_warning(NULL, NULL, "\n%s \"" __LOGO_DIR "/ip-tux.png\" %s",
 			    _("The notify icon"), _("is lost!"));
 		exit(1);
 	}
@@ -50,6 +53,32 @@ void StatusIcon::CreateStatusIcon()
 			 G_CALLBACK(StatusIconActivate), NULL);
 	g_signal_connect(status_icon, "popup-menu",
 			 G_CALLBACK(StatusIconPopMenu), NULL);
+}
+
+void StatusIcon::UpdateTips()
+{
+	extern UdpData udt;
+	extern CoreThread ctd;
+	extern struct interactive inter;
+	GSList *tmp;
+	char *str;
+	guint len;
+
+	pthread_mutex_lock(&udt.mutex);
+	if (len = g_queue_get_length(udt.msgqueue)) {
+		gtk_status_icon_set_blinking(inter.status_icon, TRUE);
+		str = g_strdup_printf(_("There are %u messages!"), len);
+		gtk_status_icon_set_tooltip(inter.status_icon, str);
+	} else {
+		gtk_status_icon_set_blinking(inter.status_icon, FALSE);
+		tmp = get_sys_host_addr();
+		str = get_sys_host_addr_string(tmp);
+		gtk_status_icon_set_tooltip(inter.status_icon, tmp ? str: _("IpTux"));
+		g_slist_foreach(tmp, remove_each_info, GINT_TO_POINTER(UNKNOWN));
+		g_slist_free(tmp);
+	}
+	free(str);
+	pthread_mutex_unlock(&udt.mutex);
 }
 
 void StatusIcon::StatusIconActivate()

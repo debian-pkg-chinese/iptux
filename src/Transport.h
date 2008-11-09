@@ -40,7 +40,7 @@ class Transport {
 	void SendDirFiles(int sock, GtkTreeIter * iter);
 	uint32_t SendData(int sock, int fd, GtkTreeIter * iter,
 			  uint32_t filesize, char *buf);
-	void EndTransportData(int sock, GtkTreeIter * iter,
+	void EndTransportData(int sock, int fd, GtkTreeIter * iter,
 			      const char *pathname);
 	void EndTransportDirFiles(GtkTreeIter * iter, char *filename);
 

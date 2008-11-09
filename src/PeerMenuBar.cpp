@@ -38,7 +38,7 @@ void PeerMenuBar::CreateFileMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("File(_F)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_File"));
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 	gtk_widget_show(menu_item);
 
@@ -60,7 +60,7 @@ void PeerMenuBar::CreateFileMenu()
 
 	menu_item = gtk_menu_item_new_with_label(_("Ask For Shared Files"));
 	g_signal_connect_swapped(menu_item, "activate",
-				 G_CALLBACK(PalviewPopmenu::AskShareFiles),
+				 G_CALLBACK(PalviewPopmenu::AskSharedFiles),
 				 peer->pal);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
@@ -81,7 +81,7 @@ void PeerMenuBar::CreateHelpMenu()
 	GtkWidget *menu;
 	GtkWidget *menu_item;
 
-	menu_item = gtk_menu_item_new_with_mnemonic(_("Help(_H)"));
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Help"));
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
 

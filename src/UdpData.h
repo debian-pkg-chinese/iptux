@@ -17,7 +17,7 @@
 #include "sys.h"
 class StatusIcon;
 class MainWindow;
-class CoreThread;
+class RevisePal;
 class Pal;
 class DialogGroup;
 class IptuxSetup;
@@ -26,8 +26,7 @@ class DialogPeer;
 class PalviewPopmenu;
 
 class UdpData {
- public:
-	static const uint8_t sumseg = 3;
+ private:
 	static const char *localip[];
  public:
 	 UdpData();
@@ -36,14 +35,15 @@ class UdpData {
 	void InitSelf();
 	void UdpDataEntry(in_addr_t ipv4, char *msg, size_t size);
 
-	static gpointer Ipv4GetPal(in_addr_t ipv4);
-	static gpointer Ipv4GetPalPos(in_addr_t ipv4);
-	static gpointer PalGetMsgPos(gpointer data);
-	static GtkTreeModel *Ipv4GetPalModel(in_addr_t ipv4);
-	static bool PalGetModelIter(gpointer pal, GtkTreeModel * model,
+	gpointer Ipv4GetPal(in_addr_t ipv4);
+	gpointer Ipv4GetPalPos(in_addr_t ipv4);
+	gpointer PalGetMsgPos(gpointer data);
+	void Ipv4GetParent(in_addr_t ipv4, GtkTreeIter *iter);
+	bool PalGetModelIter(gpointer pal, GtkTreeIter *parent,
 				    GtkTreeIter * iter);
  private:
 	 GtkTreeModel * CreatePalModel();
+	 void InitPalModel();
 
 	void SomeoneEntry(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneExit(in_addr_t ipv4, char *msg, size_t size);
@@ -51,19 +51,20 @@ class UdpData {
 	void SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneSendmsg(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneRecvmsg(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneAskShare(in_addr_t ipv4, char *msg, size_t size);
+	void SomeoneAskShared(in_addr_t ipv4, char *msg, size_t size);
+	void SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size);
 
-	static void ThreadAskShare(gpointer data);
-	static bool AllowAskShare(gpointer data);
+	static void ThreadAskShared(gpointer data);
+	static bool AllowAskShared(gpointer data);
 
 	GSList *pallist;
 	GQueue *msgqueue;
 	pthread_mutex_t mutex;
-	GtkTreeModel *pal_model[sumseg + 1];
+	GtkTreeModel *pal_model;
  public:
 	 friend class StatusIcon;
 	friend class MainWindow;
-	friend class CoreThread;
+	friend class RevisePal;
 	friend class Pal;
 	friend class DialogGroup;
 	friend class IptuxSetup;
