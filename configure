@@ -706,6 +706,8 @@ GTK_CFLAGS
 GTK_LIBS
 GTHREAD_CFLAGS
 GTHREAD_LIBS
+GCONF_CFLAGS
+GCONF_LIBS
 GETTEXT_PACKAGE
 build
 build_cpu
@@ -749,7 +751,9 @@ PKG_CONFIG
 GTK_CFLAGS
 GTK_LIBS
 GTHREAD_CFLAGS
-GTHREAD_LIBS'
+GTHREAD_LIBS
+GCONF_CFLAGS
+GCONF_LIBS'
 
 
 # Initialize some variables set by options.
@@ -1348,6 +1352,9 @@ Some influential environment variables:
               C compiler flags for GTHREAD, overriding pkg-config
   GTHREAD_LIBS
               linker flags for GTHREAD, overriding pkg-config
+  GCONF_CFLAGS
+              C compiler flags for GCONF, overriding pkg-config
+  GCONF_LIBS  linker flags for GCONF, overriding pkg-config
 
 Use these variables to override the choices made by `configure' or to help
 it to find libraries and programs with nonstandard names/locations.
@@ -4351,10 +4358,10 @@ fi
 { echo "$as_me:$LINENO: result: $MKDIR_P" >&5
 echo "${ECHO_T}$MKDIR_P" >&6; }
 
-CXXFLAGS=-O3
-
-CFLAGS=-O3
-
+#CXXFLAGS=-O3
+#AC_SUBST(CXXFLAGS)
+#CFLAGS=-O3
+#AC_SUBST(CFLAGS)
 
 # Checks for libraries.
 # FIXME: Replace `main' with a function in `-lcairo':
@@ -7074,6 +7081,120 @@ echo "${ECHO_T}yes" >&6; }
 fi
 
 
+gconf_modules="gconf-2.0 >= 2.0.0"
+
+pkg_failed=no
+{ echo "$as_me:$LINENO: checking for GCONF" >&5
+echo $ECHO_N "checking for GCONF... $ECHO_C" >&6; }
+
+if test -n "$PKG_CONFIG"; then
+    if test -n "$GCONF_CFLAGS"; then
+        pkg_cv_GCONF_CFLAGS="$GCONF_CFLAGS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"\$gconf_modules\"") >&5
+  ($PKG_CONFIG --exists --print-errors "$gconf_modules") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_GCONF_CFLAGS=`$PKG_CONFIG --cflags "$gconf_modules" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+if test -n "$PKG_CONFIG"; then
+    if test -n "$GCONF_LIBS"; then
+        pkg_cv_GCONF_LIBS="$GCONF_LIBS"
+    else
+        if test -n "$PKG_CONFIG" && \
+    { (echo "$as_me:$LINENO: \$PKG_CONFIG --exists --print-errors \"\$gconf_modules\"") >&5
+  ($PKG_CONFIG --exists --print-errors "$gconf_modules") 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; then
+  pkg_cv_GCONF_LIBS=`$PKG_CONFIG --libs "$gconf_modules" 2>/dev/null`
+else
+  pkg_failed=yes
+fi
+    fi
+else
+	pkg_failed=untried
+fi
+
+
+
+if test $pkg_failed = yes; then
+
+if $PKG_CONFIG --atleast-pkgconfig-version 0.20; then
+        _pkg_short_errors_supported=yes
+else
+        _pkg_short_errors_supported=no
+fi
+        if test $_pkg_short_errors_supported = yes; then
+	        GCONF_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "$gconf_modules"`
+        else
+	        GCONF_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "$gconf_modules"`
+        fi
+	# Put the nasty error message in config.log where it belongs
+	echo "$GCONF_PKG_ERRORS" >&5
+
+	{ { echo "$as_me:$LINENO: error: Package requirements ($gconf_modules) were not met:
+
+$GCONF_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables GCONF_CFLAGS
+and GCONF_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&5
+echo "$as_me: error: Package requirements ($gconf_modules) were not met:
+
+$GCONF_PKG_ERRORS
+
+Consider adjusting the PKG_CONFIG_PATH environment variable if you
+installed software in a non-standard prefix.
+
+Alternatively, you may set the environment variables GCONF_CFLAGS
+and GCONF_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+" >&2;}
+   { (exit 1); exit 1; }; }
+elif test $pkg_failed = untried; then
+	{ { echo "$as_me:$LINENO: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables GCONF_CFLAGS
+and GCONF_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details." >&5
+echo "$as_me: error: The pkg-config script could not be found or is too old.  Make sure it
+is in your PATH or set the PKG_CONFIG environment variable to the full
+path to pkg-config.
+
+Alternatively, you may set the environment variables GCONF_CFLAGS
+and GCONF_LIBS to avoid the need to call pkg-config.
+See the pkg-config man page for more details.
+
+To get pkg-config, see <http://pkg-config.freedesktop.org/>.
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+	GCONF_CFLAGS=$pkg_cv_GCONF_CFLAGS
+	GCONF_LIBS=$pkg_cv_GCONF_LIBS
+        { echo "$as_me:$LINENO: result: yes" >&5
+echo "${ECHO_T}yes" >&6; }
+	:
+fi
+
+
 GETTEXT_PACKAGE=iptux
 
 
@@ -9427,11 +9548,11 @@ GTK_CFLAGS!$GTK_CFLAGS$ac_delim
 GTK_LIBS!$GTK_LIBS$ac_delim
 GTHREAD_CFLAGS!$GTHREAD_CFLAGS$ac_delim
 GTHREAD_LIBS!$GTHREAD_LIBS$ac_delim
+GCONF_CFLAGS!$GCONF_CFLAGS$ac_delim
+GCONF_LIBS!$GCONF_LIBS$ac_delim
 GETTEXT_PACKAGE!$GETTEXT_PACKAGE$ac_delim
 build!$build$ac_delim
 build_cpu!$build_cpu$ac_delim
-build_vendor!$build_vendor$ac_delim
-build_os!$build_os$ac_delim
 _ACEOF
 
   if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 97; then
@@ -9473,6 +9594,8 @@ _ACEOF
 ac_delim='%!_!# '
 for ac_last_try in false false false false false :; do
   cat >conf$$subs.sed <<_ACEOF
+build_vendor!$build_vendor$ac_delim
+build_os!$build_os$ac_delim
 host!$host$ac_delim
 host_cpu!$host_cpu$ac_delim
 host_vendor!$host_vendor$ac_delim
@@ -9496,7 +9619,7 @@ MKINSTALLDIRS!$MKINSTALLDIRS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 21; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 23; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

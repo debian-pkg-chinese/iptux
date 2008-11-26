@@ -52,10 +52,8 @@ void DetectPal::CreateDetect()
 	frame = create_frame(_("Please input a legal address of IPv4:"));
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(detect)->vbox), frame,
 			   TRUE, TRUE, 0);
-	ipstr =
-	    my_entry::create_entry(NULL,
-				   _("Please input a legal address of IPv4!"),
-				   true);
+	ipstr = my_entry::create_entry(NULL,
+		   _("Please input a legal address of IPv4!"), true);
 	gtk_entry_set_max_length(GTK_ENTRY(ipstr), INET_ADDRSTRLEN);
 	gtk_container_add(GTK_CONTAINER(frame), ipstr);
 	gtk_widget_grab_focus(ipstr);
@@ -68,17 +66,17 @@ void DetectPal::RunDetect()
 	do {
 		result = gtk_dialog_run(GTK_DIALOG(detect));
 		if (result == GTK_RESPONSE_ACCEPT)
-			SendDetect();
+			SendDetectPacket();
 	} while (result == GTK_RESPONSE_ACCEPT);
 	gtk_widget_destroy(detect);
 }
 
-void DetectPal::SendDetect()
+void DetectPal::SendDetectPacket()
 {
+	extern struct interactive inter;
 	const char *text;
 	Command cmd;
 	in_addr_t ipv4;
-	int sock;
 
 	text = gtk_entry_get_text(GTK_ENTRY(ipstr));
 	if (inet_pton(AF_INET, text, &ipv4) <= 0) {
@@ -88,9 +86,7 @@ void DetectPal::SendDetect()
 		return;
 	}
 
-	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	cmd.SendDetectPacket(sock, ipv4);
-	close(sock);
+	cmd.SendDetectPacket(inter.udpsock, ipv4);
 	pop_info(detect, ipstr, _("\nSending a notice to %s is done!"), text);
 	gtk_entry_set_text(GTK_ENTRY(ipstr), "");
 }

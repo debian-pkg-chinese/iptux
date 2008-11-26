@@ -1,7 +1,7 @@
 //
 // C++ Interface: common
 //
-// Description:
+// Description:全局变量、数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -14,13 +14,11 @@
 
 #include "udt.h"
 #include "Control.h"
-#include "CoreThread.h"
 #include "UdpData.h"
 #include "SendFile.h"
 #include "Transport.h"
 
 Control ctr;
-CoreThread ctd;
 UdpData udt;
 SendFile sfl;
 Transport trans;

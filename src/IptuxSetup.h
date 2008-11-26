@@ -1,7 +1,7 @@
 //
 // C++ Interface: IptuxSetup
 //
-// Description:
+// Description:程序功能、数据设置
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -26,15 +26,16 @@ class IptuxSetup {
 	void CreatePerson(GtkWidget * note);
 	void CreateSystem(GtkWidget * note);
 	void CreateIpseg(GtkWidget * note);
-	void CreateButton(GtkWidget * hbb);
+	void CreateFuncButton(GtkWidget * hbb);
 	GtkTreeModel *CreateIpModel();
-	GtkWidget *CreateFolderChooser(const char *folder);
+	GtkWidget *CreateFolderChooser();
+	GtkWidget *CreateFontChooser();
 	GtkWidget *CreateIpsegView();
 	static bool CheckExist();
 
 	GtkTreeModel *icon_model, *ip_model;
 	GtkWidget *myname, *myicon, *save_path;
-	GtkWidget *encode, *palicon, *black, *proof;
+	GtkWidget *encode, *palicon, *font, *black, *proof;
 	GtkWidget *entry1, *entry2;
 	GtkWidget *ipseg_view;
 	static GtkWidget *setup;
@@ -43,7 +44,10 @@ class IptuxSetup {
 	 static GtkWidget *CreateComboBoxWithModel(GtkTreeModel * model, gchar *iconfile);
 	 static gint FileGetItemPos(const char *filename, GtkTreeModel *model);
  private:
-	 static void FreshMyInfo();
+	 static void ObtainPerson(gpointer data);
+	 static void ObtainSystem(gpointer data);
+	 static void ObtainIpseg(gpointer data);
+	 static void UpdateMyInfo();
 //回调处理部分
  public:
 	 static void AddPalIcon(gpointer data);

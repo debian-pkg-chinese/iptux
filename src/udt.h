@@ -12,6 +12,10 @@
 #ifndef UDT_H
 #define UDT_H
 
+#ifdef HAVE_CONFIG_H
+#  include <config.h>
+#endif
+
 #include "sys.h"
 #include "face.h"
 #include "ipmsg.h"
@@ -51,9 +55,9 @@ enum RESULT {
 
 struct interactive {
 	GtkWidget *window;
-	GtkWidget *palsum;
+	GtkWidget *online;
 	GtkStatusIcon *status_icon;
-	int sock;
+	int udpsock, tcpsock;
 };
 
 struct recvfile_para {
@@ -63,7 +67,5 @@ struct recvfile_para {
 
 typedef struct sockaddr SA;
 typedef struct sockaddr_in SI;
-typedef struct sockaddr_in6 SI6;
-typedef struct sockaddr_storage SS;
 
 #endif

@@ -1,7 +1,7 @@
 //
 // C++ Interface: Command
 //
-// Description:
+// Description:创建命令并发送
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008

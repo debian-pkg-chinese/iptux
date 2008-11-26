@@ -1,7 +1,7 @@
 //
 // C++ Interface: DetectPal
 //
-// Description:
+// Description:探测好友
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -23,7 +23,7 @@ class DetectPal {
  private:
 	void CreateDetect();
 	void RunDetect();
-	void SendDetect();
+	void SendDetectPacket();
 	static bool CheckExsit();
 
 	GtkWidget *ipstr;

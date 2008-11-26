@@ -24,7 +24,7 @@
 #define FLAG_SET(num,bit) ((num)|=(1<<(bit)))
 #define FLAG_CLR(num,bit) ((num)&=(~(1<<(bit))))
 
-void delay(time_t sec, long nsec);
+void my_delay(time_t sec, long nsec);
 void little_endian(uint32_t * digit1, uint32_t * digit2);
 char *_iconv(const char *instr, const char *tocode, const char *fromcode);
 char *transfer_encode(const char *instr, const char *encode, bool direc);
@@ -33,7 +33,7 @@ typedef void *(*ThreadFunc) (void *);
 pthread_t thread_create(ThreadFunc func, pointer data, bool joinable);
 char *my_getline(const char *str);
 int strnchr(const char *str, char chr);
-void remove_each_info(pointer data, pointer data1);
+void remove_foreach(pointer data, pointer data1);
 char *getformattime(const char *format, ...);
 char *number_to_string(uint32_t number, bool rate = false);
 

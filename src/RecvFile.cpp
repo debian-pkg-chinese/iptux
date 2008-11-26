@@ -28,9 +28,9 @@ packetn(0), file_model(NULL)
 RecvFile::~RecvFile()
 {
 	free(msg);
-	g_slist_foreach(filelist, remove_each_info, GINT_TO_POINTER(FILEINFO));
+	g_slist_foreach(filelist, remove_foreach, GINT_TO_POINTER(FILEINFO));
 	g_slist_free(filelist);
-	//g_object_unref(file_model); //他处释放
+// 	g_object_unref(file_model); //他处释放
 }
 
 void RecvFile::RecvEntry(gpointer data)
@@ -167,7 +167,7 @@ GtkWidget *RecvFile::CreateRecvView()
 
 	view = gtk_tree_view_new_with_model(file_model);
 	g_signal_connect_swapped(view, "button-press-event",
-				 G_CALLBACK(DialogGroup::ViewPopMenu),
+				 G_CALLBACK(DialogGroup::PopupPickMenu),
 				 file_model);
 	gtk_widget_show(view);
 
@@ -257,8 +257,7 @@ void RecvFile::AddRecvFile(GtkTreeModel * model)
 		}
 		demand = true;
 
-		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model),
-				      &iter2);
+		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model), &iter2);
 		gtk_list_store_set(GTK_LIST_STORE(trans.trans_model), &iter2, 0,
 				   pixbuf, 1, _("receive"), 2, filename, 3,
 				   pal->name, 4, "0B", 5, filestr, 6, "0B/s", 7,

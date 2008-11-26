@@ -1,7 +1,7 @@
 //
 // C++ Interface: RevisePal
 //
-// Description:
+// Description:手动更改好友数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008

@@ -11,12 +11,11 @@
 //
 #include "Control.h"
 #include "my_file.h"
-#include "udt.h"
 #include "utils.h"
 #include "baling.h"
 
  Control::Control():ipseg(NULL), palicon(NULL), myicon(NULL),
-myname(NULL), encode(NULL), path(NULL), flags(0),
+myname(NULL), encode(NULL), path(NULL), font(NULL), flags(0),
 dirty(false), table(NULL), iconlist(NULL), pix(3.4)
 {
 	pthread_mutex_init(&mutex, NULL);
@@ -25,9 +24,9 @@ dirty(false), table(NULL), iconlist(NULL), pix(3.4)
 Control::~Control()
 {
 	pthread_mutex_lock(&mutex);
-	g_slist_foreach(ipseg, remove_each_info, GINT_TO_POINTER(UNKNOWN));
+	g_slist_foreach(ipseg, remove_foreach, GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(ipseg);
-	g_slist_foreach(iconlist, remove_each_info, GINT_TO_POINTER(UNKNOWN));
+	g_slist_foreach(iconlist, remove_foreach, GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(iconlist);
 	pthread_mutex_unlock(&mutex);
 	pthread_mutex_destroy(&mutex);
@@ -37,21 +36,14 @@ Control::~Control()
 	free(myname);
 	free(encode);
 	free(path);
+	free(font);
 
 	g_object_unref(table);
 }
 
 void Control::InitSelf()
 {
-	char file[MAX_PATHBUF], *env;
-
-	env = getenv("HOME");
-	snprintf(file, MAX_PATHBUF, "%s/.iptux/info", env);
-	if (access(file, F_OK) == 0)
-		ReadControl();
-	else
-		CreateControl();
-
+	ReadControl();
 	CreateTagTable();
 	GetSysIcon();
 	GetRatio_PixMm();
@@ -59,119 +51,57 @@ void Control::InitSelf()
 
 void Control::WriteControl()
 {
-	char filebak[MAX_PATHBUF], file[MAX_PATHBUF];
-	FILE *stream;
-	GSList *tmp;
-	char *env;
+	GConfClient *client;
 
-	env = getenv("HOME");
-	snprintf(file, MAX_PATHBUF, "%s/.iptux", env);
-	if (access(file, F_OK) != 0)
-		Mkdir(file, 0777);
+	client = gconf_client_get_default();
+	gconf_client_set_list(client, GCONF_PATH"/scan_ip_section",
+			      GCONF_VALUE_STRING, ipseg, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/pal_icon", palicon, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/self_icon", myicon, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/nick_name", myname, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/net_encode", encode, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/save_path", path, NULL);
+	gconf_client_set_string(client, GCONF_PATH"/panel_font", font, NULL);
+	gconf_client_set_bool(client, GCONF_PATH"/open_blacklist",
+				FLAG_ISSET(flags,1)?TRUE:FALSE, NULL);
+	gconf_client_set_bool(client, GCONF_PATH"/proof_shared",
+				FLAG_ISSET(flags,0)?TRUE:FALSE, NULL);
+	g_object_unref(client);
 
-	snprintf(filebak, MAX_PATHBUF, "%s/.iptux/info~", env);
-	if (!(stream = Fopen(filebak, "w")))
-		return;
-	pthread_mutex_lock(&mutex);
-	fprintf(stream, "sum of ip = %u\n", g_slist_length(ipseg));
-	tmp = ipseg;
-	while (tmp) {
-		fprintf(stream, "ip = %s\n", (char *)tmp->data);
-		tmp = tmp->next;
-	}
-	pthread_mutex_unlock(&mutex);
-	fprintf(stream, "pal icon = %s\n", palicon);
-	fprintf(stream, "self icon = %s\n", myicon);
-	fprintf(stream, "nick name = %s\n", myname);
-	fprintf(stream, "net encode = %s\n", encode);
-	fprintf(stream, "save path = %s\n", path);
-	fprintf(stream, "open blacklist = %s\n", FLAG_ISSET(flags,1)?"true":"false");
-	fprintf(stream, "proof shared = %s\n", FLAG_ISSET(flags,0)?"true":"false");
-	fclose(stream);
-
-	snprintf(file, MAX_PATHBUF, "%s/.iptux/info", env);
-	rename(filebak, file);
 	dirty = false;
-}
-
-void Control::CreateControl()
-{
-	pthread_mutex_lock(&mutex);
-	ipseg = g_slist_append(ipseg, Strdup("10.10.0.0"));
-	ipseg = g_slist_append(ipseg, Strdup("10.10.3.255"));
-	pthread_mutex_unlock(&mutex);
-	palicon = Strdup(__ICON_DIR"/qq.png");
-	myicon = Strdup(__ICON_DIR"/tux.png");
-	myname = Strdup(getenv("USER"));
-	encode = Strdup(_("UTF-8"));
-	path = Strdup(getenv("HOME"));
-	flags = 0;
-
-	dirty = true;
 }
 
 void Control::ReadControl()
 {
-	char file[MAX_PATHBUF];
-	char *buf, *tmp;
-	FILE *stream;
-	guint count, sum;
-	size_t n;
+	GConfClient *client;
 
-	snprintf(file, MAX_PATHBUF, "%s/.iptux/info", getenv("HOME"));
-	if (!(stream = Fopen(file, "r"))) {
-		CreateControl();
-		return;
+	client = gconf_client_get_default();
+	if (!(ipseg = gconf_client_get_list(client, GCONF_PATH"/scan_ip_section",
+				      GCONF_VALUE_STRING, NULL))) {
+		pthread_mutex_lock(&mutex);
+		ipseg = g_slist_append(ipseg, Strdup("10.10.0.0"));
+		ipseg = g_slist_append(ipseg, Strdup("10.10.3.255"));
+		pthread_mutex_unlock(&mutex);
 	}
-	buf = NULL, n = 0;
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	sscanf(tmp, "%u", &sum);
-	pthread_mutex_lock(&mutex);
-	count = 0;
-	while (count < sum) {
-		getline(&buf, &n, stream);
-		tmp = strchr(buf, '=') + 1;
-		ipseg = g_slist_append(ipseg, my_getline(tmp));
-		count++;
-	}
-	pthread_mutex_unlock(&mutex);
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	palicon = my_getline(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	myicon = my_getline(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	myname = my_getline(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	encode = my_getline(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = strchr(buf, '=') + 1;
-	path = my_getline(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = my_getline(strchr(buf, '=') + 1);
-	if (strcasecmp(tmp, "true") == 0)
+	if (!(palicon = gconf_client_get_string(client, GCONF_PATH"/pal_icon", NULL)))
+		palicon = Strdup(__ICON_DIR"/qq.png");
+	if (!(myicon = gconf_client_get_string(client, GCONF_PATH"/self_icon", NULL)))
+		myicon = Strdup(__ICON_DIR"/tux.png");
+	if (!(myname = gconf_client_get_string(client, GCONF_PATH"/nick_name", NULL)))
+		myname = Strdup(getenv("USER"));
+	if (!(encode = gconf_client_get_string(client, GCONF_PATH"/net_encode", NULL)))
+		encode = Strdup(_("UTF-8"));
+	if (!(path = gconf_client_get_string(client, GCONF_PATH"/save_path", NULL)))
+		path = Strdup(getenv("HOME"));
+	if (!(font = gconf_client_get_string(client, GCONF_PATH"/panel_font", NULL)))
+		font = Strdup("Sans Italic 10");
+	if (gconf_client_get_bool(client, GCONF_PATH"/open_blacklist", NULL))
 		FLAG_SET(flags, 1);
-	free(tmp);
-
-	getline(&buf, &n, stream);
-	tmp = my_getline(strchr(buf, '=') + 1);
-	if (strcasecmp(tmp, "true") == 0)
+	if (gconf_client_get_bool(client, GCONF_PATH"/proof_shared", NULL))
 		FLAG_SET(flags, 0);
-	free(tmp);
+	g_object_unref(client);
 
-	free(buf);
-	fclose(stream);
+	dirty = true;
 }
 
 void Control::CreateTagTable()

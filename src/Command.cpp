@@ -28,6 +28,7 @@ Command::~Command()
 //广播
 void Command::BroadCast(int sock)
 {
+	extern struct interactive inter;
 	extern Control ctr;
 	GSList *list, *tmp;
 	SI addr;
@@ -38,15 +39,15 @@ void Command::BroadCast(int sock)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
-	list = tmp = get_sys_broadcast_addr();
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
+	list = tmp = get_sys_broadcast_addr(inter.udpsock);
 	while (tmp) {
 		inet_pton(AF_INET, (char *)tmp->data, &addr.sin_addr);
 		sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
-		delay(0, 9999999);
+		my_delay(0, 9999999);
 		tmp = tmp->next;
 	}
-	g_slist_foreach(list, remove_each_info, GINT_TO_POINTER(UNKNOWN));
+	g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(list);
 }
 
@@ -65,20 +66,20 @@ void Command::DialUp(int sock)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	pthread_mutex_lock(&ctr.mutex);
 	tmp = ctr.ipseg;
 	while (tmp) {
-		inet_pton(AF_INET, (char *)tmp->data, &ip1), ip1 = ntohl(ip1);
-		tmp = tmp->next;
-		inet_pton(AF_INET, (char *)tmp->data, &ip2), ip2 = ntohl(ip2);
-		tmp = tmp->next;
+		inet_pton(AF_INET, (char *)tmp->data, &ip1);
+		ip1 = ntohl(ip1), tmp = tmp->next;
+		inet_pton(AF_INET, (char *)tmp->data, &ip2);
+		ip2 = ntohl(ip2), tmp = tmp->next;
 		little_endian(&ip1, &ip2);
 		ip = ip1;
 		while (ip <= ip2) {
 			addr.sin_addr.s_addr = htonl(ip);
 			sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
-			delay(0, 999999);
+			my_delay(0, 999999);
 			ip++;
 		}
 	}
@@ -99,7 +100,7 @@ void Command::SendAnsentry(int sock, pointer data)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -117,7 +118,7 @@ void Command::SendExit(int sock, pointer data)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -137,7 +138,7 @@ void Command::SendAbsence(int sock, pointer data)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -156,7 +157,7 @@ void Command::SendDetectPacket(int sock, in_addr_t ipv4)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -177,17 +178,17 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	count = 0;
 	do {
 		sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
-		delay(1, 0);
+		my_delay(1, 0);
 		count++;
 	} while (!pal->CheckReply(packetno, false) &&
-		 count < IPMSG_RETRY_TIMES);
-	 if (count >= IPMSG_RETRY_TIMES)
+		 count < MAX_RETRYTIMES);
+	 if (count >= MAX_RETRYTIMES)
 		pal->BufferInsertText(NULL, ERROR);
 }
 
@@ -205,7 +206,7 @@ void Command::SendReply(int sock, pointer data, uint32_t packetno)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -223,7 +224,7 @@ void Command::SendGroupMsg(int sock, pointer data, const char *msg)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -243,7 +244,7 @@ bool Command::SendAskData(int sock, pointer data, uint32_t packetno,
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1)
@@ -268,7 +269,7 @@ bool Command::SendAskFiles(int sock, pointer data, uint32_t packetno,
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1)
@@ -290,7 +291,7 @@ void Command::SendAskShared(int sock, pointer data)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -311,7 +312,7 @@ void Command::SendSharedInfo(int sock, pointer data, const char *extra)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
@@ -329,7 +330,7 @@ void Command::SendMyIcon(int sock, pointer data)
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
 	sendto(sock, buf, size, 0, (SA*)&addr, sizeof(addr));
@@ -339,7 +340,7 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 {
 	char *ptr, *env;
 
-	snprintf(buf, MAX_UDPBUF, "%u", IPMSG_VERSION);
+	snprintf(buf, MAX_UDPBUF, "%s", IPTUX_VERSION);
 	size = strlen(buf);
 	ptr = buf + size;
 

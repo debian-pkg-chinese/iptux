@@ -1,7 +1,7 @@
 //
 // C++ Interface: ShareFile
 //
-// Description:
+// Description:添加或删除共享文件,即管理共享文件
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -34,6 +34,8 @@ class ShareFile {
 	GtkWidget *share_view;
 	GtkTreeModel *share_model;
 	static GtkWidget *share;
+ private:
+	 static void PickFile(uint32_t fileattr, gpointer data);
 //回调处理部分
  private:
 	static void AddRegular(gpointer data);

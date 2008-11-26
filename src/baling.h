@@ -1,7 +1,7 @@
 //
 // C++ Interface: baling
 //
-// Description:
+// Description:打包函数，使某些函数更加好用
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008

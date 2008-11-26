@@ -10,14 +10,13 @@
 //
 //
 #include "Transport.h"
-#include "TransportPopMenu.h"
 #include "Command.h"
 #include "Pal.h"
 #include "my_file.h"
 #include "baling.h"
 #include "utils.h"
 
- Transport::Transport():transport(NULL), trans_view(NULL), trans_model(NULL)
+ Transport::Transport():transport(NULL), trans_view(NULL), trans_model(NULL), flag(0)
 {
 }
 
@@ -91,7 +90,7 @@ void Transport::SendFileEntry(int sock, GtkTreeIter * iter, uint32_t fileattr)
 	}
 }
 
-//传输        15,0 status,1 task,2 filename,3 side,4 finishsize,5 filesize,6 rate,7 progress,
+//传输 15,0 status,1 task,2 filename,3 side,4 finishsize,5 filesize,6 rate,7 progress,
 //      8 terminate,9 packetn,10 fileid,11 size,12 type,13,dst,14 data
 GtkTreeModel *Transport::CreateTransModel()
 {
@@ -123,7 +122,7 @@ void Transport::CreateTransView()
 
 	trans_view = gtk_tree_view_new_with_model(trans_model);
 	g_signal_connect(trans_view, "button-press-event",
-			 G_CALLBACK(ViewPopMenu), trans_model);
+			 G_CALLBACK(PopupControlMenu), this);
 	gtk_widget_show(trans_view);
 
 	column = gtk_tree_view_column_new();
@@ -212,7 +211,7 @@ void Transport::CreateTransDialog()
 	gtk_box_pack_start(GTK_BOX(box), hbb, FALSE, FALSE, 0);
 	button = gtk_button_new_from_stock(GTK_STOCK_CLEAR);
 	gtk_widget_show(button);
-	g_signal_connect(button, "clicked", G_CALLBACK(TidyTask), NULL);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(TidyTask), this);
 	gtk_box_pack_start(GTK_BOX(hbb), button, FALSE, FALSE, 0);
 }
 
@@ -232,7 +231,7 @@ void Transport::RecvFileData(GtkTreeIter * iter)
 			   -1);
 	gdk_threads_leave();
 
-	sock = Socket(PF_INET, SOCK_STREAM, 0);
+	sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	mf.chdir(pathname);
 	fd = mf.open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_LARGEFILE,
 		     00644);
@@ -268,11 +267,12 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 			   10, &fileid, 13, &pathname, 14, &pal, -1);
 	gdk_threads_leave();
 
-	sock = Socket(PF_INET, SOCK_STREAM, 0);
+	sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	mf.chdir(pathname), mf.chdir(dirname);
 	g_free(pathname);
 	if (!cmd.SendAskFiles(sock, pal, packetno, fileid)) {
 		EndTransportData(sock, -1, iter, __TIP_DIR "/error.png");
+		g_free(dirname);
 		return;
 	}
 
@@ -353,8 +353,10 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
  end:	if (result) {
 		EndTransportData(sock, -1, iter, __TIP_DIR "/finish.png");
 		EndTransportDirFiles(iter, dirname);
-	} else
+	} else {
 		EndTransportData(sock, -1, iter, __TIP_DIR "/error.png");
+		g_free(dirname);
+	}
 }
 
 uint32_t Transport::RecvData(int sock, int fd, GtkTreeIter * iter,
@@ -543,9 +545,10 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 		EndTransportDirFiles(iter, dirname);
 	} else {
 		closedir(dir);
-		EndTransportData(-1, -1, iter, __TIP_DIR "/error.png");
 		g_queue_foreach(dir_stack, GFunc(closedir), NULL);
 		g_queue_clear(dir_stack);
+		EndTransportData(-1, -1, iter, __TIP_DIR "/error.png");
+		g_free(dirname);
 	}
 	g_queue_free(dir_stack);
 }
@@ -634,27 +637,32 @@ void Transport::EndTransportDirFiles(GtkTreeIter * iter, char *filename)
 	free(filename);
 }
 
-void Transport::TidyTask()
+GtkWidget *Transport::CreatePopupMenu(gpointer data)
 {
-	extern Transport trans;
-	gboolean status, result;
-	GtkTreeIter iter;
+	GtkWidget *menu, *menu_item;
 
-	if (!gtk_tree_model_get_iter_first(trans.trans_model, &iter))
-		return;
-	do {
- mark:		gtk_tree_model_get(trans.trans_model, &iter, 8, &status,
-				   -1);
-		if (status) {
-			result =
-			    gtk_list_store_remove(GTK_LIST_STORE
-						  (trans.trans_model), &iter);
-			if (result)
-				goto mark;
-			break;
-		}
-	} while (gtk_tree_model_iter_next(trans.trans_model, &iter));
-	gtk_tree_view_columns_autosize(GTK_TREE_VIEW(trans.trans_view));
+	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+
+	menu_item = gtk_menu_item_new_with_label(_("Terminate Job"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(StopTask), data);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Terminate All"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(StopAllTask), data);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Clear Tasklist"));
+	g_signal_connect_swapped(menu_item, "activate",
+			 G_CALLBACK(Transport::TidyTask), data);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	return menu;
 }
 
 void Transport::DestroyDialog()
@@ -665,21 +673,62 @@ void Transport::DestroyDialog()
 	trans.trans_view = NULL;
 }
 
-gboolean Transport::ViewPopMenu(GtkWidget * view, GdkEventButton * event,
-				GtkTreeModel * model)
+gboolean Transport::PopupControlMenu(GtkWidget * view, GdkEventButton * event,
+				gpointer data)
 {
-	TransportPopMenu tp;
+	GtkTreePath *path;
 
 	if (event->button != 3)
 		return FALSE;
-	if (!gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(view), GINT(event->x),
-					   GINT(event->y),
-					   &TransportPopMenu::path, NULL, NULL,
-					   NULL))
-		TransportPopMenu::path = NULL;
-	tp.CreatePopMenu(model);
-	gtk_menu_popup(GTK_MENU(tp.menu), NULL, NULL, NULL, NULL,
+	if (gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(view), GINT(event->x),
+			   GINT(event->y), &path, NULL, NULL, NULL)) {
+		((Transport*)data)->flag = true;
+		gtk_tree_model_get_iter(((Transport*)data)->trans_model,
+					  &((Transport*)data)->opt_iter, path);
+		gtk_tree_path_free(path);
+	} else
+		((Transport*)data)->flag = false;
+	gtk_menu_popup(GTK_MENU(CreatePopupMenu(data)), NULL, NULL, NULL, NULL,
 		       event->button, event->time);
 
 	return TRUE;
+}
+
+void Transport::StopTask(gpointer data)
+{
+	if (!((Transport*)data)->flag)
+		return;
+	gtk_list_store_set(GTK_LIST_STORE(((Transport*)data)->trans_model),
+			   &((Transport*)data)->opt_iter, 8, TRUE, -1);
+}
+
+void Transport::StopAllTask(gpointer data)
+{
+	GtkTreeIter iter;
+
+	if (!gtk_tree_model_get_iter_first(((Transport*)data)->trans_model, &iter))
+		return;
+	do {
+		gtk_list_store_set(GTK_LIST_STORE(((Transport*)data)->trans_model), &iter, 8, TRUE, -1);
+	} while (gtk_tree_model_iter_next(((Transport*)data)->trans_model, &iter));
+}
+
+void Transport::TidyTask(gpointer data)
+{
+	gboolean status, result;
+	GtkTreeIter iter;
+
+	if (!gtk_tree_model_get_iter_first(((Transport*)data)->trans_model, &iter))
+		return;
+	do {
+mark:		gtk_tree_model_get(((Transport*)data)->trans_model, &iter, 8, &status, -1);
+		if (status) {
+			result = gtk_list_store_remove(GTK_LIST_STORE
+					(((Transport*)data)->trans_model), &iter);
+			if (result)
+				goto mark;
+			break;
+		}
+	} while (gtk_tree_model_iter_next(((Transport*)data)->trans_model, &iter));
+	gtk_tree_view_columns_autosize(GTK_TREE_VIEW(((Transport*)data)->trans_view));
 }

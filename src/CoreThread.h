@@ -1,7 +1,7 @@
 //
 // C++ Interface: CoreThread
 //
-// Description:
+// Description:程序中的核心线程
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -25,9 +25,7 @@ class CoreThread {
 	static void WatchIptux();
 	static void Synchronism();
 
-	int tcpsock;
-	int udpsock;
-	static bool udp_server;
+	static bool server;
 };
 
 #endif

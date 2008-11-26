@@ -18,10 +18,11 @@
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
 #include "common.h"
-#include "utils.h"
-#include "support.h"
 #include "MainWindow.h"
 #include "StatusIcon.h"
+#include "CoreThread.h"
+#include "support.h"
+#include "utils.h"
 
 int main(int argc, char *argv[])
 {

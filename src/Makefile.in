@@ -50,13 +50,9 @@ PROGRAMS = $(bin_PROGRAMS)
 am_iptux_OBJECTS = AboutIptux.$(OBJEXT) Command.$(OBJEXT) \
 	Control.$(OBJEXT) CoreThread.$(OBJEXT) DetectPal.$(OBJEXT) \
 	DialogGroup.$(OBJEXT) DialogPeer.$(OBJEXT) \
-	GroupMenuBar.$(OBJEXT) IptuxSetup.$(OBJEXT) \
-	MainMenuBar.$(OBJEXT) MainWindow.$(OBJEXT) Pal.$(OBJEXT) \
-	PalviewPopmenu.$(OBJEXT) PeerMenuBar.$(OBJEXT) \
+	IptuxSetup.$(OBJEXT) MainWindow.$(OBJEXT) Pal.$(OBJEXT) \
 	RecvFile.$(OBJEXT) RevisePal.$(OBJEXT) SendFile.$(OBJEXT) \
-	ShareFile.$(OBJEXT) StatusIcon.$(OBJEXT) \
-	StatusiconPopmenu.$(OBJEXT) Transport.$(OBJEXT) \
-	TransportPopMenu.$(OBJEXT) TreeviewPopmenu.$(OBJEXT) \
+	ShareFile.$(OBJEXT) StatusIcon.$(OBJEXT) Transport.$(OBJEXT) \
 	UdpData.$(OBJEXT) baling.$(OBJEXT) iptux.$(OBJEXT) \
 	my_chooser.$(OBJEXT) my_entry.$(OBJEXT) my_file.$(OBJEXT) \
 	output.$(OBJEXT) support.$(OBJEXT) utils.$(OBJEXT)
@@ -104,6 +100,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+GCONF_CFLAGS = @GCONF_CFLAGS@
+GCONF_LIBS = @GCONF_LIBS@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
@@ -200,11 +198,10 @@ target_alias = @target_alias@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 iptux_SOURCES = AboutIptux.cpp Command.cpp Control.cpp CoreThread.cpp \
-	DetectPal.cpp DialogGroup.cpp DialogPeer.cpp GroupMenuBar.cpp IptuxSetup.cpp \
-	MainMenuBar.cpp MainWindow.cpp Pal.cpp PalviewPopmenu.cpp PeerMenuBar.cpp RecvFile.cpp \
-	RevisePal.cpp SendFile.cpp ShareFile.cpp StatusIcon.cpp StatusiconPopmenu.cpp \
-	Transport.cpp TransportPopMenu.cpp TreeviewPopmenu.cpp UdpData.cpp baling.cpp \
-	iptux.cpp my_chooser.cpp my_entry.cpp my_file.cpp output.cpp support.cpp utils.cpp
+	DetectPal.cpp DialogGroup.cpp DialogPeer.cpp IptuxSetup.cpp MainWindow.cpp Pal.cpp \
+	RecvFile.cpp RevisePal.cpp SendFile.cpp ShareFile.cpp StatusIcon.cpp Transport.cpp \
+	UdpData.cpp baling.cpp iptux.cpp my_chooser.cpp my_entry.cpp my_file.cpp output.cpp \
+	support.cpp utils.cpp
 
 
 # set the include path found by configure
@@ -212,6 +209,7 @@ iptux_SOURCES = AboutIptux.cpp Command.cpp Control.cpp CoreThread.cpp \
 INCLUDES = $(all_includes) \
 	@GTK_CFLAGS@ \
 	@GTHREAD_CFLAGS@ \
+	@GCONF_CFLAGS@ \
 	-DGETTEXT_PACKAGE=\""@GETTEXT_PACKAGE@"\" \
 	-D__LOCALE_DIR=\""$(datadir)/locale"\" \
 	-D__LOGO_DIR=\""$(datadir)/pixmaps"\" \
@@ -225,14 +223,13 @@ INCLUDES = $(all_includes) \
 
 
 # the library search path.
-iptux_LDADD = @GTK_LIBS@ @GTHREAD_LIBS@ $(INTLLIBS)
+iptux_LDADD = @GTK_LIBS@ @GTHREAD_LIBS@ @GCONF_LIBS@ $(INTLLIBS)
 iptux_LDFLAGS = $(all_libraries)
 noinst_HEADERS = AboutIptux.h Command.h Control.h CoreThread.h DetectPal.h \
-	DialogGroup.h DialogPeer.h GroupMenuBar.h IptuxSetup.h MainMenuBar.h MainWindow.h \
-	Pal.h PalviewPopmenu.h PeerMenuBar.h RecvFile.h RevisePal.h SendFile.h \
-	ShareFile.h StatusIcon.h StatusiconPopmenu.h Transport.h TransportPopMenu.h \
-	TreeviewPopmenu.h UdpData.h baling.h common.h face.h ipmsg.h my_chooser.h \
-	my_entry.h my_file.h net.h output.h support.h sys.h udt.h utils.h
+	DialogGroup.h DialogPeer.h IptuxSetup.h MainWindow.h Pal.h RecvFile.h RevisePal.h \
+	SendFile.h ShareFile.h StatusIcon.h Transport.h UdpData.h baling.h common.h face.h \
+	ipmsg.h my_chooser.h my_entry.h my_file.h net.h output.h support.h sys.h udt.h \
+	utils.h
 
 all: all-am
 
@@ -307,22 +304,15 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DetectPal.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DialogGroup.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/DialogPeer.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GroupMenuBar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/IptuxSetup.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MainMenuBar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/MainWindow.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Pal.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PalviewPopmenu.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/PeerMenuBar.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RecvFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/RevisePal.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SendFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ShareFile.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StatusIcon.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/StatusiconPopmenu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Transport.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TransportPopMenu.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/TreeviewPopmenu.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/UdpData.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/baling.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iptux.Po@am__quote@

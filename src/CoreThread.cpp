@@ -11,26 +11,28 @@
 //
 #include "CoreThread.h"
 #include "MainWindow.h"
-#include "Control.h"
-#include "UdpData.h"
-#include "SendFile.h"
-#include "Command.h"
 #include "StatusIcon.h"
+#include "Control.h"
+#include "SendFile.h"
+#include "UdpData.h"
+#include "Command.h"
 #include "baling.h"
 #include "output.h"
 #include "support.h"
 #include "utils.h"
 
-bool CoreThread::udp_server = false;
- CoreThread::CoreThread():tcpsock(-1), udpsock(-1)
+bool CoreThread::server = false;
+ CoreThread::CoreThread()
 {
 }
 
 CoreThread::~CoreThread()
 {
-	udp_server = false;
-	shutdown(tcpsock, SHUT_RDWR);
-	shutdown(udpsock, SHUT_RDWR);
+	extern struct interactive inter;
+
+	server = false;
+	shutdown(inter.udpsock, SHUT_RDWR);
+	shutdown(inter.tcpsock, SHUT_RDWR);
 }
 
 void CoreThread::CoreThreadEntry()
@@ -44,49 +46,39 @@ void CoreThread::CoreThreadEntry()
 
 void CoreThread::NotifyAll()
 {
+	extern struct interactive inter;
 	Command cmd;
-	int sock, optval;
-	socklen_t len;
 
-	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	optval = 1;
-	len = sizeof(optval);
-	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, len);
-
-	cmd.BroadCast(sock);
-	cmd.DialUp(sock);
-
-	close(sock);
+	cmd.BroadCast(inter.udpsock);
+	cmd.DialUp(inter.udpsock);
 }
 
 void CoreThread::RecvUdp()
 {
 	extern struct interactive inter;
-	extern CoreThread ctd;
 	extern UdpData udt;
 	char buf[MAX_UDPBUF];
 	int sock, status;
-	ssize_t size;
 	socklen_t len;
+	ssize_t size;
 	SI addr;
 
-	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	inter.sock = ctd.udpsock = sock;
+	inter.udpsock = sock = Socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
+	socket_enable_broadcast(sock);
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	status = bind(sock, (SA *) & addr, sizeof(addr));
 	if (status == -1)
 		pwarning(Quit, _("act: bind the UDP port(2425),warning: %s\n"),
 			 strerror(errno));
-	udp_server = true;
+	server = true;
 
-	while (udp_server) {
+	while (server) {
 		len = sizeof(addr);
-		if ((size =
-		     recvfrom(sock, buf, MAX_UDPBUF, 0, (SA *) & addr,
-			      &len)) == -1)
+		if ((size = recvfrom(sock, buf, MAX_UDPBUF, 0,
+					(SA *) & addr, &len)) == -1)
 			continue;
 		buf[size] = '\0';
 		udt.UdpDataEntry(addr.sin_addr.s_addr, buf, size);
@@ -96,15 +88,14 @@ void CoreThread::RecvUdp()
 
 void CoreThread::RecvTcp()
 {
-	extern CoreThread ctd;
+	extern struct interactive inter;
 	int sock, subsock, status;
 	SI addr;
 
-	sock = Socket(PF_INET, SOCK_STREAM, 0);
-	ctd.tcpsock = sock;
+	inter.tcpsock = sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
-	addr.sin_port = htons(IPMSG_DEFAULT_PORT);
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	status = bind(sock, (SA *) & addr, sizeof(addr));
 	if (status == -1)
@@ -113,10 +104,10 @@ void CoreThread::RecvTcp()
 	listen(sock, 5);
 	Synchronism();
 
-	while (udp_server) {
+	while (server) {
 		if ((subsock = Accept(sock, NULL, NULL)) == -1)
 			continue;
-		thread_create(ThreadFunc(SendFile::TcpDataEntry),
+		thread_create(ThreadFunc(SendFile::RequestEntry),
 			      GINT_TO_POINTER(subsock), FALSE);
 	}
 }
@@ -127,8 +118,8 @@ void CoreThread::WatchIptux()
 	extern SendFile sfl;
 
 	Synchronism();
-	while (udp_server) {
-		delay(1, 0);
+	while (server) {
+		my_delay(1, 0);
 		gdk_threads_enter();
 		StatusIcon::UpdateTips();
 		MainWindow::UpdateTips();
@@ -142,6 +133,6 @@ void CoreThread::WatchIptux()
 
 void CoreThread::Synchronism()
 {
-	while (!udp_server)
-		delay(0, 999999);
+	while (!server)
+		my_delay(0, 999999);
 }
