@@ -36,7 +36,7 @@ const char *UdpData::localip[] = {
 UdpData::~UdpData()
 {
 	pthread_mutex_lock(&mutex);
-	g_slist_foreach(pallist, remove_each_info, GINT_TO_POINTER(PALINFO));
+	g_slist_foreach(pallist, remove_foreach, GINT_TO_POINTER(PALINFO));
 	g_slist_free(pallist);
 	g_queue_clear(msgqueue);
 	g_queue_free(msgqueue);
@@ -189,7 +189,7 @@ bool UdpData::PalGetModelIter(gpointer pal, GtkTreeIter *parent,
 		return false;
 
 	do {
-		gtk_tree_model_get(udt.pal_model, iter, 2, &data, -1);
+		gtk_tree_model_get(udt.pal_model, iter, 7, &data, -1);
 		if (pal == data)
 			return true;
 	} while (gtk_tree_model_iter_next(udt.pal_model, iter));
@@ -197,13 +197,14 @@ bool UdpData::PalGetModelIter(gpointer pal, GtkTreeIter *parent,
 	return false;
 }
 
-//面板 4,0 pixbuf,1 nickname,2 data,3 expand
+//Panel 8,0 pixbuf,1 expand,2 nickname,3 font,4 visible,5 markup,6 visible,7 data/last
 GtkTreeModel *UdpData::CreatePalModel()
 {
 	GtkTreeStore *model;
 
-	model = gtk_tree_store_new(4, GDK_TYPE_PIXBUF, G_TYPE_STRING,
-		   G_TYPE_POINTER, G_TYPE_BOOLEAN);
+	model = gtk_tree_store_new(8, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN,
+			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
+			G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_POINTER);
 
 	return GTK_TREE_MODEL(model);
 }
@@ -226,12 +227,31 @@ void UdpData::InitPalModel()
 		snprintf(buf, MAX_BUF, "<span style=\"italic\" underline=\"single\" size=\"small\" "
 				"foreground=\"#52B838\" weight=\"bold\">%s</span>", ipstr);
 		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, NULL);
-		gtk_tree_store_set(GTK_TREE_STORE(pal_model), &iter, 0, pixbuf,
-				   1, buf, 2, NULL, 3, FALSE, -1);
+		gtk_tree_store_set(GTK_TREE_STORE(pal_model), &iter, 0, pixbuf, 1, FALSE,
+				  4, FALSE, 5, buf, 6, TRUE, 7, NULL, -1);
 		if (!localip[(count << 1) + 1])
 			break;
 		count++;
 	}
+}
+
+void UdpData::SomeoneLost(in_addr_t ipv4, char *msg, size_t size)
+{
+	extern Control ctr;
+	Pal *pal;
+
+	pal = new Pal;
+	pthread_mutex_lock(&mutex);
+	pallist = g_slist_append(pallist, pal);
+	pthread_mutex_unlock(&mutex);
+
+	pal->ipv4 = ipv4;
+	pal->iconfile = Strdup(ctr.palicon);
+	pal->encode = Strdup(ctr.encode);
+	pal->name = Strdup(_("mysterious"));
+	FLAG_SET(pal->flags, 2);
+
+	SomeoneAbsence(ipv4, msg, size);
 }
 
 void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
@@ -273,8 +293,8 @@ void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
 	if (!tmp1)
 		return;
 
-	Ipv4GetParent(ipv4, &parent);
 	gdk_threads_enter();
+	Ipv4GetParent(ipv4, &parent);
 	if (PalGetModelIter(tmp1->data, &parent, &iter))
 		gtk_tree_store_remove(GTK_TREE_STORE(pal_model), &iter);
 	gdk_threads_leave();
@@ -290,6 +310,17 @@ void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
 void UdpData::SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size)
 {
 	extern Control ctr;
+	Pal *pal;
+
+	SomeoneAbsence(ipv4, msg, size);
+	if (!(pal = (Pal *) Ipv4GetPal(ipv4)))
+		return;
+	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR)))
+		pal->SendMyIcon();
+}
+
+void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
+{
 	GtkTreeIter iter, parent;
 	Pal *pal;
 
@@ -311,13 +342,6 @@ void UdpData::SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size)
 	}
 	pal->SetPalmodelValue(pal_model, &iter);
 	gdk_threads_leave();
-	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR)))
-		pal->SendMyIcon();
-}
-
-void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
-{
-	SomeoneAnsentry(ipv4, msg, size);
 }
 
 void UdpData::SomeoneSendmsg(in_addr_t ipv4, char *msg, size_t size)
@@ -326,18 +350,19 @@ void UdpData::SomeoneSendmsg(in_addr_t ipv4, char *msg, size_t size)
 	bool flag;
 	Pal *pal;
 
- mark:	pal = (Pal *) Ipv4GetPal(ipv4);
+	pal = (Pal *) Ipv4GetPal(ipv4);
 	if (!pal) {
-		SomeoneAnsentry(ipv4, msg, size);
-		goto mark;
+		SomeoneLost(ipv4, msg, size);
+		if (!(pal = (Pal *) Ipv4GetPal(ipv4)))
+			return;
 	}
 
 	flag = pal->RecvMessage(msg);
 
 	commandno = iptux_get_dec_number(msg, 4);
-	if (GET_OPT(commandno) == IPMSG_SENDCHECKOPT)
+	if (commandno & IPMSG_SENDCHECKOPT)
 		pal->SendReply(msg);
-	if (flag && GET_OPT(commandno) == IPMSG_FILEATTACHOPT)
+	if (flag && (commandno & IPMSG_FILEATTACHOPT))
 		pal->RecvFile(msg, size);
 }
 
@@ -345,11 +370,9 @@ void UdpData::SomeoneRecvmsg(in_addr_t ipv4, char *msg, size_t size)
 {
 	Pal *pal;
 
- mark:	pal = (Pal *) Ipv4GetPal(ipv4);
-	if (!pal) {
-		SomeoneAnsentry(ipv4, msg, size);
-		goto mark;
-	}
+	pal = (Pal *) Ipv4GetPal(ipv4);
+	if (!pal)
+		return;
 
 	pal->RecvReply(msg);
 }
@@ -377,8 +400,8 @@ void UdpData::SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size)
 	if (!pal)
 		return;
 
-	gdk_threads_enter();
 	flag = pal->RecvIcon(msg, size);
+	gdk_threads_enter();
 	if (flag) {
 		Ipv4GetParent(ipv4, &parent);
 		PalGetModelIter(pal, &parent, &iter);
@@ -393,7 +416,7 @@ void UdpData::ThreadAskShared(gpointer data)
 	extern SendFile sfl;
 
 	if (!FLAG_ISSET(ctr.flags, 0) || AllowAskShared(data))
-		sfl.SendSharedFiles(data);
+		sfl.SendShared(data);
 }
 
 bool UdpData::AllowAskShared(gpointer data)
@@ -406,12 +429,10 @@ bool UdpData::AllowAskShared(gpointer data)
 
 	gdk_threads_enter();
 	dialog = gtk_dialog_new_with_buttons(_("Request for shared resources"),
-					     GTK_WINDOW(inter.window),
-					     GTK_DIALOG_MODAL, _("Agree"),
-					     GTK_RESPONSE_ACCEPT, _("Refuse"),
-					     GTK_RESPONSE_CANCEL, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
-					GTK_RESPONSE_ACCEPT);
+			     GTK_WINDOW(inter.window), GTK_DIALOG_MODAL,
+			     _("Agree"), GTK_RESPONSE_ACCEPT,
+			     _("Refuse"), GTK_RESPONSE_CANCEL, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
 
 	box = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE,
@@ -434,7 +455,7 @@ bool UdpData::AllowAskShared(gpointer data)
 	gtk_label_set_line_wrap_mode(GTK_LABEL(label), PANGO_WRAP_WORD_CHAR);
 	gtk_box_pack_start(GTK_BOX(box), label, TRUE, TRUE, 4);
 
-	result = gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT;
+	result = (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT);
 	gtk_widget_destroy(dialog);
 	gdk_threads_leave();
 

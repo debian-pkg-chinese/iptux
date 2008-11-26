@@ -1,7 +1,7 @@
 //
 // C++ Interface: Pal
 //
-// Description:
+// Description:好友相关数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -23,8 +23,6 @@ class RecvFile;
 class SendFile;
 class Transport;
 class DialogPeer;
-class MainMenuBar;
-class PalviewPopmenu;
 
 //对自己而言操作
 class Pal {
@@ -49,8 +47,8 @@ class Pal {
 	void SendReply(const char *msg);
 	void SendExit();
  private:
-	void IptuxGetIcon(const char *msg, size_t size);
-	void IptuxGetEncode(const char *msg, size_t size);
+	bool IptuxGetIcon(const char *msg, size_t size);
+	bool IptuxGetEncode(const char *msg, size_t size);
 	void BufferInsertPal(const char *msg);
 	void BufferInsertSelf(const char *attach);
 	void BufferInsertError();
@@ -80,8 +78,6 @@ class Pal {
 	friend class SendFile;
 	friend class Transport;
 	friend class DialogPeer;
-	friend class MainMenuBar;
-	friend class PalviewPopmenu;
 };
 
 #endif

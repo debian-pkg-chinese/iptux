@@ -16,6 +16,7 @@
 #include "Transport.h"
 #include "baling.h"
 #include "output.h"
+#include "utils.h"
 
 void iptux_init()
 {
@@ -68,22 +69,40 @@ void update_widget_bg(GtkWidget * widget, const gchar * file)
 	g_object_unref(style);
 }
 
-GSList *get_sys_broadcast_addr()
+void create_icon_folder()
+{
+	char path[MAX_PATHBUF];
+
+	snprintf(path, MAX_PATHBUF, "%s/.iptux", getenv("HOME"));
+	if (access(path, F_OK) != 0)
+		Mkdir(path, 0777);
+}
+
+void socket_enable_broadcast(int sock)
+{
+	socklen_t len;
+	int optval;
+
+	optval = 1;
+	len = sizeof(optval);
+	setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &optval, len);
+}
+
+GSList *get_sys_broadcast_addr(int sock)
 {
 	const uint8_t amount = 5;
-	extern struct interactive inter;
 	char buf[INET_ADDRSTRLEN];
+	uint8_t count, sum;
 	struct ifconf ifc;
 	struct ifreq *ifr;
 	SI *addr;
 	GSList *list;
-	uint8_t count, sum;
 	int status;
 
 	list = g_slist_append(NULL, Strdup("255.255.255.255"));
 	ifc.ifc_len = amount * sizeof(struct ifreq);
 	ifc.ifc_buf = (caddr_t) Malloc(ifc.ifc_len);
-	status = ioctl(inter.sock, SIOCGIFCONF, &ifc);
+	status = ioctl(sock, SIOCGIFCONF, &ifc);
 	if (status == -1)
 		return list;
 	sum = ifc.ifc_len / sizeof(struct ifreq);
@@ -92,10 +111,10 @@ GSList *get_sys_broadcast_addr()
 		ifr = ifc.ifc_req + count;
 		count++;
 
-		status = ioctl(inter.sock, SIOCGIFFLAGS, ifr);
+		status = ioctl(sock, SIOCGIFFLAGS, ifr);
 		if (status == -1 || !(ifr->ifr_flags & IFF_BROADCAST))
 			continue;
-		status = ioctl(inter.sock, SIOCGIFBRDADDR, ifr);
+		status = ioctl(sock, SIOCGIFBRDADDR, ifr);
 		if (status == -1)
 			continue;
 		addr = (SI *) & ifr->ifr_broadaddr;
@@ -106,22 +125,21 @@ GSList *get_sys_broadcast_addr()
 	return list;
 }
 
-GSList *get_sys_host_addr()
+GSList *get_sys_host_addr(int sock)
 {
 	const uint8_t amount = 5;
-	extern struct interactive inter;
 	char buf[INET_ADDRSTRLEN];
+	uint8_t count, sum;
 	struct ifconf ifc;
 	struct ifreq *ifr;
 	SI *addr;
 	GSList *list;
-	uint8_t count, sum;
 	int status;
 
 	list = NULL;
 	ifc.ifc_len = amount * sizeof(struct ifreq);
 	ifc.ifc_buf = (caddr_t) Malloc(ifc.ifc_len);
-	status = ioctl(inter.sock, SIOCGIFCONF, &ifc);
+	status = ioctl(sock, SIOCGIFCONF, &ifc);
 	if (status == -1)
 		return list;
 	sum = ifc.ifc_len / sizeof(struct ifreq);
@@ -132,10 +150,10 @@ GSList *get_sys_host_addr()
 
 		if (strncasecmp(ifr->ifr_name,"lo",2) == 0)
 			continue;
-		status = ioctl(inter.sock, SIOCGIFFLAGS, ifr);
+		status = ioctl(sock, SIOCGIFFLAGS, ifr);
 		if (status == -1 || !(ifr->ifr_flags & IFF_UP))
 			continue;
-		status = ioctl(inter.sock, SIOCGIFADDR, ifr);
+		status = ioctl(sock, SIOCGIFADDR, ifr);
 		if (status == -1)
 			continue;
 		addr = (SI *) & ifr->ifr_broadaddr;
@@ -146,18 +164,18 @@ GSList *get_sys_host_addr()
 	return list;
 }
 
-char *get_sys_host_addr_string(GSList *ip_list)
+char *get_sys_host_addr_string(int sock)
 {
 	char *ipstr,*ptr;
-	GSList *tmp;
+	GSList *list, *tmp;
 	uint8_t sum;
 
-	if (!ip_list)
+	tmp = list = get_sys_host_addr(sock);
+	if (!list)
 		return NULL;
 
-	sum = g_slist_length(ip_list);
+	sum = g_slist_length(list);
 	ipstr = ptr = (char*)Malloc(sum*INET_ADDRSTRLEN);
-	tmp = ip_list;
 	while (tmp) {
 		strcpy(ptr, (char*)tmp->data);
 		ptr += strlen(ptr) + 1;
@@ -165,6 +183,9 @@ char *get_sys_host_addr_string(GSList *ip_list)
 		tmp = tmp->next;
 	}
 	*(ptr-1) = '\0';
+
+	g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
+	g_slist_free(list);
 
 	return ipstr;
 }

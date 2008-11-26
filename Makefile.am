@@ -4,4 +4,4 @@ AUTOMAKE_OPTIONS = foreign 1.4
 
 SUBDIRS = src desktop icons po
 
-EXTRA_DIST = Makefile.cvs
+EXTRA_DIST = Makefile.cvs protocol

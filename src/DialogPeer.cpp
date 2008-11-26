@@ -10,12 +10,14 @@
 //
 //
 #include "DialogPeer.h"
-#include "PeerMenuBar.h"
 #include "SendFile.h"
+#include "AboutIptux.h"
+#include "MainWindow.h"
 #include "UdpData.h"
 #include "Control.h"
 #include "Command.h"
 #include "baling.h"
+#include "support.h"
 #include "output.h"
 #include "utils.h"
 
@@ -70,14 +72,12 @@ void DialogPeer::CreateDialog()
 void DialogPeer::CreateAllArea()
 {
 	extern Control ctr;
-	PeerMenuBar bar(this);
 	GtkWidget *box;
 	GtkWidget *hpaned, *vpaned;
 
 	box = create_box();
 	gtk_container_add(GTK_CONTAINER(dialog), box);
-	bar.CreateMenuBar();
-	gtk_box_pack_start(GTK_BOX(box), bar.menu_bar, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(box), CreateMenuBar(), FALSE, FALSE, 0);
 	hpaned = create_paned(FALSE);
 	gtk_paned_set_position(GTK_PANED(hpaned), GINT(ctr.pix * 107));
 	gtk_box_pack_end(GTK_BOX(box), hpaned, TRUE, TRUE, 0);
@@ -203,6 +203,81 @@ void DialogPeer::CreateInputArea(GtkWidget * paned)
 	gtk_widget_grab_focus(focus);
 }
 
+GtkWidget *DialogPeer::CreateMenuBar()
+{
+	GtkWidget *menu_bar;
+
+	menu_bar = gtk_menu_bar_new();
+	update_widget_bg(menu_bar, __BACK_DIR "/title.png");
+	gtk_widget_show(menu_bar);
+	CreateFileMenu(menu_bar);
+	CreateHelpMenu(menu_bar);
+
+	return menu_bar;
+}
+
+void DialogPeer::CreateFileMenu(GtkWidget *menu_bar)
+{
+	GtkWidget *menu;
+	GtkWidget *menu_item;
+
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_File"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
+	gtk_widget_show(menu_item);
+
+	menu = gtk_menu_new();
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
+	gtk_widget_show(menu);
+
+	menu_item = gtk_menu_item_new_with_label(_("Send File"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(SendFile::SendRegular), pal);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Send Folder"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(SendFile::SendFolder), pal);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Ask For Shared Files"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(MainWindow::AskSharedFiles), pal);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_tearoff_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Close"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(gtk_widget_destroy), dialog);
+	gtk_widget_show(menu_item);
+}
+
+void DialogPeer::CreateHelpMenu(GtkWidget *menu_bar)
+{
+	GtkWidget *menu;
+	GtkWidget *menu_item;
+
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Help"));
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
+
+	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
+
+	menu_item = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, accel);
+	g_signal_connect(menu_item, "activate",
+			 G_CALLBACK(AboutIptux::AboutEntry), NULL);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+}
+
 bool DialogPeer::CheckExist(gpointer data)
 {
 	extern UdpData udt;
@@ -249,13 +324,12 @@ void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 		tmp += strlen(prl) + strlen(file);
 	}
 	pal = (Pal *) data;
-	sfl.AddSendFile(list, pal);
-	g_slist_foreach(list, remove_each_info, GINT_TO_POINTER(UNKNOWN));
-	g_slist_free(list);
+	sfl.SendFileInfo(list, pal);
+	g_slist_free(list);	//他处释放
 
 	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	pop_info(pal->dialog ? ((DialogPeer *) pal->dialog)->dialog : inter.
-		 window,
+	pop_info(pal->dialog ? ((DialogPeer *) pal->dialog)->dialog :
+			inter.window,
 		 pal->dialog ? ((DialogPeer *) pal->dialog)->focus : NULL,
 		 _("Sending the files' infomation to \n%s[%s] is done!"),
 		 pal->name, ipstr);
@@ -293,12 +367,12 @@ void DialogPeer::SendMessage(gpointer data)
 
 void DialogPeer::ThreadSendMessage(gpointer data)
 {
+	extern struct interactive inter;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
 	DialogPeer *peer;
 	Command cmd;
 	gchar *ptr;
-	int sock;
 
 	peer = (DialogPeer *) data;
 	gdk_threads_enter();
@@ -308,8 +382,6 @@ void DialogPeer::ThreadSendMessage(gpointer data)
 	gtk_text_buffer_delete(buffer, &start, &end);
 	gdk_threads_leave();
 
-	sock = Socket(PF_INET, SOCK_DGRAM, 0);
-	cmd.SendMessage(sock, peer->pal, ptr);
-	close(sock);
+	cmd.SendMessage(inter.udpsock, peer->pal, ptr);
 	g_free(ptr);
 }

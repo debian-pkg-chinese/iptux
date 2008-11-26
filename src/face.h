@@ -15,7 +15,9 @@
 #include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
 #include <glib/gi18n.h>
+#include <gconf/gconf-client.h>
 #undef _
 #define _(string) gettext(string)
+#define GCONF_PATH "/apps/iptux"
 
 #endif

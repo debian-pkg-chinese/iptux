@@ -1,7 +1,7 @@
 //
 // C++ Interface: AboutIptux
 //
-// Description:
+// Description:创建关于对话框
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008

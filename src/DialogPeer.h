@@ -1,7 +1,7 @@
 //
 // C++ Interface: DialogPeer
 //
-// Description:
+// Description:好友对话框
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -15,7 +15,6 @@
 #include "face.h"
 #include "Pal.h"
 class Pal;
-class PeerMenuBar;
 class SendFile;
 
 class DialogPeer {
@@ -31,6 +30,9 @@ class DialogPeer {
 	void FillInfoBuffer(GtkTextBuffer * info);
 	void CreateRecordArea(GtkWidget * paned);
 	void CreateInputArea(GtkWidget * paned);
+	GtkWidget *CreateMenuBar();
+	void CreateFileMenu(GtkWidget *menu_bar);
+	void CreateHelpMenu(GtkWidget *menu_bar);
 	static bool CheckExist(gpointer data);
 
 	GtkWidget *dialog;	//主窗口
@@ -40,7 +42,6 @@ class DialogPeer {
 	Pal *pal;
  public:
 	 friend class Pal;
-	friend class PeerMenuBar;
 	friend class SendFile;
 //回调处理部分
  public:

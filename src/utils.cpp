@@ -14,7 +14,7 @@
 #include "output.h"
 #include "Pal.h"
 
-void delay(time_t sec, long nsec)
+void my_delay(time_t sec, long nsec)
 {
 	struct timespec delay;
 
@@ -118,7 +118,7 @@ int strnchr(const char *str, char chr)
 	return count;
 }
 
-void remove_each_info(pointer data, pointer data1)
+void remove_foreach(pointer data, pointer data1)
 {
 	switch (GPOINTER_TO_INT(data1)) {
 	case PALINFO:

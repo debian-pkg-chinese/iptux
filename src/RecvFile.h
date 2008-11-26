@@ -1,7 +1,7 @@
 //
 // C++ Interface: RecvFile
 //
-// Description:
+// Description:接受相关的文件信息,不包含文件数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008

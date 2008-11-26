@@ -1,7 +1,7 @@
 //
 // C++ Interface: StatusIcon
 //
-// Description:
+// Description:创建状态栏图标
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -24,10 +24,12 @@ class StatusIcon {
 	 GtkStatusIcon * status_icon;
  public:
 	 static void UpdateTips();
+ private:
+	 static GtkWidget *CreatePopupMenu();
 //回调处理部分
  private:
 	static void StatusIconActivate();
-	static void StatusIconPopMenu(GtkStatusIcon * status_icon, guint button,
+	static void PopupWorkMenu(GtkStatusIcon * status_icon, guint button,
 				      guint activate_time);
 };
 

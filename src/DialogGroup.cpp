@@ -10,12 +10,12 @@
 //
 //
 #include "DialogGroup.h"
-#include "TreeviewPopmenu.h"
-#include "GroupMenuBar.h"
+#include "AboutIptux.h"
 #include "UdpData.h"
 #include "Control.h"
 #include "Command.h"
 #include "Pal.h"
+#include "support.h"
 #include "baling.h"
 #include "output.h"
 #include "utils.h"
@@ -46,13 +46,13 @@ void DialogGroup::DialogEntry()
 void DialogGroup::InitDialog()
 {
 	group_model = CreateGroupModel();
+	InitGroupModel();
 }
 
 void DialogGroup::CreateDialog()
 {
 	extern Control ctr;
 	GdkColor color = { 8, 39321, 41634, 65535 };
-	GroupMenuBar bar(this);
 	GtkWidget *hpaned, *vpaned;
 	GtkWidget *vbox;
 
@@ -65,8 +65,7 @@ void DialogGroup::CreateDialog()
 
 	vbox = create_box();
 	gtk_container_add(GTK_CONTAINER(dialog), vbox);
-	bar.CreateMenuBar();
-	gtk_box_pack_start(GTK_BOX(vbox), bar.menu_bar, FALSE, FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(vbox), CreateMenuBar(), FALSE, FALSE, 0);
 
 	hpaned = create_paned(FALSE);
 	gtk_paned_set_position(GTK_PANED(hpaned), GINT(ctr.pix * 40));
@@ -80,13 +79,26 @@ void DialogGroup::CreateDialog()
 	CreateInputArea(vpaned);
 }
 
+GtkWidget *DialogGroup::CreateMenuBar()
+{
+	GtkWidget *menu_bar;
+
+	menu_bar = gtk_menu_bar_new();
+	update_widget_bg(menu_bar, __BACK_DIR "/title.png");
+	gtk_widget_show(menu_bar);
+	CreateFileMenu(menu_bar);
+	CreateHelpMenu(menu_bar);
+
+	return menu_bar;
+}
+
 void DialogGroup::CreateChooseArea(GtkWidget * paned)
 {
 	GtkWidget *frame, *sw;
 
 	pal_view = CreateGroupView();
 	g_signal_connect_swapped(pal_view, "button-press-event",
-				 G_CALLBACK(ViewPopMenu), group_model);
+				 G_CALLBACK(PopupPickMenu), group_model);
 	frame = create_frame(_("Choose Pals"));
 	gtk_paned_pack1(GTK_PANED(paned), frame, FALSE, TRUE);
 	sw = create_scrolled_window();
@@ -110,7 +122,6 @@ void DialogGroup::CreateRecordArea(GtkWidget * paned)
 
 void DialogGroup::CreateInputArea(GtkWidget * paned)
 {
-	extern Control ctr;
 	GtkWidget *box, *frame, *sw;
 	GtkWidget *hbb, *button;
 
@@ -160,22 +171,19 @@ void DialogGroup::BufferInsertText(const gchar * msg)
 
 void DialogGroup::SendGroupMsg(const gchar * msg)
 {
+	extern struct interactive inter;
 	Command cmd;
 	GtkTreeIter iter;
 	gboolean active;
 	gpointer pal;
-	int sock;
 
 	if (!gtk_tree_model_get_iter_first(group_model, &iter))
 		return;
-
-	sock = Socket(PF_INET, SOCK_DGRAM, 0);
 	do {
 		gtk_tree_model_get(group_model, &iter, 0, &active, 3, &pal, -1);
 		if (active)
-			cmd.SendGroupMsg(sock, pal, msg);
+			cmd.SendGroupMsg(inter.udpsock, pal, msg);
 	} while (gtk_tree_model_iter_next(group_model, &iter));
-	close(sock);
 }
 
 void DialogGroup::ViewScroll()
@@ -197,15 +205,22 @@ void DialogGroup::ViewScroll()
 //群发 4,0 flag,1 pixbuf,2 nickname,3 pointer
 GtkTreeModel *DialogGroup::CreateGroupModel()
 {
-	extern UdpData udt;
 	GtkListStore *model;
+
+	model = gtk_list_store_new(4, G_TYPE_BOOLEAN, GDK_TYPE_PIXBUF,
+				   G_TYPE_STRING, G_TYPE_POINTER);
+
+	return GTK_TREE_MODEL(model);
+}
+
+void DialogGroup::InitGroupModel()
+{
+	extern UdpData udt;
 	GtkTreeIter iter;
 	GdkPixbuf *pixbuf;
 	GSList *tmp;
 	Pal *pal;
 
-	model = gtk_list_store_new(4, G_TYPE_BOOLEAN, GDK_TYPE_PIXBUF,
-				   G_TYPE_STRING, G_TYPE_POINTER);
 	pthread_mutex_lock(&udt.mutex);
 	tmp = udt.pallist;
 	while (tmp) {
@@ -215,15 +230,13 @@ GtkTreeModel *DialogGroup::CreateGroupModel()
 			continue;
 		pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
 				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
-		gtk_list_store_append(model, &iter);
-		gtk_list_store_set(model, &iter, 0, TRUE, 1, pixbuf, 2,
-				   pal->name, 3, pal, -1);
+		gtk_list_store_append(GTK_LIST_STORE(group_model), &iter);
+		gtk_list_store_set(GTK_LIST_STORE(group_model), &iter, 0, TRUE,
+				   1, pixbuf, 2, pal->name, 3, pal, -1);
 		if (pixbuf)
 			g_object_unref(pixbuf);
 	}
 	pthread_mutex_unlock(&udt.mutex);
-
-	return GTK_TREE_MODEL(model);
 }
 
 GtkWidget *DialogGroup::CreateGroupView()
@@ -240,8 +253,7 @@ GtkWidget *DialogGroup::CreateGroupView()
 	gtk_tree_view_column_set_title(column, _("send"));
 	renderer = gtk_cell_renderer_toggle_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "active", 0,
-					    NULL);
+	gtk_tree_view_column_set_attributes(column, renderer, "active", 0, NULL);
 	g_signal_connect_swapped(renderer, "toggled",
 				 G_CALLBACK(ViewToggleChange), group_model);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
@@ -251,14 +263,63 @@ GtkWidget *DialogGroup::CreateGroupView()
 	gtk_tree_view_column_set_title(column, _("pals"));
 	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1,
-					    NULL);
+	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
 	renderer = gtk_cell_renderer_text_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
 	gtk_tree_view_column_set_attributes(column, renderer, "text", 2, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
 
 	return view;
+}
+
+void DialogGroup::CreateFileMenu(GtkWidget *menu_bar)
+{
+	GtkWidget *menu;
+	GtkWidget *menu_item;
+
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_File"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
+	gtk_widget_show(menu_item);
+
+	menu = gtk_menu_new();
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
+	gtk_widget_show(menu);
+
+	menu_item = gtk_menu_item_new_with_label(_("Update List"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(UpdatePalList), this);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_tearoff_menu_item_new();
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Close"));
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(gtk_widget_destroy), dialog);
+	gtk_widget_show(menu_item);
+}
+
+void DialogGroup::CreateHelpMenu(GtkWidget *menu_bar)
+{
+	GtkWidget *menu;
+	GtkWidget *menu_item;
+
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Help"));
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
+
+	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
+
+	menu_item = gtk_image_menu_item_new_from_stock(GTK_STOCK_ABOUT, accel);
+	g_signal_connect(menu_item, "activate",
+			 G_CALLBACK(AboutIptux::AboutEntry), NULL);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 }
 
 bool DialogGroup::CheckExist()
@@ -269,6 +330,34 @@ bool DialogGroup::CheckExist()
 	return true;
 }
 
+GtkWidget *DialogGroup::CreatePopupMenu(GtkTreeModel * model)
+{
+	GtkWidget *menu, *menu_item;
+
+	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+
+	menu_item = gtk_menu_item_new_with_label(_("Choose All"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(SelectAll), model);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Reverse All"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(TurnSelect), model);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Clear Up"));
+	g_signal_connect_swapped(menu_item, "activate",
+				 G_CALLBACK(ClearAll), model);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	return menu;
+}
+
 void DialogGroup::ViewToggleChange(GtkTreeModel * model, gchar * path)
 {
 	GtkTreePath *treepath;
@@ -277,18 +366,16 @@ void DialogGroup::ViewToggleChange(GtkTreeModel * model, gchar * path)
 
 	treepath = gtk_tree_path_new_from_string(path);
 	gtk_tree_model_get_iter(model, &iter, treepath);
+	gtk_tree_path_free(treepath);
 	gtk_tree_model_get(model, &iter, 0, &active, -1);
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, !active, -1);
 }
 
-gboolean DialogGroup::ViewPopMenu(GtkTreeModel * model, GdkEventButton * event)
+gboolean DialogGroup::PopupPickMenu(GtkTreeModel * model, GdkEventButton * event)
 {
-	TreeviewPopmenu tp;
-
 	if (event->button != 3)
 		return FALSE;
-	tp.CreatePopMenu(model);
-	gtk_menu_popup(GTK_MENU(tp.menu), NULL, NULL, NULL, NULL,
+	gtk_menu_popup(GTK_MENU(CreatePopupMenu(model)), NULL, NULL, NULL, NULL,
 		       event->button, event->time);
 
 	return TRUE;
@@ -321,8 +408,52 @@ void DialogGroup::SendMessage(gpointer data)
 	gtk_widget_grab_focus(dg->input);
 }
 
+void DialogGroup::UpdatePalList(gpointer data)
+{
+	DialogGroup *group;
+
+	group = (DialogGroup *) data;
+	gtk_list_store_clear(GTK_LIST_STORE(group->group_model));
+	group->InitGroupModel();
+}
+
 void DialogGroup::DialogDestroy(gpointer data)
 {
 	dialog = NULL;
 	delete(DialogGroup *) data;
+}
+
+void DialogGroup::SelectAll(GtkTreeModel * model)
+{
+	GtkTreeIter iter;
+
+	if (!gtk_tree_model_get_iter_first(model, &iter))
+		return;
+	do {
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, TRUE, -1);
+	} while (gtk_tree_model_iter_next(model, &iter));
+}
+
+void DialogGroup::TurnSelect(GtkTreeModel * model)
+{
+	GtkTreeIter iter;
+	gboolean flag;
+
+	if (!gtk_tree_model_get_iter_first(model, &iter))
+		return;
+	do {
+		gtk_tree_model_get(model, &iter, 0, &flag, -1);
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, !flag, -1);
+	} while (gtk_tree_model_iter_next(model, &iter));
+}
+
+void DialogGroup::ClearAll(GtkTreeModel * model)
+{
+	GtkTreeIter iter;
+
+	if (!gtk_tree_model_get_iter_first(model, &iter))
+		return;
+	do {
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, FALSE, -1);
+	} while (gtk_tree_model_iter_next(model, &iter));
 }

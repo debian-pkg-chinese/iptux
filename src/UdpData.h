@@ -1,7 +1,7 @@
 //
 // C++ Interface: UdpData
 //
-// Description:
+// Description:处理接收到的UDP数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -21,9 +21,7 @@ class RevisePal;
 class Pal;
 class DialogGroup;
 class IptuxSetup;
-class MainMenuBar;
 class DialogPeer;
-class PalviewPopmenu;
 
 class UdpData {
  private:
@@ -45,6 +43,7 @@ class UdpData {
 	 GtkTreeModel * CreatePalModel();
 	 void InitPalModel();
 
+	 void SomeoneLost(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneEntry(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneExit(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size);
@@ -68,9 +67,7 @@ class UdpData {
 	friend class Pal;
 	friend class DialogGroup;
 	friend class IptuxSetup;
-	friend class MainMenuBar;
 	friend class DialogPeer;
-	friend class PalviewPopmenu;
 };
 
 #endif

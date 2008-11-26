@@ -1,7 +1,7 @@
 //
 // C++ Interface: DialogGroup
 //
-// Description:
+// Description:群发消息
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -13,7 +13,6 @@
 #define DIALOGGROUP_H
 
 #include "face.h"
-class GroupMenuBar;
 
 class DialogGroup {
  public:
@@ -24,6 +23,7 @@ class DialogGroup {
  private:
 	void InitDialog();
 	void CreateDialog();
+	GtkWidget *CreateMenuBar();
 	void CreateChooseArea(GtkWidget * paned);
 	void CreateRecordArea(GtkWidget * paned);
 	void CreateInputArea(GtkWidget * paned);
@@ -31,7 +31,10 @@ class DialogGroup {
 	void SendGroupMsg(const gchar * msg);
 	void ViewScroll();
 	GtkTreeModel *CreateGroupModel();
+	void InitGroupModel();
 	GtkWidget *CreateGroupView();
+	void CreateFileMenu(GtkWidget *menu_bar);
+	void CreateHelpMenu(GtkWidget *menu_bar);
 	static bool CheckExist();
 
 	GtkWidget *pal_view;
@@ -40,15 +43,20 @@ class DialogGroup {
 	GtkTreeModel *group_model;
 	static GtkWidget *dialog;
  public:
-	 friend class GroupMenuBar;
+	 static GtkWidget *CreatePopupMenu(GtkTreeModel * model);
 //回调处理部分
  public:
 	static void ViewToggleChange(GtkTreeModel * model, gchar * path);
-	static gboolean ViewPopMenu(GtkTreeModel * model,
+	static gboolean PopupPickMenu(GtkTreeModel * model,
 				    GdkEventButton * event);
  private:
 	static void SendMessage(gpointer data);
+	static void UpdatePalList(gpointer data);
 	static void DialogDestroy(gpointer data);
+
+	static void SelectAll(GtkTreeModel * model);
+	static void TurnSelect(GtkTreeModel * model);
+	static void ClearAll(GtkTreeModel * model);
 };
 
 #endif

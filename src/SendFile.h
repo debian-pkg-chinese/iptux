@@ -1,7 +1,7 @@
 //
 // C++ Interface: SendFile
 //
-// Description:
+// Description:发送相关的文件信息,不包含文件数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -14,6 +14,7 @@
 
 #include "sys.h"
 #include "face.h"
+class DialogPeer;
 class ShareFile;
 
 class SendFile {
@@ -24,18 +25,17 @@ class SendFile {
 	void InitSelf();
 	void WriteShared();
 
-	void SendSharedFiles(gpointer data);
-	void AddSendFile(GSList * list, gpointer data);
-
-	static void TcpDataEntry(int sock);	//线程入口
+	static void RequestEntry(int sock);	//线程入口
 	static void SendRegular(gpointer data);	//回调入口
 	static void SendFolder(gpointer data);	//回调入口
+	void SendShared(gpointer data);
 
 	bool dirty;
  private:
-	void SendFileData(int sock, char *buf);
-	void SendDirFiles(int sock, char *buf);
-	pointer FindSendFileinfo(uint32_t fileid);
+	 void RequestData(int sock, uint32_t fileattr, char *buf);
+	 void PickFile(uint32_t fileattr, gpointer data);
+	 void SendFileInfo(GSList * list, gpointer data);
+	pointer FindFileinfo(uint32_t fileid);
 
 	uint32_t pbn;
 	uint32_t prn;
@@ -43,6 +43,7 @@ class SendFile {
 	GSList *prlist;
 	pthread_mutex_t mutex;
  public:
+	 friend class DialogPeer;
 	 friend class ShareFile;
 };
 

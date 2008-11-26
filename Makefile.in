@@ -96,6 +96,8 @@ ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
+GCONF_CFLAGS = @GCONF_CFLAGS@
+GCONF_LIBS = @GCONF_LIBS@
 GETTEXT_PACKAGE = @GETTEXT_PACKAGE@
 GMOFILES = @GMOFILES@
 GMSGFMT = @GMSGFMT@
@@ -196,7 +198,7 @@ top_srcdir = @top_srcdir@
 # have all needed files, that a GNU package needs
 AUTOMAKE_OPTIONS = foreign 1.4
 SUBDIRS = src desktop icons po
-EXTRA_DIST = Makefile.cvs
+EXTRA_DIST = Makefile.cvs protocol
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 

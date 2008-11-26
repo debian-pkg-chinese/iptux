@@ -59,8 +59,7 @@ void RevisePal::CreateRevise()
 			   box, FALSE, FALSE, 0);
 	name = create_label(_("Pal's nickname:"));
 	gtk_box_pack_start(GTK_BOX(box), name, FALSE, FALSE, 0);
-	name =
-	    my_entry::create_entry(pal->name,
+	name = my_entry::create_entry(pal->name,
 				   _("Please input pal's new nickname!"),
 				   FALSE);
 	gtk_box_pack_start(GTK_BOX(box), name, TRUE, TRUE, 0);
@@ -71,8 +70,7 @@ void RevisePal::CreateRevise()
 	encode = create_label(_("System encode:"));
 	gtk_box_pack_start(GTK_BOX(box), encode, FALSE, FALSE, 0);
 	encode = my_entry::create_entry(pal->encode,
-					_
-					("you must understand what you are doing!"),
+				_("you must understand what you are doing!"),
 					FALSE);
 	gtk_box_pack_start(GTK_BOX(box), encode, TRUE, TRUE, 0);
 
@@ -117,4 +115,5 @@ void RevisePal::ApplyRevise()
 	if (udt.PalGetModelIter(pal, &parent, &iter))
 		pal->SetPalmodelValue(udt.pal_model, &iter);
 	FLAG_SET(pal->flags, 2);
+	FLAG_CLR(pal->flags, 0);
 }

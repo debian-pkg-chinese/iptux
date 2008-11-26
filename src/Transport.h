@@ -1,7 +1,7 @@
 //
 // C++ Interface: Transport
 //
-// Description:
+// Description:传输文件数据,必要时创建传输框
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -47,16 +47,22 @@ class Transport {
 	GtkWidget *transport;
 	GtkWidget *trans_view;
 	GtkTreeModel *trans_model;
+	GtkTreeIter opt_iter;
+	bool flag;
  public:
 	 friend class RecvFile;
 	friend class SendFile;
+ private:
+	 static GtkWidget *CreatePopupMenu(gpointer data);	//transport
 //回调处理部分
  public:
-	static void TidyTask();
  private:
 	static void DestroyDialog();
-	static gboolean ViewPopMenu(GtkWidget * view, GdkEventButton * event,
-				    GtkTreeModel * model);
+	static gboolean PopupControlMenu(GtkWidget * view, GdkEventButton * event,
+				    gpointer data);	//Transport
+	static void StopTask(gpointer data);
+	static void StopAllTask(gpointer data);
+	static void TidyTask(gpointer data);
 };
 
 #endif
