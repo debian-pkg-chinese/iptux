@@ -27,7 +27,13 @@ endif
 ifneq "$(wildcard /usr/share/misc/config.guess)" ""
 	cp -f /usr/share/misc/config.guess config.guess
 endif
-	dh_auto_configure
+	./configure $(CROSS) --prefix=/usr \
+		--mandir=\$${prefix}/share/man \
+		--infodir=\$${prefix}/share/info \
+		--disable-maintainer-mode \
+		--disable-dependency-tracking \
+		CFLAGS="$(CFLAGS)" \
+		LDFLAGS="-Wl,-z,defs"
 
 build: build-stamp
 
