@@ -42,19 +42,20 @@ void SendFile::InitSelf()
 	struct stat64 st;
 
 	client = gconf_client_get_default();
-	filelist = gconf_client_get_list(client, GCONF_PATH"/shared_file_list",
-			      GCONF_VALUE_STRING, NULL);
+	filelist = gconf_client_get_list(client, GCONF_PATH "/shared_file_list",
+					 GCONF_VALUE_STRING, NULL);
 	pthread_mutex_lock(&mutex);
 	pblist = NULL, tmp = filelist;
 	while (tmp) {
-		if (Stat((const char*)tmp->data, &st) == -1 ||
-			  !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) {
+		if (Stat((const char *)tmp->data, &st) == -1 ||
+		    !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) {
 			free(tmp->data);
 			continue;
 		}
-		file = new FileInfo(pbn, (char*)tmp->data, (uint32_t) st.st_size,
-				    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-						    IPMSG_FILE_DIR);
+		file =
+		    new FileInfo(pbn, (char *)tmp->data, (uint32_t) st.st_size,
+				 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
+				 IPMSG_FILE_DIR);
 		pblist = g_slist_append(pblist, file);
 		tmp = tmp->next, pbn++;
 	}
@@ -72,12 +73,14 @@ void SendFile::WriteShared()
 	pthread_mutex_lock(&mutex);
 	filelist = NULL, tmp = pblist;
 	while (tmp) {
-		filelist = g_slist_append(filelist, ((FileInfo*)tmp->data)->filename);
+		filelist =
+		    g_slist_append(filelist,
+				   ((FileInfo *) tmp->data)->filename);
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&mutex);
 	client = gconf_client_get_default();
-	gconf_client_set_list(client,GCONF_PATH"/shared_file_list",
+	gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
 			      GCONF_VALUE_STRING, filelist, NULL);
 	g_slist_free(filelist);
 
@@ -149,7 +152,8 @@ void SendFile::SendShared(gpointer data)
 		}
 		filename = ipmsg_set_filename_pal(file->filename);
 		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%x:%x:%x\a:",
-			 file->fileid, filename, file->filesize, 0, file->fileattr);
+			 file->fileid, filename, file->filesize, 0,
+			 file->fileattr);
 		free(filename), len += strlen(ptr), ptr = buf + len;
 		tmp = tmp->next;
 	}
@@ -189,9 +193,9 @@ void SendFile::RequestData(int sock, uint32_t fileattr, char *buf)
 	gtk_list_store_append(GTK_LIST_STORE(trans.trans_model), &iter);
 	gtk_list_store_set(GTK_LIST_STORE(trans.trans_model), &iter,
 			   0, pixbuf, 1, _("send"), 2, filename, 3, pal->name,
-			   4, "0B", 5, ptr, 6, "0B/s", 7, 0, 8, FALSE, 9, 0,
-			   10, file->fileid, 11, file->filesize, 12, file->fileattr,
-			   13, file->filename, 14, pal, -1);
+			   4, "0B", 5, ptr, 6, "0B/s", 7, 0, 8, 0, 9, 0,
+			   10, file->fileid, 11, file->filesize, 12,
+			   file->fileattr, 13, file->filename, 14, pal, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
 	gdk_threads_leave();
@@ -213,20 +217,20 @@ void SendFile::PickFile(uint32_t fileattr, gpointer data)
 
 	pal = (Pal *) data;
 	parent = pal->dialog ? ((DialogPeer *) pal->dialog)->dialog :
-			inter.window;
+	    inter.window;
 	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-			_("Choose sending files"):
-			_("Choose sending folders");
+	    _("Choose sending files") : _("Choose sending folders");
 	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-			GTK_FILE_CHOOSER_ACTION_OPEN:
-			GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+	    GTK_FILE_CHOOSER_ACTION_OPEN :
+	    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
 
 	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(parent), action,
-				   GTK_STOCK_OK, GTK_RESPONSE_OK,
-				   GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-				   NULL);
+					     GTK_STOCK_OK, GTK_RESPONSE_OK,
+					     GTK_STOCK_CANCEL,
+					     GTK_RESPONSE_CANCEL, NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+					    getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
@@ -256,11 +260,12 @@ void SendFile::SendFileInfo(GSList * list, gpointer data)
 		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%x:%x:%x\a:",
 			 prn, filename, (uint32_t) st.st_size, st.st_mtime,
 			 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-						    IPMSG_FILE_DIR);
+			 IPMSG_FILE_DIR);
 		free(filename), len += strlen(ptr), ptr = buf + len;
-		file = new FileInfo(prn, (char *)list->data, (uint32_t)st.st_size,
-			    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-						    IPMSG_FILE_DIR);
+		file =
+		    new FileInfo(prn, (char *)list->data, (uint32_t) st.st_size,
+				 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
+				 IPMSG_FILE_DIR);
 		prlist = g_slist_prepend(prlist, file);
 		list = list->next, prn++;
 	}
@@ -274,7 +279,7 @@ pointer SendFile::FindFileinfo(uint32_t fileid)
 	GSList *tmp;
 
 	pthread_mutex_lock(&mutex);
-	tmp = (fileid < MAX_SHAREDFILE)?pblist:prlist;
+	tmp = (fileid < MAX_SHAREDFILE) ? pblist : prlist;
 	while (tmp) {
 		if (((FileInfo *) tmp->data)->fileid == fileid) {
 			pthread_mutex_unlock(&mutex);

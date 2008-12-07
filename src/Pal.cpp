@@ -106,18 +106,20 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 	FLAG_SET(flags, 1);
 }
 
-void Pal::SetPalmodelValue(GtkTreeModel *model, GtkTreeIter * iter)
+void Pal::SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter)
 {
 	extern Control ctr;
 	GdkPixbuf *pixbuf;
 
 	pixbuf = gdk_pixbuf_new_from_file_at_size(iconfile,
-			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+						  MAX_ICONSIZE, MAX_ICONSIZE,
+						  NULL);
 	if (!pixbuf)
 		pixbuf = gdk_pixbuf_new_from_file_at_size(ctr.palicon,
-			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
-	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf, 2, name,
-			   3, ctr.font, 4, TRUE, 6, FALSE, 7, this, -1);
+							  MAX_ICONSIZE,
+							  MAX_ICONSIZE, NULL);
+	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf, 2, name, 3,
+			   ctr.font, 4, TRUE, 6, FALSE, 7, this, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
 }
@@ -207,14 +209,13 @@ bool Pal::RecvIcon(const char *msg, size_t size)
 	create_icon_folder();
 	snprintf(file, MAX_PATHBUF, "%s/.iptux/%u", getenv("HOME"), ipv4);
 	if ((fd = Open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
-			return false;
+		return false;
 	Write(fd, msg + len, size - len);
 	close(fd);
 	free(iconfile);
 	iconfile = Strdup(file);
 	return true;
 }
-
 
 void Pal::RecvReply(const char *msg)
 {
@@ -280,7 +281,7 @@ bool Pal::IptuxGetIcon(const char *msg, size_t size)
 	if (len >= size)
 		return false;
 	ptr = my_getline(msg + len);
-	snprintf(file, MAX_PATHBUF, __ICON_DIR"/%s", ptr);
+	snprintf(file, MAX_PATHBUF, __ICON_DIR "/%s", ptr);
 	free(ptr);
 	if (access(file, F_OK) != 0)
 		return false;
@@ -296,13 +297,13 @@ bool Pal::IptuxGetEncode(const char *msg, size_t size)
 
 	FLAG_CLR(flags, 0);
 	if ((len = strlen(msg) + 1) >= size ||
-	    (len += strlen(msg+len) + 1) >= size)
+	    (len += strlen(msg + len) + 1) >= size)
 		return false;
 
 	ptr = msg + len;
 	while (*ptr && !isalnum(*ptr))
 		ptr++;
-	if (!*ptr)
+	if (*ptr == '\0')
 		return false;
 
 	FLAG_SET(flags, 0);

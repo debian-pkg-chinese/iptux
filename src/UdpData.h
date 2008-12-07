@@ -36,14 +36,14 @@ class UdpData {
 	gpointer Ipv4GetPal(in_addr_t ipv4);
 	gpointer Ipv4GetPalPos(in_addr_t ipv4);
 	gpointer PalGetMsgPos(gpointer data);
-	void Ipv4GetParent(in_addr_t ipv4, GtkTreeIter *iter);
-	bool PalGetModelIter(gpointer pal, GtkTreeIter *parent,
-				    GtkTreeIter * iter);
+	void Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * iter);
+	bool PalGetModelIter(gpointer pal, GtkTreeIter * parent,
+			     GtkTreeIter * iter);
  private:
 	 GtkTreeModel * CreatePalModel();
-	 void InitPalModel();
+	void InitPalModel();
 
-	 void SomeoneLost(in_addr_t ipv4, char *msg, size_t size);
+	void SomeoneLost(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneEntry(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneExit(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size);

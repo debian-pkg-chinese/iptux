@@ -17,8 +17,7 @@
 #include "output.h"
 #include "baling.h"
 
- RecvFile::RecvFile(gpointer data):filelist(NULL),
-packetn(0), file_model(NULL)
+ RecvFile::RecvFile(gpointer data):filelist(NULL), packetn(0), file_model(NULL)
 {
 	pal = (Pal *) ((struct recvfile_para *)data)->data;
 	msg = ((struct recvfile_para *)data)->msg;
@@ -30,7 +29,7 @@ RecvFile::~RecvFile()
 	free(msg);
 	g_slist_foreach(filelist, remove_foreach, GINT_TO_POINTER(FILEINFO));
 	g_slist_free(filelist);
-// 	g_object_unref(file_model); //他处释放
+//      g_object_unref(file_model); //他处释放
 }
 
 void RecvFile::RecvEntry(gpointer data)
@@ -257,11 +256,12 @@ void RecvFile::AddRecvFile(GtkTreeModel * model)
 		}
 		demand = true;
 
-		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model), &iter2);
+		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model),
+				      &iter2);
 		gtk_list_store_set(GTK_LIST_STORE(trans.trans_model), &iter2, 0,
 				   pixbuf, 1, _("receive"), 2, filename, 3,
-				   pal->name, 4, "0B", 5, filestr, 6, "0B/s", 7,
-				   0, 8, FALSE, 9, packetn, 10, fileid, 11,
+				   pal->name, 4, "0B", 5, filestr, 6, "0B/s",
+				   7, 0, 8, 0, 9, packetn, 10, fileid, 11,
 				   filesize, 12, fileattr, 13, ctr.path, 14,
 				   pal, -1);
 		g_free(filename), g_free(filestr);

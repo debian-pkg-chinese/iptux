@@ -40,17 +40,18 @@ class IptuxSetup {
 	GtkWidget *ipseg_view;
 	static GtkWidget *setup;
  public:
-	 static GtkTreeModel *CreateIconModel();
-	 static GtkWidget *CreateComboBoxWithModel(GtkTreeModel * model, gchar *iconfile);
-	 static gint FileGetItemPos(const char *filename, GtkTreeModel *model);
+	static GtkTreeModel *CreateIconModel();
+	static GtkWidget *CreateComboBoxWithModel(GtkTreeModel * model,
+						  gchar * iconfile);
+	static gint FileGetItemPos(const char *filename, GtkTreeModel * model);
  private:
-	 static void ObtainPerson(gpointer data);
-	 static void ObtainSystem(gpointer data);
-	 static void ObtainIpseg(gpointer data);
-	 static void UpdateMyInfo();
+	static void ObtainPerson(gpointer data);
+	static void ObtainSystem(gpointer data);
+	static void ObtainIpseg(gpointer data);
+	static void UpdateMyInfo();
 //回调处理部分
  public:
-	 static void AddPalIcon(gpointer data);
+	static void AddPalIcon(gpointer data);
  private:
 	static void ClickAddIpseg(gpointer data);
 	static void ClickDelIpseg(gpointer data);

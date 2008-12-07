@@ -186,9 +186,8 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 		sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 		my_delay(1, 0);
 		count++;
-	} while (!pal->CheckReply(packetno, false) &&
-		 count < MAX_RETRYTIMES);
-	 if (count >= MAX_RETRYTIMES)
+	} while (!pal->CheckReply(packetno, false) && count < MAX_RETRYTIMES);
+	if (count >= MAX_RETRYTIMES)
 		pal->BufferInsertText(NULL, ERROR);
 }
 
@@ -323,7 +322,7 @@ void Command::SendMyIcon(int sock, pointer data)
 	Pal *pal;
 	SI addr;
 
-	pal = (Pal*)data;
+	pal = (Pal *) data;
 	CreateCommand(IPTUX_SENDICON, NULL);
 	TransferEncode(pal->encode);
 	CreateIconExtra();
@@ -333,7 +332,7 @@ void Command::SendMyIcon(int sock, pointer data)
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = pal->ipv4;
 
-	sendto(sock, buf, size, 0, (SA*)&addr, sizeof(addr));
+	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
 void Command::CreateCommand(uint32_t command, const char *attach)
@@ -363,7 +362,7 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 	size += strlen(ptr);
 	ptr = buf + size;
 
-	snprintf(ptr, MAX_UDPBUF - size, ":%s", attach?attach:"");
+	snprintf(ptr, MAX_UDPBUF - size, ":%s", attach ? attach : "");
 	size += strlen(ptr) + 1;
 }
 
@@ -384,7 +383,7 @@ void Command::CreateIptuxExtra()
 
 	ptr = buf + size;
 	tmp = strrchr(ctr.myicon, '/');
-	snprintf(ptr, MAX_UDPBUF - size, "%s", tmp?tmp+1:ctr.myicon);
+	snprintf(ptr, MAX_UDPBUF - size, "%s", tmp ? tmp + 1 : ctr.myicon);
 	size += strlen(ptr) + 1;
 	ptr = buf + size;
 	snprintf(ptr, MAX_UDPBUF - size, "UTF-8");
@@ -412,7 +411,7 @@ void Command::CreateIconExtra()
 	snprintf(path, MAX_PATHBUF, "%s/.iptux/myicon", env);
 	if ((fd = Open(path, O_RDONLY)) == -1)
 		return;
-	len = Read(fd, buf + size, MAX_UDPBUF - size -1);
+	len = Read(fd, buf + size, MAX_UDPBUF - size - 1);
 	close(fd);
 	if (len != -1)
 		size += len;

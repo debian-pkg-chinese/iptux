@@ -50,7 +50,7 @@ void *Malloc(size_t size)
 	return dst;
 }
 
-void *operator  new(size_t size)
+void *operator     new(size_t size)
 {
 	return Malloc(size);
 }

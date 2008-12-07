@@ -37,10 +37,20 @@ void iptux_init()
 	signal(SIGTERM, (sighandler_t) iptux_quit);
 }
 
+void iptux_gui_quit()
+{
+	extern Transport trans;
+	extern struct interactive inter;
+
+	if (trans.TransportActive() && !pop_request_quit(inter.window))
+		return;
+	gtk_main_quit();
+	iptux_quit();
+}
+
 void iptux_quit()
 {
-	gtk_main_quit();
-	pmessage("IpTux quit!\n");
+	pmessage(_("The messenger is quit!\n"));
 	exit(0);
 }
 
@@ -148,7 +158,7 @@ GSList *get_sys_host_addr(int sock)
 		ifr = ifc.ifc_req + count;
 		count++;
 
-		if (strncasecmp(ifr->ifr_name,"lo",2) == 0)
+		if (strncasecmp(ifr->ifr_name, "lo", 2) == 0)
 			continue;
 		status = ioctl(sock, SIOCGIFFLAGS, ifr);
 		if (status == -1 || !(ifr->ifr_flags & IFF_UP))
@@ -166,7 +176,7 @@ GSList *get_sys_host_addr(int sock)
 
 char *get_sys_host_addr_string(int sock)
 {
-	char *ipstr,*ptr;
+	char *ipstr, *ptr;
 	GSList *list, *tmp;
 	uint8_t sum;
 
@@ -175,14 +185,14 @@ char *get_sys_host_addr_string(int sock)
 		return NULL;
 
 	sum = g_slist_length(list);
-	ipstr = ptr = (char*)Malloc(sum*INET_ADDRSTRLEN);
+	ipstr = ptr = (char *)Malloc(sum * INET_ADDRSTRLEN);
 	while (tmp) {
-		strcpy(ptr, (char*)tmp->data);
+		strcpy(ptr, (char *)tmp->data);
 		ptr += strlen(ptr) + 1;
-		*(ptr-1) = '\n';
+		*(ptr - 1) = '\n';
 		tmp = tmp->next;
 	}
-	*(ptr-1) = '\0';
+	*(ptr - 1) = '\0';
 
 	g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(list);

@@ -14,8 +14,9 @@
 
 #include "face.h"
 
-void iptux_init();
-void iptux_quit();
+void iptux_init();		//初始化程序数据
+void iptux_gui_quit();		//图形用户界面退出
+void iptux_quit();		//底层退出
 
 void update_widget_bg(GtkWidget * widget, const gchar * file);
 void create_icon_folder();

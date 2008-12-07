@@ -23,6 +23,7 @@ class Transport {
 	~Transport();
 
 	void InitSelf();
+	bool TransportActive();
 	static void TransportEntry();
 	static void RecvFileEntry(GtkTreePath * path);
 	static void SendFileEntry(int sock, GtkTreeIter * iter,
@@ -53,13 +54,12 @@ class Transport {
 	 friend class RecvFile;
 	friend class SendFile;
  private:
-	 static GtkWidget *CreatePopupMenu(gpointer data);	//transport
+	static GtkWidget *CreatePopupMenu(gpointer data);	//transport
 //回调处理部分
  public:
  private:
 	static void DestroyDialog();
-	static gboolean PopupControlMenu(GtkWidget * view, GdkEventButton * event,
-				    gpointer data);	//Transport
+	static gboolean PopupControlMenu(GtkWidget * view, GdkEventButton * event, gpointer data);	//Transport
 	static void StopTask(gpointer data);
 	static void StopAllTask(gpointer data);
 	static void TidyTask(gpointer data);

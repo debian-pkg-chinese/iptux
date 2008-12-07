@@ -68,12 +68,13 @@ void StatusIcon::UpdateTips()
 	pthread_mutex_lock(&udt.mutex);
 	if (len = g_queue_get_length(udt.msgqueue)) {
 		gtk_status_icon_set_blinking(inter.status_icon, TRUE);
-		ipstr = g_strdup_printf(_("There are %u messages!"), len);
+		ipstr = g_strdup_printf(_("Undealt: %u messages"), len);
 		gtk_status_icon_set_tooltip(inter.status_icon, ipstr);
 	} else {
 		gtk_status_icon_set_blinking(inter.status_icon, FALSE);
 		ipstr = get_sys_host_addr_string(inter.udpsock);
-		gtk_status_icon_set_tooltip(inter.status_icon, ipstr ? ipstr: _("IpTux"));
+		gtk_status_icon_set_tooltip(inter.status_icon,
+					    ipstr ? ipstr : _("IpTux"));
 	}
 	free(ipstr);
 	pthread_mutex_unlock(&udt.mutex);
@@ -150,7 +151,8 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Quit"));
 	image = gtk_image_new_from_file(__TIP_DIR "/out.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
-	g_signal_connect(menu_item, "activate", G_CALLBACK(iptux_quit), NULL);
+	g_signal_connect(menu_item, "activate", G_CALLBACK(iptux_gui_quit),
+			 NULL);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
@@ -172,7 +174,7 @@ void StatusIcon::StatusIconActivate()
 }
 
 void StatusIcon::PopupWorkMenu(GtkStatusIcon * status_icon, guint button,
-				   guint activate_time)
+			       guint activate_time)
 {
 	gtk_menu_popup(GTK_MENU(CreatePopupMenu()), NULL, NULL,
 		       NULL, NULL, button, activate_time);

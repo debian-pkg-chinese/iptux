@@ -15,15 +15,17 @@
 #include "face.h"
 
 class my_chooser {
-public:
+ public:
 	my_chooser();
-        ~my_chooser();
+	~my_chooser();
 
-	static GtkWidget *create_chooser(const gchar *title, GtkWidget *parent);
-	static gchar *run_chooser(GtkWidget *chooser);
+	static GtkWidget *create_chooser(const gchar * title,
+					 GtkWidget * parent);
+	static gchar *run_chooser(GtkWidget * chooser);
 //回调处理部分
-private:
-	static void UpdatePreview(GtkFileChooser *chooser, GtkWidget *preview);
+ private:
+	static void UpdatePreview(GtkFileChooser * chooser,
+				  GtkWidget * preview);
 };
 
 #endif

@@ -16,7 +16,8 @@
 #include "baling.h"
 #include "utils.h"
 
- Transport::Transport():transport(NULL), trans_view(NULL), trans_model(NULL), flag(0)
+ Transport::Transport():transport(NULL), trans_view(NULL), trans_model(NULL),
+flag(0)
 {
 }
 
@@ -30,6 +31,21 @@ Transport::~Transport()
 void Transport::InitSelf()
 {
 	trans_model = CreateTransModel();
+}
+
+bool Transport::TransportActive()
+{
+	GtkTreeIter iter;
+	gint terminate;
+
+	if (!gtk_tree_model_get_iter_first(trans_model, &iter))
+		return false;
+	do {
+		gtk_tree_model_get(trans_model, &iter, 8, &terminate, -1);
+		if (terminate == 0)	//Runing(0)
+			return true;
+	} while (gtk_tree_model_iter_next(trans_model, &iter));
+	return false;
 }
 
 void Transport::TransportEntry()
@@ -92,6 +108,7 @@ void Transport::SendFileEntry(int sock, GtkTreeIter * iter, uint32_t fileattr)
 
 //传输 15,0 status,1 task,2 filename,3 side,4 finishsize,5 filesize,6 rate,7 progress,
 //      8 terminate,9 packetn,10 fileid,11 size,12 type,13,dst,14 data
+//terminate,0 Runing,1 Over,-1 Interrupt
 GtkTreeModel *Transport::CreateTransModel()
 {
 	GtkListStore *model;
@@ -100,7 +117,7 @@ GtkTreeModel *Transport::CreateTransModel()
 				   GDK_TYPE_PIXBUF, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT,
-				   G_TYPE_BOOLEAN, G_TYPE_UINT, G_TYPE_UINT,
+				   G_TYPE_INT, G_TYPE_UINT, G_TYPE_UINT,
 				   G_TYPE_UINT, G_TYPE_UINT, G_TYPE_STRING,
 				   G_TYPE_POINTER);
 
@@ -253,10 +270,11 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 	uint32_t packetno, fileid, headsize, filesize, fileattr;
 	gchar *dirname, *pathname, *filename;
 	char buf[MAX_SOCKBUF], *ptr;
-	gboolean terminate;
 	my_file mf(true);
 	Command cmd;
+	gint terminate;
 	int sock, fd;
+	int layers;
 	ssize_t size;
 	bool result;
 	size_t len;
@@ -268,15 +286,14 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 	gdk_threads_leave();
 
 	sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	mf.chdir(pathname), mf.chdir(dirname);
-	g_free(pathname);
+	mf.chdir(pathname), g_free(pathname);
 	if (!cmd.SendAskFiles(sock, pal, packetno, fileid)) {
 		EndTransportData(sock, -1, iter, __TIP_DIR "/error.png");
 		g_free(dirname);
 		return;
 	}
 
-	len = 0, result = false;
+	layers = 0, len = 0, result = false;
 	while (1) {
 		if ((size = my_read2(sock, buf, MAX_SOCKBUF, len)) == -1)
 			break;
@@ -302,17 +319,20 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 					   -1);
 			gdk_threads_leave();
 			free(ptr);
-			if (terminate)
+			if (terminate == -1)
 				goto end;
 		}
 
 		if (GET_MODE(fileattr) == IPMSG_FILE_DIR) {
 			mf.chdir(filename), free(filename);
 			memmove(buf, buf + headsize, len);
+			layers++;
 			continue;
 		} else if (GET_MODE(fileattr) == IPMSG_FILE_RETPARENT) {
 			mf.chdir(".."), free(filename);
 			memmove(buf, buf + headsize, len);
+			if ((--layers) <= 0)
+				break;
 			continue;
 		} else if (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) {
 			fd = mf.open(filename,
@@ -364,9 +384,9 @@ uint32_t Transport::RecvData(int sock, int fd, GtkTreeIter * iter,
 {
 	uint32_t oldSize, downSize;
 	struct timeval val1, val2;
-	gboolean terminate;
 	char *ptr1, *ptr2;
 	float difftime;
+	gint terminate;
 	ssize_t size;
 
 	if (offset == filesize) {
@@ -403,7 +423,7 @@ uint32_t Transport::RecvData(int sock, int fd, GtkTreeIter * iter,
 					   -1);
 			gdk_threads_leave();
 			g_free(ptr1), g_free(ptr2);
-			if (terminate)
+			if (terminate == -1)
 				return downSize;
 			val1 = val2;
 			oldSize = downSize;
@@ -453,9 +473,9 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 	gchar *dirname, *pathname, *filename;
 	char buf[MAX_SOCKBUF], *ptr;
 	my_file mf(false);
-	gboolean terminate;
+	gint terminate;
 	GQueue *dir_stack;
-	struct dirent *dirt;
+	struct dirent *dirt, vdirt;
 	struct stat64 st;
 	uint32_t headsize;
 	bool result;
@@ -467,23 +487,22 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 	gtk_tree_model_get(trans_model, iter, 2, &dirname,
 			   13, &pathname, 14, &pal, -1);
 	gdk_threads_leave();
-	mf.chdir(pathname), mf.chdir(dirname);
-	g_free(pathname);
+	mf.chdir(pathname), g_free(pathname);
 
-	result = false;
+	result = false, dir = NULL;
+	strcpy(vdirt.d_name, dirname), dirt = &vdirt;
 	dir_stack = g_queue_new();
- start:if (!(dir = mf.opendir()))
-		goto end;
-	g_queue_push_head(dir_stack, dir);
+	goto start;
 	while (!g_queue_is_empty(dir_stack)) {
 		dir = (DIR *) g_queue_pop_head(dir_stack);
-		while (dirt = readdir(dir)) {
+		while (dir && (dirt = readdir(dir))) {
 			if (strcmp(dirt->d_name, ".") == 0
 			    || strcmp(dirt->d_name, "..") == 0)
 				continue;
 
-			if (mf.stat(dirt->d_name, &st) == -1 ||
-			    !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode))
+ start:		if (mf.stat(dirt->d_name, &st) == -1 ||
+			    !S_ISREG(st.st_mode)
+			    && !S_ISDIR(st.st_mode))
 				continue;
 			ptr = number_to_string(st.st_size);
 			gdk_threads_enter();
@@ -494,7 +513,7 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 					   -1);
 			gdk_threads_leave();
 			free(ptr);
-			if (terminate)
+			if (terminate == -1)
 				goto end;
 
 			pathname =
@@ -524,8 +543,10 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 					goto end;
 			} else if (S_ISDIR(st.st_mode)) {
 				mf.chdir(dirt->d_name);
-				g_queue_push_head(dir_stack, dir);
-				goto start;
+				if (dir)
+					g_queue_push_head(dir_stack, dir);
+				if (!(dir = mf.opendir()))
+					goto end;
 			}
 		}
 		closedir(dir), dir = NULL;
@@ -558,9 +579,9 @@ uint32_t Transport::SendData(int sock, int fd, GtkTreeIter * iter,
 {
 	uint32_t oldSize, sendSize;
 	struct timeval val1, val2;
-	gboolean terminate;
 	char *ptr1, *ptr2;
 	float difftime;
+	gint terminate;
 	ssize_t size;
 
 	if (filesize == 0) {
@@ -595,7 +616,7 @@ uint32_t Transport::SendData(int sock, int fd, GtkTreeIter * iter,
 					   -1);
 			gdk_threads_leave();
 			g_free(ptr1), g_free(ptr2);
-			if (terminate)
+			if (terminate == -1)
 				return sendSize;
 			val1 = val2;
 			oldSize = sendSize;
@@ -620,8 +641,8 @@ void Transport::EndTransportData(int sock, int fd, GtkTreeIter * iter,
 	close(sock), close(fd);
 	gdk_threads_enter();
 	pixbuf = gdk_pixbuf_new_from_file(pathname, NULL);
-	gtk_list_store_set(GTK_LIST_STORE(trans_model), iter, 0, pixbuf, 8,
-			   TRUE, -1);
+	gtk_list_store_set(GTK_LIST_STORE(trans_model), iter,
+			   0, pixbuf, 8, 1, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
 	gdk_threads_leave();
@@ -658,7 +679,7 @@ GtkWidget *Transport::CreatePopupMenu(gpointer data)
 
 	menu_item = gtk_menu_item_new_with_label(_("Clear Tasklist"));
 	g_signal_connect_swapped(menu_item, "activate",
-			 G_CALLBACK(Transport::TidyTask), data);
+				 G_CALLBACK(Transport::TidyTask), data);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
@@ -674,20 +695,21 @@ void Transport::DestroyDialog()
 }
 
 gboolean Transport::PopupControlMenu(GtkWidget * view, GdkEventButton * event,
-				gpointer data)
+				     gpointer data)
 {
 	GtkTreePath *path;
 
 	if (event->button != 3)
 		return FALSE;
 	if (gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(view), GINT(event->x),
-			   GINT(event->y), &path, NULL, NULL, NULL)) {
-		((Transport*)data)->flag = true;
-		gtk_tree_model_get_iter(((Transport*)data)->trans_model,
-					  &((Transport*)data)->opt_iter, path);
+					  GINT(event->y), &path, NULL, NULL,
+					  NULL)) {
+		((Transport *) data)->flag = true;
+		gtk_tree_model_get_iter(((Transport *) data)->trans_model,
+					&((Transport *) data)->opt_iter, path);
 		gtk_tree_path_free(path);
 	} else
-		((Transport*)data)->flag = false;
+		((Transport *) data)->flag = false;
 	gtk_menu_popup(GTK_MENU(CreatePopupMenu(data)), NULL, NULL, NULL, NULL,
 		       event->button, event->time);
 
@@ -696,39 +718,50 @@ gboolean Transport::PopupControlMenu(GtkWidget * view, GdkEventButton * event,
 
 void Transport::StopTask(gpointer data)
 {
-	if (!((Transport*)data)->flag)
+	if (!((Transport *) data)->flag)
 		return;
-	gtk_list_store_set(GTK_LIST_STORE(((Transport*)data)->trans_model),
-			   &((Transport*)data)->opt_iter, 8, TRUE, -1);
+	gtk_list_store_set(GTK_LIST_STORE(((Transport *) data)->trans_model),
+			   &((Transport *) data)->opt_iter, 8, -1, -1);
 }
 
 void Transport::StopAllTask(gpointer data)
 {
 	GtkTreeIter iter;
 
-	if (!gtk_tree_model_get_iter_first(((Transport*)data)->trans_model, &iter))
+	if (!gtk_tree_model_get_iter_first
+	    (((Transport *) data)->trans_model, &iter))
 		return;
 	do {
-		gtk_list_store_set(GTK_LIST_STORE(((Transport*)data)->trans_model), &iter, 8, TRUE, -1);
-	} while (gtk_tree_model_iter_next(((Transport*)data)->trans_model, &iter));
+		gtk_list_store_set(GTK_LIST_STORE
+				   (((Transport *) data)->trans_model), &iter,
+				   8, -1, -1);
+	} while (gtk_tree_model_iter_next
+		 (((Transport *) data)->trans_model, &iter));
 }
 
 void Transport::TidyTask(gpointer data)
 {
-	gboolean status, result;
+	gboolean result;
+	gint terminate;
 	GtkTreeIter iter;
 
-	if (!gtk_tree_model_get_iter_first(((Transport*)data)->trans_model, &iter))
+	if (!gtk_tree_model_get_iter_first
+	    (((Transport *) data)->trans_model, &iter))
 		return;
 	do {
-mark:		gtk_tree_model_get(((Transport*)data)->trans_model, &iter, 8, &status, -1);
-		if (status) {
+ mark:		gtk_tree_model_get(((Transport *) data)->trans_model, &iter, 8,
+				   &terminate, -1);
+		if (terminate == 1) {
 			result = gtk_list_store_remove(GTK_LIST_STORE
-					(((Transport*)data)->trans_model), &iter);
+						       (((Transport *)
+							 data)->trans_model),
+						       &iter);
 			if (result)
 				goto mark;
 			break;
 		}
-	} while (gtk_tree_model_iter_next(((Transport*)data)->trans_model, &iter));
-	gtk_tree_view_columns_autosize(GTK_TREE_VIEW(((Transport*)data)->trans_view));
+	} while (gtk_tree_model_iter_next
+		 (((Transport *) data)->trans_model, &iter));
+	gtk_tree_view_columns_autosize(GTK_TREE_VIEW
+				       (((Transport *) data)->trans_view));
 }

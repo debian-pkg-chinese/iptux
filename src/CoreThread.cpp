@@ -22,7 +22,7 @@
 #include "utils.h"
 
 bool CoreThread::server = false;
- CoreThread::CoreThread()
+CoreThread::CoreThread()
 {
 }
 
@@ -78,7 +78,7 @@ void CoreThread::RecvUdp()
 	while (server) {
 		len = sizeof(addr);
 		if ((size = recvfrom(sock, buf, MAX_UDPBUF, 0,
-					(SA *) & addr, &len)) == -1)
+				     (SA *) & addr, &len)) == -1)
 			continue;
 		buf[size] = '\0';
 		udt.UdpDataEntry(addr.sin_addr.s_addr, buf, size);

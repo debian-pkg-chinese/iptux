@@ -28,7 +28,7 @@ class RevisePal {
 
 	GtkWidget *revise;
 	GtkTreeModel *icon_model;
-	GtkWidget *name, *encode, *icon;
+	GtkWidget *name, *encode, *icon, *compatible;
 	Pal *pal;
 };
 

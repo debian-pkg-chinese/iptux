@@ -53,7 +53,9 @@ void DetectPal::CreateDetect()
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(detect)->vbox), frame,
 			   TRUE, TRUE, 0);
 	ipstr = my_entry::create_entry(NULL,
-		   _("Please input a legal address of IPv4!"), true);
+				       _
+				       ("Please input a legal address of IPv4!"),
+				       true);
 	gtk_entry_set_max_length(GTK_ENTRY(ipstr), INET_ADDRSTRLEN);
 	gtk_container_add(GTK_CONTAINER(frame), ipstr);
 	gtk_widget_grab_focus(ipstr);

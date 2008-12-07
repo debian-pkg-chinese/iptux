@@ -18,7 +18,7 @@
 
  RevisePal::RevisePal(gpointer data):pal((Pal *) data),
 revise(NULL), icon_model(NULL), name(NULL),
-encode(NULL), icon(NULL)
+encode(NULL), icon(NULL), compatible(NULL)
 {
 }
 
@@ -56,34 +56,47 @@ void RevisePal::CreateRevise()
 
 	box = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(revise)->vbox),
-			   box, FALSE, FALSE, 0);
+			   box, FALSE, FALSE, 1);
 	name = create_label(_("Pal's nickname:"));
 	gtk_box_pack_start(GTK_BOX(box), name, FALSE, FALSE, 0);
 	name = my_entry::create_entry(pal->name,
-				   _("Please input pal's new nickname!"),
-				   FALSE);
+				      _("Please input pal's new nickname!"),
+				      FALSE);
 	gtk_box_pack_start(GTK_BOX(box), name, TRUE, TRUE, 0);
 
 	box = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(revise)->vbox),
-			   box, FALSE, FALSE, 0);
+			   box, FALSE, FALSE, 1);
 	encode = create_label(_("System encode:"));
 	gtk_box_pack_start(GTK_BOX(box), encode, FALSE, FALSE, 0);
 	encode = my_entry::create_entry(pal->encode,
-				_("you must understand what you are doing!"),
+					_
+					("you must understand what you are doing!"),
 					FALSE);
 	gtk_box_pack_start(GTK_BOX(box), encode, TRUE, TRUE, 0);
 
 	box = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(revise)->vbox),
-			   box, FALSE, FALSE, 0);
+			   box, FALSE, FALSE, 1);
 	icon = create_label(_("Head portrait:"));
 	gtk_box_pack_start(GTK_BOX(box), icon, FALSE, FALSE, 0);
 	icon = IptuxSetup::CreateComboBoxWithModel(icon_model, pal->iconfile);
 	gtk_box_pack_start(GTK_BOX(box), icon, TRUE, TRUE, 0);
 	button = create_button("...");
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(IptuxSetup::AddPalIcon), icon);
+	g_signal_connect_swapped(button, "clicked",
+				 G_CALLBACK(IptuxSetup::AddPalIcon), icon);
 	gtk_box_pack_start(GTK_BOX(box), button, FALSE, FALSE, 0);
+
+	box = create_box(FALSE);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(revise)->vbox),
+			   box, FALSE, FALSE, 10);
+	compatible =
+	    gtk_check_button_new_with_label(_
+					    ("Be compatible with iptux protocol"));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(compatible),
+				     FLAG_ISSET(pal->flags, 0));
+	gtk_widget_show(compatible);
+	gtk_box_pack_start(GTK_BOX(box), compatible, FALSE, FALSE, 0);
 }
 
 void RevisePal::RunRevise()
@@ -100,12 +113,13 @@ void RevisePal::ApplyRevise()
 {
 	extern UdpData udt;
 	char buf[MAX_BUF];
-	GtkTreeIter iter,parent;
+	GtkTreeIter iter, parent;
 	gint active;
 
 	free(pal->name), free(pal->encode);
 	pal->name = gtk_editable_get_chars(GTK_EDITABLE(name), 0, -1);
 	pal->encode = gtk_editable_get_chars(GTK_EDITABLE(encode), 0, -1);
+
 	active = gtk_combo_box_get_active(GTK_COMBO_BOX(icon));
 	snprintf(buf, MAX_BUF, "%d", active);
 	gtk_tree_model_get_iter_from_string(icon_model, &iter, buf);
@@ -114,6 +128,11 @@ void RevisePal::ApplyRevise()
 	udt.Ipv4GetParent(pal->ipv4, &parent);
 	if (udt.PalGetModelIter(pal, &parent, &iter))
 		pal->SetPalmodelValue(udt.pal_model, &iter);
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(compatible)))
+		FLAG_SET(pal->flags, 0);
+	else
+		FLAG_CLR(pal->flags, 0);
+
 	FLAG_SET(pal->flags, 2);
-	FLAG_CLR(pal->flags, 0);
 }

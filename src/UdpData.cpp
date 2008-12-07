@@ -157,7 +157,7 @@ gpointer UdpData::PalGetMsgPos(pointer data)
 	return NULL;
 }
 
-void UdpData::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter *iter)
+void UdpData::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * iter)
 {
 	extern UdpData udt;
 	in_addr_t ip1, ip2;
@@ -179,7 +179,7 @@ void UdpData::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter *iter)
 	} while (gtk_tree_model_iter_next(udt.pal_model, iter));
 }
 
-bool UdpData::PalGetModelIter(gpointer pal, GtkTreeIter *parent,
+bool UdpData::PalGetModelIter(gpointer pal, GtkTreeIter * parent,
 			      GtkTreeIter * iter)
 {
 	extern UdpData udt;
@@ -203,8 +203,9 @@ GtkTreeModel *UdpData::CreatePalModel()
 	GtkTreeStore *model;
 
 	model = gtk_tree_store_new(8, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN,
-			G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
-			G_TYPE_STRING, G_TYPE_BOOLEAN, G_TYPE_POINTER);
+				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
+				   G_TYPE_STRING, G_TYPE_BOOLEAN,
+				   G_TYPE_POINTER);
 
 	return GTK_TREE_MODEL(model);
 }
@@ -217,18 +218,22 @@ void UdpData::InitPalModel()
 	GdkPixbuf *pixbuf;
 	uint8_t count;
 
-	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR"/hide.png", NULL);
+	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/hide.png", NULL);
 	count = 0;
 	while (localip[count << 1]) {
 		if (localip[(count << 1) + 1])
-			snprintf(ipstr, 32, "%s~%s", localip[count << 1], localip[(count << 1) + 1]);
+			snprintf(ipstr, 32, "%s~%s", localip[count << 1],
+				 localip[(count << 1) + 1]);
 		else
 			snprintf(ipstr, 32, "%s", localip[count << 1]);
-		snprintf(buf, MAX_BUF, "<span style=\"italic\" underline=\"single\" size=\"small\" "
-				"foreground=\"#52B838\" weight=\"bold\">%s</span>", ipstr);
+		snprintf(buf, MAX_BUF,
+			 "<span style=\"italic\" underline=\"single\" size=\"small\" "
+			 "foreground=\"#52B838\" weight=\"bold\">%s</span>",
+			 ipstr);
 		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, NULL);
-		gtk_tree_store_set(GTK_TREE_STORE(pal_model), &iter, 0, pixbuf, 1, FALSE,
-				  4, FALSE, 5, buf, 6, TRUE, 7, NULL, -1);
+		gtk_tree_store_set(GTK_TREE_STORE(pal_model), &iter, 0, pixbuf,
+				   1, FALSE, 4, FALSE, 5, buf, 6, TRUE, 7, NULL,
+				   -1);
 		if (!localip[(count << 1) + 1])
 			break;
 		count++;
@@ -269,12 +274,14 @@ void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 		pthread_mutex_unlock(&mutex);
 		pal->CreateInfo(ipv4, msg, size, true);
 		Ipv4GetParent(ipv4, &parent);
-		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, &parent);
+		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
+				      &parent);
 	} else {
 		pal->UpdateInfo(msg, size, true);
 		Ipv4GetParent(ipv4, &parent);
 		if (!PalGetModelIter(pal, &parent, &iter))
-			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, &parent);
+			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
+					      &parent);
 	}
 	pal->SetPalmodelValue(pal_model, &iter);
 	gdk_threads_leave();
@@ -333,12 +340,14 @@ void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
 		pthread_mutex_unlock(&mutex);
 		pal->CreateInfo(ipv4, msg, size, false);
 		Ipv4GetParent(ipv4, &parent);
-		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, &parent);
+		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
+				      &parent);
 	} else {
 		pal->UpdateInfo(msg, size, false);
 		Ipv4GetParent(ipv4, &parent);
 		if (!PalGetModelIter(pal, &parent, &iter))
-			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, &parent);
+			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
+					      &parent);
 	}
 	pal->SetPalmodelValue(pal_model, &iter);
 	gdk_threads_leave();
@@ -429,10 +438,12 @@ bool UdpData::AllowAskShared(gpointer data)
 
 	gdk_threads_enter();
 	dialog = gtk_dialog_new_with_buttons(_("Request for shared resources"),
-			     GTK_WINDOW(inter.window), GTK_DIALOG_MODAL,
-			     _("Agree"), GTK_RESPONSE_ACCEPT,
-			     _("Refuse"), GTK_RESPONSE_CANCEL, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+					     GTK_WINDOW(inter.window),
+					     GTK_DIALOG_MODAL, _("Agree"),
+					     GTK_RESPONSE_ACCEPT, _("Refuse"),
+					     GTK_RESPONSE_CANCEL, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
+					GTK_RESPONSE_ACCEPT);
 
 	box = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE,

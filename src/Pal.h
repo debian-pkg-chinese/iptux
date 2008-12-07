@@ -32,7 +32,7 @@ class Pal {
 
 	void CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans);
 	void UpdateInfo(const char *msg, size_t size, bool trans);
-	void SetPalmodelValue(GtkTreeModel *model, GtkTreeIter * iter);
+	void SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter);
 
 	bool CheckReply(uint32_t packetno, bool install);
 	void BufferInsertText(const char *str, enum INSERTTYPE type);
@@ -47,7 +47,7 @@ class Pal {
 	void SendReply(const char *msg);
 	void SendExit();
  private:
-	bool IptuxGetIcon(const char *msg, size_t size);
+	 bool IptuxGetIcon(const char *msg, size_t size);
 	bool IptuxGetEncode(const char *msg, size_t size);
 	void BufferInsertPal(const char *msg);
 	void BufferInsertSelf(const char *attach);

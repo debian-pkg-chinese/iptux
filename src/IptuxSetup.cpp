@@ -91,7 +91,8 @@ void IptuxSetup::CreatePerson(GtkWidget * note)
 	myname = create_label(_("Your nickname:"));
 	gtk_box_pack_start(GTK_BOX(hbox), myname, FALSE, FALSE, 0);
 	myname = my_entry::create_entry(ctr.myname,
-				_("Please Input your nickname!"), FALSE);
+					_("Please Input your nickname!"),
+					FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), myname, TRUE, TRUE, 0);
 
 	hbox = create_box(FALSE);
@@ -101,7 +102,8 @@ void IptuxSetup::CreatePerson(GtkWidget * note)
 	myicon = CreateComboBoxWithModel(icon_model, ctr.myicon);
 	gtk_box_pack_start(GTK_BOX(hbox), myicon, TRUE, TRUE, 0);
 	button = create_button("...");
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon), myicon);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon),
+				 myicon);
 	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
 	hbox = create_box(FALSE);
@@ -127,7 +129,8 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	encode = create_label(_("Default network encode:"));
 	gtk_box_pack_start(GTK_BOX(hbox), encode, FALSE, FALSE, 0);
 	encode = my_entry::create_entry(ctr.encode,
-		_("Default network encode(before modify,you must understand what you are doing)"),
+					_
+					("Default network encode(before modify,you must understand what you are doing)"),
 					FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), encode, TRUE, TRUE, 0);
 
@@ -138,7 +141,8 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	palicon = CreateComboBoxWithModel(icon_model, ctr.palicon);
 	gtk_box_pack_start(GTK_BOX(hbox), palicon, TRUE, TRUE, 0);
 	button = create_button("...");
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon), palicon);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddPalIcon),
+				 palicon);
 	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
 	hbox = create_box(FALSE);
@@ -148,15 +152,17 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	font = CreateFontChooser();
 	gtk_box_pack_start(GTK_BOX(hbox), font, TRUE, TRUE, 0);
 
-	black = gtk_check_button_new_with_label(
-			_("Use the blacklist(not recommended)"));
+	black =
+	    gtk_check_button_new_with_label(_
+					    ("Use the blacklist(not recommended)"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(black),
 				     FLAG_ISSET(ctr.flags, 1));
 	gtk_widget_show(black);
 	gtk_box_pack_start(GTK_BOX(box), black, FALSE, FALSE, 5);
 
-	proof = gtk_check_button_new_with_label(
-			_("Filter the request for shared files"));
+	proof =
+	    gtk_check_button_new_with_label(_
+					    ("Filter the request for shared files"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(proof),
 				     FLAG_ISSET(ctr.flags, 0));
 	gtk_widget_show(proof);
@@ -191,11 +197,13 @@ void IptuxSetup::CreateIpseg(GtkWidget * note)
 	gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 5);
 	snprintf(buf, MAX_BUF, "%s↓↓", _("Add"));
 	button = create_button(buf);
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickAddIpseg),this);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickAddIpseg),
+				 this);
 	gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 	snprintf(buf, MAX_BUF, "%s↑↑", _("Delete"));
 	button = create_button(buf);
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickDelIpseg), this);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickDelIpseg),
+				 this);
 	gtk_box_pack_start(GTK_BOX(hbox), button, FALSE, FALSE, 0);
 
 	frame = create_frame(_("Added IPv4 section:"));
@@ -214,7 +222,8 @@ void IptuxSetup::CreateFuncButton(GtkWidget * hbb)
 	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickOk), this);
 	gtk_box_pack_end(GTK_BOX(hbb), button, FALSE, FALSE, 1);
 	button = create_button(_("Apply"));
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickApply), this);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickApply),
+				 this);
 	gtk_box_pack_end(GTK_BOX(hbb), button, FALSE, FALSE, 1);
 	button = create_button(_("Cancel"));
 	g_signal_connect_swapped(button, "clicked",
@@ -235,9 +244,9 @@ GtkTreeModel *IptuxSetup::CreateIpModel()
 	tmp = ctr.ipseg;
 	while (tmp) {
 		gtk_list_store_append(model, &iter);
-		gtk_list_store_set(model, &iter, 0, (gchar*)tmp->data, -1);
+		gtk_list_store_set(model, &iter, 0, (gchar *) tmp->data, -1);
 		tmp = tmp->next;
-		gtk_list_store_set(model, &iter, 1, (gchar*)tmp->data, -1);
+		gtk_list_store_set(model, &iter, 1, (gchar *) tmp->data, -1);
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&ctr.mutex);
@@ -255,7 +264,8 @@ GtkWidget *IptuxSetup::CreateFolderChooser()
 	gtk_file_chooser_set_do_overwrite_confirmation(GTK_FILE_CHOOSER
 						       (chooser), TRUE);
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(chooser), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(chooser), ctr.path);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(chooser),
+					    ctr.path);
 	gtk_widget_show(chooser);
 
 	return chooser;
@@ -271,7 +281,8 @@ GtkWidget *IptuxSetup::CreateFontChooser()
 	gtk_font_button_set_show_size(GTK_FONT_BUTTON(chooser), TRUE);
 	gtk_font_button_set_use_font(GTK_FONT_BUTTON(chooser), TRUE);
 	gtk_font_button_set_use_size(GTK_FONT_BUTTON(chooser), TRUE);
-	gtk_font_button_set_title(GTK_FONT_BUTTON(chooser), _("Please choose a font"));
+	gtk_font_button_set_title(GTK_FONT_BUTTON(chooser),
+				  _("Please choose a font"));
 	gtk_widget_show(chooser);
 
 	return chooser;
@@ -328,11 +339,13 @@ GtkTreeModel *IptuxSetup::CreateIconModel()
 	pthread_mutex_lock(&ctr.mutex);
 	tmp = ctr.iconlist;
 	while (tmp) {
-		pixbuf = gdk_pixbuf_new_from_file_at_size((char*)tmp->data,
-				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+		pixbuf = gdk_pixbuf_new_from_file_at_size((char *)tmp->data,
+							  MAX_ICONSIZE,
+							  MAX_ICONSIZE, NULL);
 		if (pixbuf) {
 			gtk_list_store_append(model, &iter);
-			gtk_list_store_set(model, &iter, 0, pixbuf, 1, (char*)tmp->data, -1);
+			gtk_list_store_set(model, &iter, 0, pixbuf, 1,
+					   (char *)tmp->data, -1);
 			g_object_unref(pixbuf);
 		}
 		tmp = tmp->next;
@@ -343,7 +356,7 @@ GtkTreeModel *IptuxSetup::CreateIconModel()
 }
 
 GtkWidget *IptuxSetup::CreateComboBoxWithModel(GtkTreeModel * model,
-					       gchar *iconfile)
+					       gchar * iconfile)
 {
 	GtkWidget *combo;
 	GtkCellRenderer *renderer;
@@ -362,7 +375,7 @@ GtkWidget *IptuxSetup::CreateComboBoxWithModel(GtkTreeModel * model,
 	return combo;
 }
 
-gint IptuxSetup::FileGetItemPos(const char *filename, GtkTreeModel *model)
+gint IptuxSetup::FileGetItemPos(const char *filename, GtkTreeModel * model)
 {
 	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
@@ -382,10 +395,13 @@ gint IptuxSetup::FileGetItemPos(const char *filename, GtkTreeModel *model)
 		} while (gtk_tree_model_iter_next(model, &iter));
 	}
 	if (access(filename, F_OK) != 0 ||
-		   !(pixbuf = gdk_pixbuf_new_from_file_at_size(filename, MAX_ICONSIZE, MAX_ICONSIZE, NULL)))
+	    !(pixbuf =
+	      gdk_pixbuf_new_from_file_at_size(filename, MAX_ICONSIZE,
+					       MAX_ICONSIZE, NULL)))
 		return -1;
 	gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, pixbuf, 1, filename, -1);
+	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, pixbuf, 1, filename,
+			   -1);
 	g_object_unref(pixbuf);
 
 	return pos;
@@ -413,14 +429,17 @@ void IptuxSetup::ObtainPerson(gpointer data)
 	gtk_tree_model_get(ipst->icon_model, &iter, 1, &ctr.myicon, -1);
 	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR))) {
 		create_icon_folder();
-		snprintf(buf, MAX_PATHBUF, "%s/.iptux/myicon",getenv("HOME"));
-		pixbuf = gdk_pixbuf_new_from_file_at_size(ctr.myicon, MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+		snprintf(buf, MAX_PATHBUF, "%s/.iptux/myicon", getenv("HOME"));
+		pixbuf =
+		    gdk_pixbuf_new_from_file_at_size(ctr.myicon, MAX_ICONSIZE,
+						     MAX_ICONSIZE, NULL);
 		gdk_pixbuf_save(pixbuf, buf, "png", NULL, NULL);
 		g_object_unref(pixbuf);
 	}
 
 	free(ctr.path);
-	ctr.path = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(ipst->save_path));
+	ctr.path =
+	    gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(ipst->save_path));
 }
 
 void IptuxSetup::ObtainSystem(gpointer data)
@@ -508,7 +527,9 @@ void IptuxSetup::AddPalIcon(gpointer data)
 	gchar *filename;
 	gint active;
 
-	chooser = my_chooser::create_chooser(_("Please choose a head portrait"), setup);
+	chooser =
+	    my_chooser::create_chooser(_("Please choose a head portrait"),
+				       setup);
 	filename = my_chooser::run_chooser(chooser);
 	if (!filename)
 		return;
@@ -564,7 +585,8 @@ void IptuxSetup::ClickDelIpseg(gpointer data)
 	IptuxSetup *ipst;
 
 	ipst = (IptuxSetup *) data;
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(ipst->ipseg_view));
+	selection =
+	    gtk_tree_view_get_selection(GTK_TREE_VIEW(ipst->ipseg_view));
 	if (!gtk_tree_selection_get_selected(selection, NULL, &iter))
 		return;
 	gtk_tree_model_get(ipst->ip_model, &iter, 0, &ipstr1, 1, &ipstr2, -1);
