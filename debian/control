@@ -14,7 +14,7 @@ Vcs-Bzr: lp:~lidaobing/+junk/iptux
 Package: iptux
 Architecture: any
 Depends: ${shlibs:Depends}
-Description: an intranet communication tool for Linux.
+Description: an intranet communication tool for Linux
  iptux is an IP Messenger client for Linux.
  . 
  It support:
