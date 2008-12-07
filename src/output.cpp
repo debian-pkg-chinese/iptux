@@ -94,3 +94,21 @@ void pop_info(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...)
 	if (fw)
 		gtk_widget_grab_focus(fw);
 }
+
+bool pop_request_quit(GtkWidget * parent)
+{
+	GtkWidget *dialog;
+	gint result;
+
+	dialog = gtk_message_dialog_new(GTK_WINDOW(parent), GTK_DIALOG_MODAL,
+					GTK_MESSAGE_INFO, GTK_BUTTONS_OK_CANCEL,
+					_("The file transfer is running!"
+					  "\nAre you sure you want to quit?"));
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Confirm close"));
+
+	result = gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+	if (result == GTK_RESPONSE_OK)
+		return true;
+	return false;
+}

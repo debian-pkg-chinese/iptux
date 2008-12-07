@@ -229,7 +229,8 @@ void DialogGroup::InitGroupModel()
 		if (!FLAG_ISSET(pal->flags, 1))
 			continue;
 		pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
-				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+							  MAX_ICONSIZE,
+							  MAX_ICONSIZE, NULL);
 		gtk_list_store_append(GTK_LIST_STORE(group_model), &iter);
 		gtk_list_store_set(GTK_LIST_STORE(group_model), &iter, 0, TRUE,
 				   1, pixbuf, 2, pal->name, 3, pal, -1);
@@ -253,7 +254,8 @@ GtkWidget *DialogGroup::CreateGroupView()
 	gtk_tree_view_column_set_title(column, _("send"));
 	renderer = gtk_cell_renderer_toggle_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "active", 0, NULL);
+	gtk_tree_view_column_set_attributes(column, renderer, "active", 0,
+					    NULL);
 	g_signal_connect_swapped(renderer, "toggled",
 				 G_CALLBACK(ViewToggleChange), group_model);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
@@ -263,7 +265,8 @@ GtkWidget *DialogGroup::CreateGroupView()
 	gtk_tree_view_column_set_title(column, _("pals"));
 	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1, NULL);
+	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 1,
+					    NULL);
 	renderer = gtk_cell_renderer_text_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
 	gtk_tree_view_column_set_attributes(column, renderer, "text", 2, NULL);
@@ -272,7 +275,7 @@ GtkWidget *DialogGroup::CreateGroupView()
 	return view;
 }
 
-void DialogGroup::CreateFileMenu(GtkWidget *menu_bar)
+void DialogGroup::CreateFileMenu(GtkWidget * menu_bar)
 {
 	GtkWidget *menu;
 	GtkWidget *menu_item;
@@ -302,7 +305,7 @@ void DialogGroup::CreateFileMenu(GtkWidget *menu_bar)
 	gtk_widget_show(menu_item);
 }
 
-void DialogGroup::CreateHelpMenu(GtkWidget *menu_bar)
+void DialogGroup::CreateHelpMenu(GtkWidget * menu_bar)
 {
 	GtkWidget *menu;
 	GtkWidget *menu_item;
@@ -371,7 +374,8 @@ void DialogGroup::ViewToggleChange(GtkTreeModel * model, gchar * path)
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, !active, -1);
 }
 
-gboolean DialogGroup::PopupPickMenu(GtkTreeModel * model, GdkEventButton * event)
+gboolean DialogGroup::PopupPickMenu(GtkTreeModel * model,
+				    GdkEventButton * event)
 {
 	if (event->button != 3)
 		return FALSE;

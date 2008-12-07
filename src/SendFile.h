@@ -32,9 +32,9 @@ class SendFile {
 
 	bool dirty;
  private:
-	 void RequestData(int sock, uint32_t fileattr, char *buf);
-	 void PickFile(uint32_t fileattr, gpointer data);
-	 void SendFileInfo(GSList * list, gpointer data);
+	void RequestData(int sock, uint32_t fileattr, char *buf);
+	void PickFile(uint32_t fileattr, gpointer data);
+	void SendFileInfo(GSList * list, gpointer data);
 	pointer FindFileinfo(uint32_t fileid);
 
 	uint32_t pbn;
@@ -44,7 +44,7 @@ class SendFile {
 	pthread_mutex_t mutex;
  public:
 	 friend class DialogPeer;
-	 friend class ShareFile;
+	friend class ShareFile;
 };
 
 #endif

@@ -35,7 +35,7 @@ class ShareFile {
 	GtkTreeModel *share_model;
 	static GtkWidget *share;
  private:
-	 static void PickFile(uint32_t fileattr, gpointer data);
+	static void PickFile(uint32_t fileattr, gpointer data);
 //回调处理部分
  private:
 	static void AddRegular(gpointer data);

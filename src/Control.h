@@ -17,7 +17,7 @@
 
 class Control {
  public:
-	 Control();
+	Control();
 	~Control();
 
 	void InitSelf();

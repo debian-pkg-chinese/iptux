@@ -20,5 +20,6 @@ void pdebug(const char *format, ...);
 
 void pop_warning(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...);
 void pop_info(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...);
+bool pop_request_quit(GtkWidget * parent);
 
 #endif

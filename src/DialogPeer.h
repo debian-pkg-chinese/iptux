@@ -31,8 +31,8 @@ class DialogPeer {
 	void CreateRecordArea(GtkWidget * paned);
 	void CreateInputArea(GtkWidget * paned);
 	GtkWidget *CreateMenuBar();
-	void CreateFileMenu(GtkWidget *menu_bar);
-	void CreateHelpMenu(GtkWidget *menu_bar);
+	void CreateFileMenu(GtkWidget * menu_bar);
+	void CreateHelpMenu(GtkWidget * menu_bar);
 	static bool CheckExist(gpointer data);
 
 	GtkWidget *dialog;	//主窗口

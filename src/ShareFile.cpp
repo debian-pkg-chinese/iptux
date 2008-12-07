@@ -110,12 +110,13 @@ void ShareFile::AddSharedFiles(GSList * list)
 		if (Stat((char *)list->data, &st) == -1)
 			continue;
 		ptr = number_to_string(st.st_size);
-		FindInsertPosition((char *)list->data, S_ISREG(st.st_mode)?
-				   IPMSG_FILE_REGULAR:IPMSG_FILE_DIR, &iter);
+		FindInsertPosition((char *)list->data, S_ISREG(st.st_mode) ?
+				   IPMSG_FILE_REGULAR : IPMSG_FILE_DIR, &iter);
 		gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 				   1, (char *)list->data, 2, ptr,
-				       4, (uint32_t) st.st_size, 5,
-			   S_ISREG(st.st_mode)?IPMSG_FILE_REGULAR:IPMSG_FILE_DIR, -1);
+				   4, (uint32_t) st.st_size, 5,
+				   S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
+				   IPMSG_FILE_DIR, -1);
 		if (S_ISREG(st.st_mode))
 			gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 					   0, pixbuf1, 3, _("regular"), -1);
@@ -145,8 +146,8 @@ void ShareFile::FindInsertPosition(const gchar * path, uint32_t fileattr,
 	do {
 		gtk_tree_model_get(share_model, iter, 1, &tmp, 5, &attr, -1);
 		if (GET_MODE(fileattr) == IPMSG_FILE_DIR &&
-			  GET_MODE(attr) != IPMSG_FILE_DIR ||
-		  GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0) {
+		    GET_MODE(attr) != IPMSG_FILE_DIR ||
+		    GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0) {
 			g_free(tmp), sibling = *iter;
 			gtk_list_store_insert_before(GTK_LIST_STORE
 						     (share_model), iter,
@@ -258,26 +259,25 @@ void ShareFile::PickFile(uint32_t fileattr, gpointer data)
 	GtkWidget *dialog;
 	GSList *list;
 
-	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR)?
-			_("Choose shared files"):
-			_("Choose shared folders");
-	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR)?
-			GTK_FILE_CHOOSER_ACTION_OPEN:
-			GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
+	    _("Choose shared files") : _("Choose shared folders");
+	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
+	    GTK_FILE_CHOOSER_ACTION_OPEN :
+	    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
 
 	dialog = gtk_file_chooser_dialog_new(title,
-		     GTK_WINDOW(share),   action,
-		     GTK_STOCK_OK, GTK_RESPONSE_OK,
-		     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-		     NULL);
+					     GTK_WINDOW(share), action,
+					     GTK_STOCK_OK, GTK_RESPONSE_OK,
+					     GTK_STOCK_CANCEL,
+					     GTK_RESPONSE_CANCEL, NULL);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), getenv("HOME"));
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+					    getenv("HOME"));
 
 	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
 		((ShareFile *) data)->AddSharedFiles(list);
-		g_slist_foreach(list, remove_foreach,
-				GINT_TO_POINTER(UNKNOWN));
+		g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
 		g_slist_free(list);
 	}
 	gtk_widget_destroy(dialog);
@@ -305,10 +305,13 @@ void ShareFile::DeleteFiles(gpointer data)
 	if (!gtk_tree_model_get_iter_first(sf->share_model, &iter))
 		return;
 	do {
- mark:		status = gtk_tree_selection_iter_is_selected(selection, &iter);
+ mark:		status =
+		    gtk_tree_selection_iter_is_selected(selection,
+							&iter);
 		if (status) {
-			result = gtk_list_store_remove(
-					GTK_LIST_STORE (sf->share_model), &iter);
+			result =
+			    gtk_list_store_remove(GTK_LIST_STORE
+						  (sf->share_model), &iter);
 			if (result)
 				goto mark;
 			break;
@@ -332,8 +335,7 @@ void ShareFile::ClickApply(gpointer data)
 	FileInfo *file;
 
 	pthread_mutex_lock(&sfl.mutex);
-	g_slist_foreach(sfl.pblist, remove_foreach,
-			GINT_TO_POINTER(FILEINFO));
+	g_slist_foreach(sfl.pblist, remove_foreach, GINT_TO_POINTER(FILEINFO));
 	g_slist_free(sfl.pblist);
 	sfl.pblist = NULL;
 	pthread_mutex_unlock(&sfl.mutex);
@@ -361,8 +363,8 @@ void ShareFile::ShareDestroy(gpointer data)
 }
 
 void ShareFile::DragDataReceived(gpointer data, GdkDragContext * context,
-				  gint x, gint y, GtkSelectionData * select,
-				  guint info, guint time)
+				 gint x, gint y, GtkSelectionData * select,
+				 guint info, guint time)
 {
 	const char *prl = "file://";
 	char *tmp, *file;

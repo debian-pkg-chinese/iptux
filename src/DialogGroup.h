@@ -33,8 +33,8 @@ class DialogGroup {
 	GtkTreeModel *CreateGroupModel();
 	void InitGroupModel();
 	GtkWidget *CreateGroupView();
-	void CreateFileMenu(GtkWidget *menu_bar);
-	void CreateHelpMenu(GtkWidget *menu_bar);
+	void CreateFileMenu(GtkWidget * menu_bar);
+	void CreateHelpMenu(GtkWidget * menu_bar);
 	static bool CheckExist();
 
 	GtkWidget *pal_view;
@@ -43,12 +43,12 @@ class DialogGroup {
 	GtkTreeModel *group_model;
 	static GtkWidget *dialog;
  public:
-	 static GtkWidget *CreatePopupMenu(GtkTreeModel * model);
+	static GtkWidget *CreatePopupMenu(GtkTreeModel * model);
 //回调处理部分
  public:
 	static void ViewToggleChange(GtkTreeModel * model, gchar * path);
 	static gboolean PopupPickMenu(GtkTreeModel * model,
-				    GdkEventButton * event);
+				      GdkEventButton * event);
  private:
 	static void SendMessage(gpointer data);
 	static void UpdatePalList(gpointer data);

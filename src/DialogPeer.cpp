@@ -117,7 +117,8 @@ void DialogPeer::FillInfoBuffer(GtkTextBuffer * info)
 	GtkTextIter iter;
 
 	pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
-			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+						  MAX_ICONSIZE, MAX_ICONSIZE,
+						  NULL);
 	if (pixbuf) {
 		gtk_text_buffer_get_end_iter(info, &iter);
 		gtk_text_buffer_insert_pixbuf(info, &iter, pixbuf);
@@ -216,7 +217,7 @@ GtkWidget *DialogPeer::CreateMenuBar()
 	return menu_bar;
 }
 
-void DialogPeer::CreateFileMenu(GtkWidget *menu_bar)
+void DialogPeer::CreateFileMenu(GtkWidget * menu_bar)
 {
 	GtkWidget *menu;
 	GtkWidget *menu_item;
@@ -258,7 +259,7 @@ void DialogPeer::CreateFileMenu(GtkWidget *menu_bar)
 	gtk_widget_show(menu_item);
 }
 
-void DialogPeer::CreateHelpMenu(GtkWidget *menu_bar)
+void DialogPeer::CreateHelpMenu(GtkWidget * menu_bar)
 {
 	GtkWidget *menu;
 	GtkWidget *menu_item;
@@ -329,7 +330,7 @@ void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 
 	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
 	pop_info(pal->dialog ? ((DialogPeer *) pal->dialog)->dialog :
-			inter.window,
+		 inter.window,
 		 pal->dialog ? ((DialogPeer *) pal->dialog)->focus : NULL,
 		 _("Sending the files' infomation to \n%s[%s] is done!"),
 		 pal->name, ipstr);
