@@ -1,4 +1,4 @@
-iptux (0.4.3-0ubuntu1~ppa1) jaunty; urgency=low
+iptux (0.4.3-0ubuntu1) jaunty; urgency=low
 
   [ LI Daobing ]
   * Initial release (LP: #292518)
@@ -7,4 +7,4 @@ iptux (0.4.3-0ubuntu1~ppa1) jaunty; urgency=low
   * Add myself as an uploader. :)
   * Use /use/share/common-licenses/GPL-2 in copyright.
 
- -- LI Daobing <lidaobing@gmail.com>  Tue, 16 Dec 2008 19:04:04 +0800
+ -- LI Daobing <lidaobing@gmail.com>  Tue, 16 Dec 2008 19:37:07 +0800
