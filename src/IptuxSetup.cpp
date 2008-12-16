@@ -15,6 +15,7 @@
 #include "my_chooser.h"
 #include "UdpData.h"
 #include "Command.h"
+#include "Pal.h"
 #include "support.h"
 #include "output.h"
 #include "baling.h"
@@ -22,9 +23,10 @@
 
 GtkWidget *IptuxSetup::setup = NULL;
  IptuxSetup::IptuxSetup():icon_model(NULL), ip_model(NULL),
-myname(NULL), myicon(NULL), save_path(NULL), encode(NULL),
-palicon(NULL), font(NULL), black(NULL), proof(NULL), entry1(NULL),
-entry2(NULL), ipseg_view(NULL)
+myname(NULL), myicon(NULL), save_path(NULL), ad(NULL),
+sign(NULL), encode(NULL), palicon(NULL), font(NULL),
+tidy(NULL), log(NULL), black(NULL), proof(NULL), entry1(NULL),
+     entry2(NULL), ipseg_view(NULL)
 {
 }
 
@@ -56,7 +58,7 @@ void IptuxSetup::CreateSetup()
 	GtkWidget *box;
 	GtkWidget *notebook, *hbb;
 
-	setup = create_window(_("Iptux setup"), 132, 79);
+	setup = create_window(_("Iptux setup"), 132, 100);
 	gtk_container_set_border_width(GTK_CONTAINER(setup), 5);
 	g_signal_connect_swapped(setup, "destroy",
 				 G_CALLBACK(SetupDestroy), this);
@@ -79,8 +81,10 @@ void IptuxSetup::CreateSetup()
 void IptuxSetup::CreatePerson(GtkWidget * note)
 {
 	extern Control ctr;
-	GtkWidget *label, *button;
+	char path[MAX_PATHBUF];
+	GtkWidget *label, *frame, *sw, *button;
 	GtkWidget *box, *hbox;
+	GdkPixbuf *pixbuf;
 
 	box = create_box();
 	label = create_label(_("Personal Setup"));
@@ -112,6 +116,36 @@ void IptuxSetup::CreatePerson(GtkWidget * note)
 	gtk_box_pack_start(GTK_BOX(hbox), save_path, FALSE, FALSE, 0);
 	save_path = CreateFolderChooser();
 	gtk_box_pack_start(GTK_BOX(hbox), save_path, TRUE, TRUE, 0);
+
+	/***************************/
+	hbox = create_box(FALSE);
+	gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 5);
+	/***************************/
+	frame = create_frame(_("Personal portrait"));
+	gtk_box_pack_start(GTK_BOX(hbox), frame, FALSE, FALSE, 3);
+	button = gtk_button_new();
+	gtk_widget_show(button);
+	gtk_widget_set_size_request(button, MAX_PREVIEWSIZE, MAX_PREVIEWSIZE);
+	gtk_container_add(GTK_CONTAINER(frame), button);
+	ad = gtk_image_new();
+	gtk_widget_show(ad);
+	gtk_container_add(GTK_CONTAINER(button), ad);
+	snprintf(path, MAX_PATHBUF, "%s/.iptux/myad", getenv("HOME"));
+	if (pixbuf = gdk_pixbuf_new_from_file(path, NULL)) {
+		pixbuf_shrink_scale_1(&pixbuf, MAX_PREVIEWSIZE, MAX_PREVIEWSIZE);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(ad), pixbuf);
+		g_object_unref(pixbuf);
+	}
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ChoosePortrait), ad);
+
+	frame = create_frame(_("Personal signature"));
+	gtk_box_pack_end(GTK_BOX(hbox), frame, TRUE, TRUE, 3);
+	sw = create_scrolled_window();
+	gtk_container_add(GTK_CONTAINER(frame), sw);
+	sign = create_text_view();
+	gtk_container_add(GTK_CONTAINER(sw), sign);
+	gtk_text_buffer_set_text(gtk_text_view_get_buffer(GTK_TEXT_VIEW(sign)),
+					 ctr.sign?ctr.sign:"", -1);
 }
 
 void IptuxSetup::CreateSystem(GtkWidget * note)
@@ -129,9 +163,8 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	encode = create_label(_("Default network encode:"));
 	gtk_box_pack_start(GTK_BOX(hbox), encode, FALSE, FALSE, 0);
 	encode = my_entry::create_entry(ctr.encode,
-					_
-					("Default network encode(before modify,you must understand what you are doing)"),
-					FALSE);
+		_("Default network encode(before modify,you must understand what you are doing)"),
+		FALSE);
 	gtk_box_pack_start(GTK_BOX(hbox), encode, TRUE, TRUE, 0);
 
 	hbox = create_box(FALSE);
@@ -152,21 +185,33 @@ void IptuxSetup::CreateSystem(GtkWidget * note)
 	font = CreateFontChooser();
 	gtk_box_pack_start(GTK_BOX(hbox), font, TRUE, TRUE, 0);
 
-	black =
-	    gtk_check_button_new_with_label(_
+	tidy = gtk_check_button_new_with_label(_
+					    ("Automatic clear up chat history"));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(tidy),
+				     FLAG_ISSET(ctr.flags, 3));
+	gtk_widget_show(tidy);
+	gtk_box_pack_start(GTK_BOX(box), tidy, FALSE, FALSE, 0);
+
+	log = gtk_check_button_new_with_label(_
+					    ("Run the log of the message record"));
+	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(log),
+				     FLAG_ISSET(ctr.flags, 2));
+	gtk_widget_show(log);
+	gtk_box_pack_start(GTK_BOX(box), log, FALSE, FALSE, 0);
+
+	black = gtk_check_button_new_with_label(_
 					    ("Use the blacklist(not recommended)"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(black),
 				     FLAG_ISSET(ctr.flags, 1));
 	gtk_widget_show(black);
-	gtk_box_pack_start(GTK_BOX(box), black, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(box), black, FALSE, FALSE, 0);
 
-	proof =
-	    gtk_check_button_new_with_label(_
+	proof = gtk_check_button_new_with_label(_
 					    ("Filter the request for shared files"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(proof),
 				     FLAG_ISSET(ctr.flags, 0));
 	gtk_widget_show(proof);
-	gtk_box_pack_start(GTK_BOX(box), proof, FALSE, FALSE, 5);
+	gtk_box_pack_start(GTK_BOX(box), proof, FALSE, FALSE, 0);
 }
 
 void IptuxSetup::CreateIpseg(GtkWidget * note)
@@ -410,6 +455,8 @@ gint IptuxSetup::FileGetItemPos(const char *filename, GtkTreeModel * model)
 void IptuxSetup::ObtainPerson(gpointer data)
 {
 	extern Control ctr;
+	GtkTextIter start, end;
+	GtkTextBuffer *buffer;
 	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
 	IptuxSetup *ipst;
@@ -428,7 +475,6 @@ void IptuxSetup::ObtainPerson(gpointer data)
 	free(ctr.myicon);
 	gtk_tree_model_get(ipst->icon_model, &iter, 1, &ctr.myicon, -1);
 	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR))) {
-		create_icon_folder();
 		snprintf(buf, MAX_PATHBUF, "%s/.iptux/myicon", getenv("HOME"));
 		pixbuf =
 		    gdk_pixbuf_new_from_file_at_size(ctr.myicon, MAX_ICONSIZE,
@@ -440,6 +486,11 @@ void IptuxSetup::ObtainPerson(gpointer data)
 	free(ctr.path);
 	ctr.path =
 	    gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(ipst->save_path));
+
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(ipst->sign));
+	gtk_text_buffer_get_bounds(buffer, &start, &end);
+	free(ctr.sign);
+	ctr.sign = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
 }
 
 void IptuxSetup::ObtainSystem(gpointer data)
@@ -465,6 +516,16 @@ void IptuxSetup::ObtainSystem(gpointer data)
 	text = gtk_font_button_get_font_name(GTK_FONT_BUTTON(ipst->font));
 	free(ctr.font);
 	ctr.font = Strdup(text);
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ipst->tidy)))
+		FLAG_SET(ctr.flags, 3);
+	else
+		FLAG_CLR(ctr.flags, 3);
+
+	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ipst->log)))
+		FLAG_SET(ctr.flags, 2);
+	else
+		FLAG_CLR(ctr.flags, 2);
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(ipst->black)))
 		FLAG_SET(ctr.flags, 1);
@@ -502,25 +563,22 @@ void IptuxSetup::ObtainIpseg(gpointer data)
 void IptuxSetup::UpdateMyInfo()
 {
 	extern struct interactive inter;
-	extern Control ctr;
 	extern UdpData udt;
 	Command cmd;
 	GSList *tmp;
-	bool flag;
 
-	flag = strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR));
 	pthread_mutex_lock(&udt.mutex);
 	tmp = udt.pallist;
 	while (tmp) {
 		cmd.SendAbsence(inter.udpsock, tmp->data);
-		if (flag)
-			cmd.SendMyIcon(inter.udpsock, tmp->data);
+		if (FLAG_ISSET(((Pal*)tmp->data)->flags, 0))
+			thread_create(ThreadFunc(Pal::SendFeature), tmp->data, false);
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&udt.mutex);
 }
 
-void IptuxSetup::AddPalIcon(gpointer data)
+void IptuxSetup::AddPalIcon(GtkWidget *combo)
 {
 	GtkWidget *chooser;
 	GtkTreeModel *model;
@@ -533,9 +591,9 @@ void IptuxSetup::AddPalIcon(gpointer data)
 	filename = my_chooser::run_chooser(chooser);
 	if (!filename)
 		return;
-	model = gtk_combo_box_get_model(GTK_COMBO_BOX(data));
+	model = gtk_combo_box_get_model(GTK_COMBO_BOX(combo));
 	active = FileGetItemPos(filename, model);
-	gtk_combo_box_set_active(GTK_COMBO_BOX(data), active);
+	gtk_combo_box_set_active(GTK_COMBO_BOX(combo), active);
 	g_free(filename);
 }
 
@@ -616,4 +674,27 @@ void IptuxSetup::SetupDestroy(gpointer data)
 {
 	setup = NULL;
 	delete(IptuxSetup *) data;
+}
+
+void IptuxSetup::ChoosePortrait(GtkWidget *image)
+{
+	gchar path[MAX_PATHBUF], *filename;
+	GtkWidget *chooser;
+	GdkPixbuf *pixbuf;
+
+	chooser = my_chooser::create_chooser(
+			     _("Please choose a personal portrait"), setup);
+	filename = my_chooser::run_chooser(chooser);
+	if (!filename)
+		return;
+	pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
+	g_free(filename);
+	if (pixbuf) {
+		snprintf(path, MAX_PATHBUF, "%s/.iptux/myad", getenv("HOME"));
+		pixbuf_shrink_scale_1(&pixbuf, MAX_ADSIZE, MAX_ADSIZE);
+		gdk_pixbuf_save(pixbuf, path, "png", NULL, NULL);	//命中率极高，不妨直接保存
+		pixbuf_shrink_scale_1(&pixbuf, MAX_PREVIEWSIZE, MAX_PREVIEWSIZE);
+		gtk_image_set_from_pixbuf(GTK_IMAGE(image), pixbuf);
+		g_object_unref(pixbuf);
+	}
 }

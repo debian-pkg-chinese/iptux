@@ -9,6 +9,7 @@ src/DialogGroup.cpp
 src/DialogPeer.cpp
 src/iptux.cpp
 src/IptuxSetup.cpp
+src/Log.cpp
 src/MainWindow.cpp
 src/my_chooser.cpp
 src/my_entry.cpp
@@ -21,6 +22,7 @@ src/SendFile.cpp
 src/ShareFile.cpp
 src/StatusIcon.cpp
 src/support.cpp
+src/TcpData.cpp
 src/Transport.cpp
 src/UdpData.cpp
 src/utils.cpp

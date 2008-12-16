@@ -15,14 +15,14 @@
 #include "UdpData.h"
 #include "RecvFile.h"
 #include "DialogPeer.h"
+#include "Log.h"
 #include "support.h"
 #include "baling.h"
 #include "utils.h"
 
- Pal::Pal():ipv4(0), version(NULL),
-packetn(0), user(NULL), host(NULL),
-name(NULL), iconfile(NULL), encode(NULL),
-flags(0), dialog(NULL), mypacketn(0), reply(true)
+ Pal::Pal():ipv4(0), version(NULL), packetn(0), user(NULL),
+host(NULL), name(NULL), ad(NULL), sign(NULL), iconfile(NULL),
+encode(NULL), flags(0), dialog(NULL), mypacketn(0), reply(true)
 {
 	extern Control ctr;
 	record = gtk_text_buffer_new(ctr.table);
@@ -36,12 +36,14 @@ Pal::~Pal()
 	free(user);
 	free(host);
 	free(name);
+	free(ad);
+	free(sign);
 	free(iconfile);
 	free(encode);
 
-	g_object_unref(record);
 	if (dialog)
 		gtk_widget_destroy(((DialogPeer *) dialog)->dialog);
+	g_object_unref(record);
 }
 
 // //trans 是否转换编码,true 必须;false 情况而定
@@ -110,6 +112,7 @@ void Pal::SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter)
 {
 	extern Control ctr;
 	GdkPixbuf *pixbuf;
+	char buf[MAX_BUF], ipstr[INET_ADDRSTRLEN];
 
 	pixbuf = gdk_pixbuf_new_from_file_at_size(iconfile,
 						  MAX_ICONSIZE, MAX_ICONSIZE,
@@ -118,7 +121,9 @@ void Pal::SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter)
 		pixbuf = gdk_pixbuf_new_from_file_at_size(ctr.palicon,
 							  MAX_ICONSIZE,
 							  MAX_ICONSIZE, NULL);
-	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf, 2, name, 3,
+	inet_ntop(AF_INET, &ipv4, ipstr, INET_ADDRSTRLEN);
+	snprintf(buf, MAX_BUF, "%s\n%s", name, ipstr);
+	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf, 2, buf, 3,
 			   ctr.font, 4, TRUE, 6, FALSE, 7, this, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
@@ -137,16 +142,16 @@ bool Pal::CheckReply(uint32_t packetno, bool install)
 	return false;
 }
 
-void Pal::BufferInsertText(const char *msg, enum INSERTTYPE type)
+void Pal::BufferInsertData(GSList *chiplist, enum BELONG_TYPE type)
 {
 	switch (type) {
 	case PAL:
 		gdk_threads_enter();
-		BufferInsertPal(msg);
+		BufferInsertPal(chiplist);
 		gdk_threads_leave();
 		break;
 	case SELF:
-		BufferInsertSelf(msg);
+		BufferInsertSelf(chiplist);
 		break;
 	case ERROR:
 		gdk_threads_enter();
@@ -163,6 +168,7 @@ bool Pal::RecvMessage(const char *msg)
 {
 	extern UdpData udt;
 	uint32_t packetno;
+	GSList *chiplist;
 	GList *tmp;
 	char *ptr;
 
@@ -172,10 +178,14 @@ bool Pal::RecvMessage(const char *msg)
 	packetn = packetno;
 
 	ptr = ipmsg_get_attach(msg, 5);
-	if (!ptr || !strlen(ptr))
+	if (!ptr)
 		return true;
 
-	BufferInsertText(ptr, PAL);
+	chiplist = g_slist_append(NULL, new ChipData(STRING, ptr));
+	BufferInsertData(chiplist, PAL);
+	g_slist_foreach(chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_free(chiplist);
+
 	if (!dialog) {
 		tmp = (GList *) udt.PalGetMsgPos(this);
 		if (!tmp) {
@@ -206,8 +216,7 @@ bool Pal::RecvIcon(const char *msg, size_t size)
 
 	if (FLAG_ISSET(flags, 2) || (len = strlen(msg) + 1) >= size)
 		return false;
-	create_icon_folder();
-	snprintf(file, MAX_PATHBUF, "%s/.iptux/%u", getenv("HOME"), ipv4);
+	snprintf(file, MAX_PATHBUF, "%s/.iptux/%x.ic", getenv("HOME"), ipv4);
 	if ((fd = Open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
 		return false;
 	Write(fd, msg + len, size - len);
@@ -234,7 +243,34 @@ void Pal::RecvFile(const char *msg, size_t size)
 	para->data = this;
 	para->msg = Strndup(msg, size + 2);
 	memcpy(para->msg + size, "\0\0", 2);	//防止搜索超越合法区域
-	thread_create(ThreadFunc(RecvFile::RecvEntry), para, FALSE);
+	thread_create(ThreadFunc(RecvFile::RecvEntry), para, false);
+}
+
+void Pal::RecvSign(const char *msg)
+{
+	char *ptr;
+
+	ptr = ipmsg_get_attach(msg, 5);
+	if (!FLAG_ISSET(flags, 0)) {
+		sign = transfer_encode(ptr, encode, false);
+		free(ptr);
+	} else
+		sign = ptr;
+}
+
+void Pal::RecvAdPic(const char *path)
+{
+	ad = Strdup(path);
+}
+
+void Pal::RecvMsgPic(const char *path)
+{
+	GSList *chiplist;
+
+	chiplist = g_slist_append(NULL, new ChipData(PICTURE, Strdup(path)));
+	BufferInsertData(chiplist, PAL);
+	g_slist_foreach(chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_free(chiplist);
 }
 
 void Pal::SendAnsentry()
@@ -243,14 +279,6 @@ void Pal::SendAnsentry()
 	Command cmd;
 
 	cmd.SendAnsentry(inter.udpsock, this);
-}
-
-void Pal::SendMyIcon()
-{
-	extern struct interactive inter;
-	Command cmd;
-
-	cmd.SendMyIcon(inter.udpsock, this);
 }
 
 void Pal::SendReply(const char *msg)
@@ -311,35 +339,59 @@ bool Pal::IptuxGetEncode(const char *msg, size_t size)
 	return true;
 }
 
-void Pal::BufferInsertPal(const char *msg)
+void Pal::BufferInsertPal(GSList *chiplist)
 {
+	extern Log mylog;
 	char *ptr, *pptr;
+	GSList *tmp;
+	GdkPixbuf *pixbuf;
 	GtkTextIter iter;
-
-	ptr = (char *)msg;
-	if (!FLAG_ISSET(flags, 0)) {
-		pptr = transfer_encode(ptr, encode, false);
-		free(ptr);
-	} else
-		pptr = ptr;
 
 	ptr = getformattime("%s", name);
 	gtk_text_buffer_get_end_iter(record, &iter);
 	gtk_text_buffer_insert_with_tags_by_name(record, &iter, ptr,
-						 -1, "blue", NULL);
+				-1, "blue", NULL);
 	g_free(ptr);
-	ptr = g_strdup_printf("%s\n", pptr);
-	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert(record, &iter, ptr, -1);
-	free(pptr), g_free(ptr);
 
+	tmp = chiplist;
+	while (tmp) {
+		gtk_text_buffer_get_end_iter(record, &iter);
+		ptr = ((ChipData*)tmp->data)->data;
+		switch (((ChipData*)tmp->data)->type) {
+		case STRING:
+			if (!FLAG_ISSET(flags, 0))
+				pptr = transfer_encode(ptr, encode, false);
+			else
+				pptr = Strdup(ptr);
+			gtk_text_buffer_insert(record, &iter, pptr, -1);
+			mylog.CommunicateLog(this, pptr);
+			free(pptr);
+			break;
+		case PICTURE:
+			pixbuf = gdk_pixbuf_new_from_file(ptr, NULL);
+			if (pixbuf) {
+				gtk_text_buffer_insert_pixbuf(record, &iter, pixbuf);
+				g_object_unref(pixbuf);
+			}
+			break;
+		default:
+			break;
+		}
+		tmp = tmp->next;
+	}
+
+	gtk_text_buffer_get_end_iter(record, &iter);
+	gtk_text_buffer_insert(record, &iter, "\n", -1);
 	ViewScroll();
 }
 
-void Pal::BufferInsertSelf(const char *attach)
+void Pal::BufferInsertSelf(GSList *chiplist)
 {
 	extern Control ctr;
+	extern Log mylog;
+	GdkPixbuf *pixbuf;
 	GtkTextIter iter;
+	GSList *tmp;
 	char *ptr;
 
 	ptr = getformattime("%s", ctr.myname);
@@ -347,11 +399,31 @@ void Pal::BufferInsertSelf(const char *attach)
 	gtk_text_buffer_insert_with_tags_by_name(record, &iter, ptr,
 						 -1, "green", NULL);
 	g_free(ptr);
-	ptr = g_strdup_printf("%s\n", attach);
-	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert(record, &iter, ptr, -1);
-	g_free(ptr);
 
+	tmp = chiplist;
+	while (tmp) {
+		gtk_text_buffer_get_end_iter(record, &iter);
+		ptr = ((ChipData*)tmp->data)->data;
+		switch (((ChipData*)tmp->data)->type) {
+		case STRING:
+			gtk_text_buffer_insert(record, &iter, ptr, -1);
+			mylog.CommunicateLog(NULL, ptr);
+			break;
+		case PICTURE:
+			pixbuf = gdk_pixbuf_new_from_file(ptr, NULL);
+			if (pixbuf) {
+				gtk_text_buffer_insert_pixbuf(record, &iter, pixbuf);
+				g_object_unref(pixbuf);
+			}
+			break;
+		default:
+			break;
+		}
+		tmp = tmp->next;
+	}
+
+	gtk_text_buffer_get_end_iter(record, &iter);
+	gtk_text_buffer_insert(record, &iter, "\n", -1);
 	ViewScroll();
 }
 
@@ -361,6 +433,7 @@ void Pal::BufferInsertError()
 		_("<tips>"),
 		_("It isn't online,or not receive the data packet!\n")
 	};
+	extern Log mylog;
 	GtkTextIter iter;
 	char *ptr;
 
@@ -372,6 +445,7 @@ void Pal::BufferInsertError()
 	gtk_text_buffer_get_end_iter(record, &iter);
 	gtk_text_buffer_insert_with_tags_by_name(record, &iter, tips[1],
 						 -1, "red", NULL);
+	mylog.SystemLog(_("send data packet fail!"));
 
 	ViewScroll();
 }
@@ -393,4 +467,24 @@ void Pal::ViewScroll()
 				     0.0, TRUE, 0.0, 0.0);
 	gtk_text_buffer_delete_mark(record, mark);
 	gtk_window_present(GTK_WINDOW(((DialogPeer *) dialog)->dialog));
+}
+
+void Pal::SendFeature(gpointer data)
+{
+	extern struct interactive inter;
+	extern Control ctr;
+	char path[MAX_PATHBUF];
+	Command cmd;
+	int sock;
+
+	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR)))
+		cmd.SendMyIcon(inter.udpsock, data);
+	if (ctr.sign && *ctr.sign != '\0')
+		cmd.SendMySign(inter.udpsock, data);
+	snprintf(path, MAX_PATHBUF, "%s/.iptux/myad", getenv("HOME"));
+	if (access(path, F_OK) == 0) {
+		sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+		cmd.SendSublayer(sock, data, IPTUX_ADPICOPT, path);
+		close(sock);
+	}
 }

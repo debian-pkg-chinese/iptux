@@ -10,6 +10,7 @@
 //
 //
 #include "my_chooser.h"
+#include "support.h"
 #include "udt.h"
 
 my_chooser::my_chooser()
@@ -70,9 +71,7 @@ gchar *my_chooser::run_chooser(GtkWidget * chooser)
 void my_chooser::UpdatePreview(GtkFileChooser * chooser, GtkWidget * preview)
 {
 	gchar *filename;
-	GdkPixbuf *pixbuf, *tmp;
-	gdouble scale_x, scale_y, scale;
-	gint width, height;
+	GdkPixbuf *pixbuf;
 
 	filename = gtk_file_chooser_get_preview_filename(chooser);
 	if (!filename) {
@@ -87,22 +86,7 @@ void my_chooser::UpdatePreview(GtkFileChooser * chooser, GtkWidget * preview)
 		return;
 	}
 
-	width = gdk_pixbuf_get_width(pixbuf);
-	height = gdk_pixbuf_get_height(pixbuf);
-	if (width > MAX_PREVIEWSIZE || height > MAX_PREVIEWSIZE) {
-		scale = (scale_x = (gdouble) MAX_PREVIEWSIZE / width) <
-		    (scale_y =
-		     (gdouble) MAX_PREVIEWSIZE / height) ? scale_x : scale_y;
-		width = (gint) (width * scale), height =
-		    (gint) (height * scale);
-		tmp = pixbuf;
-		pixbuf = gdk_pixbuf_new(GDK_COLORSPACE_RGB, TRUE, 8,
-					width, height);
-		gdk_pixbuf_scale(tmp, pixbuf, 0, 0, width, height, 0.0, 0.0,
-				 scale, scale, GDK_INTERP_BILINEAR);
-		g_object_unref(tmp);
-	}
-
+	pixbuf_shrink_scale_1(&pixbuf, MAX_PREVIEWSIZE, MAX_PREVIEWSIZE);
 	gtk_image_set_from_pixbuf(GTK_IMAGE(preview), pixbuf);
 	g_object_unref(pixbuf);
 	gtk_file_chooser_set_preview_widget_active(chooser, TRUE);

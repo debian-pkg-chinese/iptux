@@ -160,12 +160,17 @@
 #define GET_OPT(command)	(command & 0xffffff00UL)
 
 /*  header  */
-#define IPTUX_VERSION			"1_iptux_0#4#2"
+#define IPTUX_VERSION			"1_iptux_0#4#3"
 #define IPTUX_DEFAULT_PORT		IPMSG_PORT
 
 /*command*/
 #define IPTUX_ASKSHARED		0x000000FFUL
 #define IPTUX_SENDICON		0x000000FEUL
+#define IPTUX_SENDSUBLAYER		0x000000FDUL
+#define IPTUX_SENDSIGN		0x000000FCUL
+/*  option for command  */
+#define IPTUX_ADPICOPT		0x00000100UL
+#define IPTUX_MSGPICOPT		0x00000200UL
 
 /*data*/
 #define MAX_SOCKBUF			8192
@@ -175,7 +180,7 @@
 #define MAX_SHAREDFILE		10000
 #define MAX_ICONSIZE			30
 #define MAX_PREVIEWSIZE		150
+#define MAX_ADSIZE			300
 #define MAX_RETRYTIMES		4
-#define GINT(x) ((gint)(x))
 
 #endif

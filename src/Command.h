@@ -13,7 +13,6 @@
 #define COMMAND_H
 
 #include "udt.h"
-#include "net.h"
 
 class Command {
  public:
@@ -37,7 +36,11 @@ class Command {
 	void SendAskShared(int sock, pointer data);
 	void SendSharedInfo(int sock, pointer data, const char *extra);
 	void SendMyIcon(int sock, pointer data);
+	void SendMySign(int sock, pointer data);
+	void SendSublayer(int sock, pointer data, uint32_t opttype,
+			  const char *path);
  private:
+	 void SendSublayerData(int sock, int fd);
 	void CreateCommand(uint32_t command, const char *attach);
 	void TransferEncode(const char *encode);
 	void CreateIptuxExtra();

@@ -5,7 +5,7 @@ AC_PREREQ(2.61)
 AC_INIT(configure.in)
 AC_CONFIG_SRCDIR(src/iptux.cpp)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(iptux, 0.4)
+AM_INIT_AUTOMAKE(iptux, 0.4.3)
 
 # Checks for programs.
 AC_PROG_CXX

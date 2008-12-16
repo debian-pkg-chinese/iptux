@@ -2118,7 +2118,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=iptux
- VERSION=0.4
+ VERSION=0.4.3
 
 
 cat >>confdefs.h <<_ACEOF

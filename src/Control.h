@@ -1,7 +1,7 @@
 //
 // C++ Interface: Control
 //
-// Description:与IpTux相关的程序数据
+// Description:与iptux相关的程序数据
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -30,7 +30,8 @@ class Control {
 	char *encode;		//默认网络编码
 	char *path;		//文件存放路径
 	char *font;		//字体
-	uint8_t flags;		//1 黑名单:0 共享过滤
+	char *sign;		//个性签名
+	uint8_t flags;		//2 日志记录:1 黑名单:0 共享过滤
 	bool dirty;		//重写标记
 
 	GtkTextTagTable *table;

@@ -15,6 +15,7 @@
 #include "Control.h"
 #include "SendFile.h"
 #include "UdpData.h"
+#include "TcpData.h"
 #include "Command.h"
 #include "baling.h"
 #include "output.h"
@@ -58,10 +59,10 @@ void CoreThread::RecvUdp()
 	extern struct interactive inter;
 	extern UdpData udt;
 	char buf[MAX_UDPBUF];
-	int sock, status;
 	socklen_t len;
 	ssize_t size;
 	SI addr;
+	int sock;
 
 	inter.udpsock = sock = Socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	socket_enable_broadcast(sock);
@@ -69,10 +70,12 @@ void CoreThread::RecvUdp()
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	status = bind(sock, (SA *) & addr, sizeof(addr));
-	if (status == -1)
-		pwarning(Quit, _("act: bind the UDP port(2425),warning: %s\n"),
+	if (bind(sock, (SA *) & addr, sizeof(addr)) == -1) {
+		gdk_threads_enter();
+		pop_error(_("act: bind the UDP port(2425) !\nerror: %s !"),
 			 strerror(errno));
+		gdk_threads_leave();
+	}
 	server = true;
 
 	while (server) {
@@ -80,7 +83,8 @@ void CoreThread::RecvUdp()
 		if ((size = recvfrom(sock, buf, MAX_UDPBUF, 0,
 				     (SA *) & addr, &len)) == -1)
 			continue;
-		buf[size] = '\0';
+		if (size != MAX_UDPBUF)
+			buf[size] = '\0';
 		udt.UdpDataEntry(addr.sin_addr.s_addr, buf, size);
 		pmessage(_("accept %s> %s\n"), inet_ntoa(addr.sin_addr), buf);
 	}
@@ -89,7 +93,7 @@ void CoreThread::RecvUdp()
 void CoreThread::RecvTcp()
 {
 	extern struct interactive inter;
-	int sock, subsock, status;
+	int sock, subsock;
 	SI addr;
 
 	inter.tcpsock = sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -97,18 +101,20 @@ void CoreThread::RecvTcp()
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
 	addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	status = bind(sock, (SA *) & addr, sizeof(addr));
-	if (status == -1)
-		pwarning(Quit, _("act: bind the TCP port(2425),warning: %s\n"),
+	if (bind(sock, (SA *) & addr, sizeof(addr)) == -1) {
+		gdk_threads_enter();
+		pop_error(_("act: bind the TCP port(2425) !\nerror: %s !"),
 			 strerror(errno));
+		gdk_threads_leave();
+	}
 	listen(sock, 5);
 	Synchronism();
 
 	while (server) {
 		if ((subsock = Accept(sock, NULL, NULL)) == -1)
 			continue;
-		thread_create(ThreadFunc(SendFile::RequestEntry),
-			      GINT_TO_POINTER(subsock), FALSE);
+		thread_create(ThreadFunc(TcpData::TcpDataEntry),
+			      GINT_TO_POINTER(subsock), false);
 	}
 }
 

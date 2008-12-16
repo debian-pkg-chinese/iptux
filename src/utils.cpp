@@ -23,7 +23,7 @@ void my_delay(time_t sec, long nsec)
 	nanosleep(&delay, NULL);
 }
 
-void little_endian(uint32_t * digit1, uint32_t * digit2)
+void data_order(uint32_t * digit1, uint32_t * digit2)
 {
 	uint32_t digit;
 
@@ -127,10 +127,18 @@ void remove_foreach(pointer data, pointer data1)
 	case FILEINFO:
 		delete(FileInfo *) data;
 		break;
+	case CHIPDATA:
+		delete(ChipData *) data;
+		break;
 	default:
 		free(data);
 		break;
 	}
+}
+
+bool compare_foreach(uint32_t src, uint32_t dst)
+{
+	return src==dst;
 }
 
 char *getformattime(const char *format, ...)

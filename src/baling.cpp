@@ -352,7 +352,7 @@ GtkWidget *create_text_view()
 	GtkWidget *view;
 
 	view = gtk_text_view_new();
-	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_CHAR);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_WORD);
 	gtk_widget_show(view);
 
 	return view;

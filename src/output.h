@@ -14,12 +14,13 @@
 
 #include "udt.h"
 
-void pwarning(enum RESULT rst, const char *format, ...);
+void pwarning(enum STATE_TYPE state, const char *format, ...);
 void pmessage(const char *format, ...);
 void pdebug(const char *format, ...);
 
-void pop_warning(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...);
 void pop_info(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...);
+void pop_warning(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...);
+void pop_error(const gchar * format, ...);
 bool pop_request_quit(GtkWidget * parent);
 
 #endif

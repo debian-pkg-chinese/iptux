@@ -18,6 +18,9 @@
 #include <gconf/gconf-client.h>
 #undef _
 #define _(string) gettext(string)
+
 #define GCONF_PATH "/apps/iptux"
+#define ATOM_OBJECT 0xFFFC
+#define GINT(x) ((gint)(x))
 
 #endif

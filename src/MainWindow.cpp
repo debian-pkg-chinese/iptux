@@ -55,7 +55,7 @@ void MainWindow::CreateWindow()
 
 	inter.window = window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
 	update_widget_bg(window, __BACK_DIR "/back.png");
-	gtk_window_set_title(GTK_WINDOW(window), _("IpTux"));
+	gtk_window_set_title(GTK_WINDOW(window), _("iptux"));
 	pixbuf =
 	    gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/ip-tux.png", 25, 25,
 					     NULL);
@@ -67,8 +67,8 @@ void MainWindow::CreateWindow()
 			 _("Icon file"), _("is lost!"));
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), window, &geometry,
 				      hints);
-	gtk_window_set_default_size(GTK_WINDOW(window), GINT(ctr.pix * 65),
-				    GINT(ctr.pix * 180));
+	gtk_window_set_default_size(GTK_WINDOW(window), GINT(ctr.pix * 70),
+				    GINT(ctr.pix * 170));
 	accel = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW(window), accel);
 
@@ -502,7 +502,7 @@ void MainWindow::UpdatePalList()
 	gtk_tree_store_clear(GTK_TREE_STORE(udt.pal_model));
 	udt.InitPalModel();
 
-	thread_create(ThreadFunc(CoreThread::NotifyAll), NULL, FALSE);
+	thread_create(ThreadFunc(CoreThread::NotifyAll), NULL, false);
 }
 
 void MainWindow::DeletePal(gpointer data)
@@ -533,10 +533,12 @@ gboolean MainWindow::ViewQueryTooltip(GtkWidget * view, gint x, gint y,
 				      gboolean key, GtkTooltip * tooltip,
 				      GtkTreeModel * model)
 {
-	char ipstr[INET_ADDRSTRLEN], buf[MAX_BUF];
+	extern Control ctr;
+	GdkColor color = { 8, 65535, 65535, 55000 };
+	GtkWidget *text_view;
+	GtkTextBuffer *buffer;
 	GtkTreePath *path;
 	GtkTreeIter iter;
-	GtkWidget *label;
 	Pal *pal;
 
 	if (key || !gtk_tree_view_get_path_at_pos(GTK_TREE_VIEW(view),
@@ -550,10 +552,17 @@ gboolean MainWindow::ViewQueryTooltip(GtkWidget * view, gint x, gint y,
 	if (!pal)
 		return FALSE;
 
-	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	snprintf(buf, MAX_BUF, "%s\n%s", ipstr, pal->name);
-	label = create_label(buf);
-	gtk_tooltip_set_custom(tooltip, label);
+	text_view = create_text_view();
+	gtk_widget_modify_base(text_view, GTK_STATE_NORMAL, &color);
+	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(text_view), FALSE);
+	gtk_text_view_set_editable(GTK_TEXT_VIEW(text_view), FALSE);
+	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(text_view), GTK_WRAP_NONE);
+	buffer = gtk_text_buffer_new(ctr.table);
+	DialogPeer::FillPalInfoToBuffer(pal, buffer, false);
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(text_view), buffer);
+	gtk_tooltip_set_custom(tooltip, text_view);
+	g_signal_connect_swapped(text_view, "destroy",
+				 G_CALLBACK(g_object_unref), buffer);
 
 	return TRUE;
 }
@@ -668,6 +677,7 @@ void MainWindow::FindSpecifyPal(gpointer data)
 	hbox = create_box(FALSE);
 	gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 0);
 	button = gtk_button_new();
+	g_object_set(button, "relief", GTK_RELIEF_NONE, NULL);
 	image = gtk_image_new_from_file(__TIP_DIR "/cancel.png");
 	gtk_button_set_image(GTK_BUTTON(button), image);
 	gtk_widget_show(button);

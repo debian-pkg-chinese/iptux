@@ -15,8 +15,8 @@
 #include "baling.h"
 
  Control::Control():ipseg(NULL), palicon(NULL), myicon(NULL),
-myname(NULL), encode(NULL), path(NULL), font(NULL), flags(0),
-dirty(false), table(NULL), iconlist(NULL), pix(3.4)
+myname(NULL), encode(NULL), path(NULL), font(NULL), sign(NULL),
+flags(0), dirty(false), table(NULL), iconlist(NULL), pix(3.4)
 {
 	pthread_mutex_init(&mutex, NULL);
 }
@@ -37,6 +37,7 @@ Control::~Control()
 	free(encode);
 	free(path);
 	free(font);
+	free(sign);
 
 	g_object_unref(table);
 }
@@ -62,6 +63,11 @@ void Control::WriteControl()
 	gconf_client_set_string(client, GCONF_PATH "/net_encode", encode, NULL);
 	gconf_client_set_string(client, GCONF_PATH "/save_path", path, NULL);
 	gconf_client_set_string(client, GCONF_PATH "/panel_font", font, NULL);
+	gconf_client_set_string(client, GCONF_PATH "/personal_sign", sign, NULL);
+	gconf_client_set_bool(client, GCONF_PATH "/clearup_history",
+			      FLAG_ISSET(flags, 3) ? TRUE : FALSE, NULL);
+	gconf_client_set_bool(client, GCONF_PATH "/record_log",
+			      FLAG_ISSET(flags, 2) ? TRUE : FALSE, NULL);
 	gconf_client_set_bool(client, GCONF_PATH "/open_blacklist",
 			      FLAG_ISSET(flags, 1) ? TRUE : FALSE, NULL);
 	gconf_client_set_bool(client, GCONF_PATH "/proof_shared",
@@ -76,39 +82,33 @@ void Control::ReadControl()
 	GConfClient *client;
 
 	client = gconf_client_get_default();
-	if (!
-	    (ipseg =
-	     gconf_client_get_list(client, GCONF_PATH "/scan_ip_section",
-				   GCONF_VALUE_STRING, NULL))) {
-		pthread_mutex_lock(&mutex);
-		ipseg = g_slist_append(ipseg, Strdup("10.10.0.0"));
-		ipseg = g_slist_append(ipseg, Strdup("10.10.3.255"));
-		pthread_mutex_unlock(&mutex);
-	}
-	if (!
-	    (palicon =
+	ipseg = gconf_client_get_list(client, GCONF_PATH "/scan_ip_section",
+				   GCONF_VALUE_STRING, NULL);
+	if (!(palicon =
 	     gconf_client_get_string(client, GCONF_PATH "/pal_icon", NULL)))
 		palicon = Strdup(__ICON_DIR "/qq.png");
-	if (!
-	    (myicon =
+	if (!(myicon =
 	     gconf_client_get_string(client, GCONF_PATH "/self_icon", NULL)))
 		myicon = Strdup(__ICON_DIR "/tux.png");
-	if (!
-	    (myname =
+	if (!(myname =
 	     gconf_client_get_string(client, GCONF_PATH "/nick_name", NULL)))
 		myname = Strdup(getenv("USER"));
-	if (!
-	    (encode =
+	if (!(encode =
 	     gconf_client_get_string(client, GCONF_PATH "/net_encode", NULL)))
 		encode = Strdup(_("UTF-8"));
-	if (!
-	    (path =
+	if (!(path =
 	     gconf_client_get_string(client, GCONF_PATH "/save_path", NULL)))
 		path = Strdup(getenv("HOME"));
-	if (!
-	    (font =
+	if (!(font =
 	     gconf_client_get_string(client, GCONF_PATH "/panel_font", NULL)))
 		font = Strdup("Sans Italic 10");
+	if (!(sign =
+	     gconf_client_get_string(client, GCONF_PATH "/personal_sign", NULL)))
+		sign = Strdup("");
+	if (gconf_client_get_bool(client, GCONF_PATH "/clearup_history", NULL))
+		FLAG_SET(flags, 3);
+	if (gconf_client_get_bool(client, GCONF_PATH "/record_log", NULL))
+		FLAG_SET(flags, 2);
 	if (gconf_client_get_bool(client, GCONF_PATH "/open_blacklist", NULL))
 		FLAG_SET(flags, 1);
 	if (gconf_client_get_bool(client, GCONF_PATH "/proof_shared", NULL))
@@ -131,6 +131,10 @@ void Control::CreateTagTable()
 	gtk_text_tag_table_add(table, tag);
 	tag = gtk_text_tag_new("red");
 	g_object_set(tag, "foreground", "red", NULL);
+	gtk_text_tag_table_add(table, tag);
+	tag = gtk_text_tag_new("sign");
+	g_object_set(tag, "indent", 10, "foreground", "#1005F0", "font",
+		     "Sans Italic 8", NULL);
 	gtk_text_tag_table_add(table, tag);
 }
 
