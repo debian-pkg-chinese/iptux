@@ -16,6 +16,7 @@
 #include "UdpData.h"
 #include "Control.h"
 #include "Command.h"
+#include "my_chooser.h"
 #include "baling.h"
 #include "support.h"
 #include "output.h"
@@ -25,17 +26,24 @@
 dialog(NULL), focus(NULL), scroll(NULL),
 accel(NULL)
 {
+	extern Control ctr;
+
+	infobuf = gtk_text_buffer_new(ctr.table);
 	pal->dialog = this;
 }
 
 DialogPeer::~DialogPeer()
 {
+	extern Control ctr;
 	GtkTextIter start, end;
 
 	pal->dialog = NULL;
+	g_object_unref(infobuf);
 	g_object_unref(accel);
-	gtk_text_buffer_get_bounds(pal->record, &start, &end);
-	gtk_text_buffer_delete(pal->record, &start, &end);
+	if (FLAG_ISSET(ctr.flags, 3)) {
+		gtk_text_buffer_get_bounds(pal->record, &start, &end);
+		gtk_text_buffer_delete(pal->record, &start, &end);
+	}
 }
 
 void DialogPeer::DialogEntry(gpointer data)
@@ -94,68 +102,19 @@ void DialogPeer::CreateInfoArea(GtkWidget * paned)
 {
 	GdkColor color = { 8, 65535, 65535, 55000 };
 	GtkWidget *view, *frame, *sw;
-	GtkTextBuffer *info;
 
 	view = create_text_view();
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(view), infobuf);
 	gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
 	gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(view), FALSE);
 	gtk_text_view_set_editable(GTK_TEXT_VIEW(view), FALSE);
 	gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(view), GTK_WRAP_NONE);
-	info = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
-	FillInfoBuffer(info);
+	FillPalInfoToBuffer(pal, infobuf);
 	frame = create_frame(_("Pal's Infomation"));
 	gtk_paned_pack2(GTK_PANED(paned), frame, FALSE, TRUE);
 	sw = create_scrolled_window();
 	gtk_container_add(GTK_CONTAINER(frame), sw);
 	gtk_container_add(GTK_CONTAINER(sw), view);
-}
-
-void DialogPeer::FillInfoBuffer(GtkTextBuffer * info)
-{
-	char buf[MAX_BUF], ipstr[INET_ADDRSTRLEN];
-	GdkPixbuf *pixbuf;
-	GtkTextIter iter;
-
-	pixbuf = gdk_pixbuf_new_from_file_at_size(pal->iconfile,
-						  MAX_ICONSIZE, MAX_ICONSIZE,
-						  NULL);
-	if (pixbuf) {
-		gtk_text_buffer_get_end_iter(info, &iter);
-		gtk_text_buffer_insert_pixbuf(info, &iter, pixbuf);
-		g_object_unref(pixbuf);
-	}
-
-	snprintf(buf, MAX_BUF, _("\nVersion: %s\n"), pal->version);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	snprintf(buf, MAX_BUF, _("Nickname: %s\n"), pal->name);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	snprintf(buf, MAX_BUF, _("User: %s\n"), pal->user);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	snprintf(buf, MAX_BUF, _("Host: %s\n"), pal->host);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	snprintf(buf, MAX_BUF, _("Host IP: %s\n"), ipstr);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	if (!FLAG_ISSET(pal->flags, 0))
-		snprintf(buf, MAX_BUF, _("Compatibility: Microsoft\n"));
-	else
-		snprintf(buf, MAX_BUF, _("Compatibility: GNU/Linux\n"));
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
-
-	snprintf(buf, MAX_BUF, _("System Encode: %s\n"), pal->encode);
-	gtk_text_buffer_get_end_iter(info, &iter);
-	gtk_text_buffer_insert(info, &iter, buf, -1);
 }
 
 void DialogPeer::CreateRecordArea(GtkWidget * paned)
@@ -171,6 +130,7 @@ void DialogPeer::CreateRecordArea(GtkWidget * paned)
 	sw = create_scrolled_window();
 	gtk_container_add(GTK_CONTAINER(frame), sw);
 	gtk_container_add(GTK_CONTAINER(sw), scroll);
+	pal->ViewScroll();
 }
 
 void DialogPeer::CreateInputArea(GtkWidget * paned)
@@ -184,6 +144,8 @@ void DialogPeer::CreateInputArea(GtkWidget * paned)
 	gtk_container_add(GTK_CONTAINER(frame), vbox);
 
 	focus = create_text_view();
+	g_signal_connect(focus, "drag-data-received", G_CALLBACK(DragPicReceived),
+				gtk_text_view_get_buffer(GTK_TEXT_VIEW(focus)));
 	sw = create_scrolled_window();
 	gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 0);
 	gtk_container_add(GTK_CONTAINER(sw), focus);
@@ -212,6 +174,7 @@ GtkWidget *DialogPeer::CreateMenuBar()
 	update_widget_bg(menu_bar, __BACK_DIR "/title.png");
 	gtk_widget_show(menu_bar);
 	CreateFileMenu(menu_bar);
+	CreateToolMenu(menu_bar);
 	CreateHelpMenu(menu_bar);
 
 	return menu_bar;
@@ -259,6 +222,33 @@ void DialogPeer::CreateFileMenu(GtkWidget * menu_bar)
 	gtk_widget_show(menu_item);
 }
 
+void DialogPeer::CreateToolMenu(GtkWidget * menu_bar)
+{
+	GtkWidget *image;
+	GtkWidget *menu;
+	GtkWidget *menu_item;
+
+	menu_item = gtk_menu_item_new_with_mnemonic(_("_Tools"));
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu_bar), menu_item);
+
+	menu = gtk_menu_new();
+	gtk_widget_show(menu);
+	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
+
+	menu_item = gtk_menu_item_new_with_label(_("Insert Picture"));
+	g_signal_connect_swapped(menu_item, "activate",
+			 G_CALLBACK(InsertPixbuf), this);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	gtk_widget_show(menu_item);
+
+	menu_item = gtk_menu_item_new_with_label(_("Clear Buffer"));
+	g_signal_connect_swapped(menu_item, "activate",
+			 G_CALLBACK(ClearRecordBuffer), pal->record);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+	gtk_widget_show(menu_item);
+}
+
 void DialogPeer::CreateHelpMenu(GtkWidget * menu_bar)
 {
 	GtkWidget *menu;
@@ -301,6 +291,65 @@ bool DialogPeer::CheckExist(gpointer data)
 	return false;
 }
 
+void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool sad)
+{
+	extern Control ctr;
+	char buf[MAX_BUF], ipstr[INET_ADDRSTRLEN];
+	GdkPixbuf *pixbuf;
+	GtkTextIter iter;
+	Pal *pal;
+
+	pal = (Pal*)data;
+	snprintf(buf, MAX_BUF, _("Version: %s\n"), pal->version);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	snprintf(buf, MAX_BUF, _("Nickname: %s\n"), pal->name);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	snprintf(buf, MAX_BUF, _("User: %s\n"), pal->user);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	snprintf(buf, MAX_BUF, _("Host: %s\n"), pal->host);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
+	snprintf(buf, MAX_BUF, _("Host IP: %s\n"), ipstr);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	if (!FLAG_ISSET(pal->flags, 0))
+		snprintf(buf, MAX_BUF, _("Compatibility: Microsoft\n"));
+	else
+		snprintf(buf, MAX_BUF, _("Compatibility: GNU/Linux\n"));
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	snprintf(buf, MAX_BUF, _("System Encode: %s\n"), pal->encode);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+
+	snprintf(buf, MAX_BUF, _("Personal Signature:\n"));
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
+			pal->sign?pal->sign:_("(lazy)"), -1, "sign", NULL);
+
+	if (!sad || !pal->ad ||
+		    !(pixbuf = gdk_pixbuf_new_from_file(pal->ad, NULL)))
+		return;
+	snprintf(buf, MAX_BUF, _("\nAdvertisement: \n"));
+	gtk_text_buffer_get_end_iter(buffer, &iter);
+	gtk_text_buffer_insert(buffer, &iter, buf, -1);
+	pixbuf_shrink_scale_1(&pixbuf, GINT(ctr.pix*51), -1);
+	gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
+	g_object_unref(pixbuf);
+}
+
 void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 				  gint x, gint y, GtkSelectionData * select,
 				  guint info, guint time)
@@ -338,16 +387,94 @@ void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 	gtk_drag_finish(context, TRUE, FALSE, time);
 }
 
+void DialogPeer::DragPicReceived(GtkWidget *view, GdkDragContext * context,
+				 gint x, gint y, GtkSelectionData * select,
+				 guint info, guint time, GtkTextBuffer *buffer)
+{
+	const char *prl = "file://";
+	GdkPixbuf *pixbuf;
+	GtkTextIter iter;
+	char *tmp, *file;
+	gboolean flag;
+	gint position;
+
+	if (select->length <= 0 || select->format != 8 ||
+	    strcasestr((char *)select->data, prl) == NULL) {
+		gtk_drag_finish(context, FALSE, FALSE, time);
+		return;
+	}
+
+	flag = FALSE, tmp = (char *)select->data;
+	while (tmp = strcasestr(tmp, prl)) {
+		file = my_getline(tmp + strlen(prl));
+		pixbuf = gdk_pixbuf_new_from_file(file, NULL);
+		if (pixbuf) {
+			g_object_get(buffer, "cursor-position", &position, NULL);
+			gtk_text_buffer_get_iter_at_offset(buffer, &iter, position);
+			gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
+			g_object_unref(pixbuf);
+			flag = TRUE;
+		}
+		tmp += strlen(prl) + strlen(file);
+		free(file);
+	}
+
+	gtk_drag_finish(context, flag, FALSE, time);
+	if (flag)
+		g_signal_stop_emission_by_name(view, "drag-data-received");
+}
+
 void DialogPeer::DialogDestroy(gpointer data)
 {
 	delete(DialogPeer *) data;
 }
 
+void DialogPeer::InsertPixbuf(gpointer data)
+{
+	GtkWidget *chooser;
+	GdkPixbuf *pixbuf;
+	GtkTextBuffer *buffer;
+	GtkTextIter iter;
+	DialogPeer *peer;
+	gchar *filename;
+	gint position;
+
+	peer = (DialogPeer*)data;
+	chooser = my_chooser::create_chooser(
+			     _("Please choose a picture to insert the buffer"), peer->dialog);
+	filename = my_chooser::run_chooser(chooser);
+	if (!filename)
+		return;
+
+	pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
+	g_free(filename);
+	if (!pixbuf)
+		return;
+	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(peer->focus));
+	g_object_get(buffer, "cursor-position", &position, NULL);
+	gtk_text_buffer_get_iter_at_offset(buffer, &iter, position);
+	gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
+	g_object_unref(pixbuf);
+}
+
+void DialogPeer::ClearRecordBuffer(GtkTextBuffer *buffer)
+{
+	GtkTextIter start, end;
+
+	gtk_text_buffer_get_bounds(buffer, &start, &end);
+	if (!gtk_text_iter_equal(&start, &end))
+		gtk_text_buffer_delete(buffer, &start, &end);
+}
+
 void DialogPeer::SendMessage(gpointer data)
 {
-	GtkTextBuffer *buffer;
-	GtkTextIter start, end;
+	uint8_t count = 0;
+	struct sendmsg_para *para;
 	DialogPeer *peer;
+	GtkTextBuffer *buffer;
+	GtkTextIter start, end, iter;
+	GdkPixbuf *pixbuf;
+	GSList *chiplist;
 	gchar *ptr;
 
 	peer = (DialogPeer *) data;
@@ -359,30 +486,63 @@ void DialogPeer::SendMessage(gpointer data)
 			      "\nCan't send an empty message!!</span>"));
 		return;
 	}
+
+	chiplist = NULL, iter = start;
+	do {
+		if (pixbuf = gtk_text_iter_get_pixbuf(&iter)) {
+			ptr = g_strdup_printf("%s/.iptux/%x", getenv("HOME"),
+					      time(NULL)+(count++));
+			gdk_pixbuf_save(pixbuf, ptr, "bmp", NULL, NULL);
+			chiplist = g_slist_append(chiplist, new ChipData(PICTURE, ptr));
+		}
+	} while (gtk_text_iter_forward_find_char(&iter,
+			    GtkTextCharPredicate(compare_foreach),
+			    GUINT_TO_POINTER(ATOM_OBJECT),
+			    &end));
 	ptr = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
-	peer->pal->BufferInsertText(ptr, SELF);
-	g_free(ptr);
-	thread_create(ThreadFunc(ThreadSendMessage), data, FALSE);
+	if (*ptr)
+		chiplist = g_slist_append(chiplist, new ChipData(STRING, ptr));
+	else
+		g_free(ptr);
+	gtk_text_buffer_delete(buffer, &start, &end);
+
+	peer->pal->BufferInsertData(chiplist, SELF);
 	gtk_widget_grab_focus(peer->focus);
+
+	para = (struct sendmsg_para*)Malloc(sizeof(struct sendmsg_para));
+	para->data = peer->pal, para->chiplist = chiplist;
+	thread_create(ThreadFunc(ThreadSendMessage), para, false);
 }
 
 void DialogPeer::ThreadSendMessage(gpointer data)
 {
 	extern struct interactive inter;
-	GtkTextBuffer *buffer;
-	GtkTextIter start, end;
-	DialogPeer *peer;
+	struct sendmsg_para *para;
 	Command cmd;
-	gchar *ptr;
+	GSList *tmp;
+	char *ptr;
+	int sock;
 
-	peer = (DialogPeer *) data;
-	gdk_threads_enter();
-	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(peer->focus));
-	gtk_text_buffer_get_bounds(buffer, &start, &end);
-	ptr = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
-	gtk_text_buffer_delete(buffer, &start, &end);
-	gdk_threads_leave();
+	para = (struct sendmsg_para*)data;
+	tmp = para->chiplist;
+	while (tmp) {
+		ptr = ((ChipData*)tmp->data)->data;
+		switch (((ChipData*)tmp->data)->type) {
+		case STRING:
+			cmd.SendMessage(inter.udpsock, para->data, ptr);
+			break;
+		case PICTURE:
+			sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+			cmd.SendSublayer(sock, para->data, IPTUX_MSGPICOPT, ptr);
+			close(sock), unlink(ptr);
+			break;
+		default:
+			break;
+		}
+		tmp = tmp->next;
+	}
 
-	cmd.SendMessage(inter.udpsock, peer->pal, ptr);
-	g_free(ptr);
+	g_slist_foreach(para->chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_free(para->chiplist);
+	free(para);
 }

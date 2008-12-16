@@ -17,11 +17,13 @@
 #include "UdpData.h"
 #include "SendFile.h"
 #include "Transport.h"
+#include "Log.h"
 
 Control ctr;
 UdpData udt;
 SendFile sfl;
 Transport trans;
+Log mylog;
 struct interactive inter;
 
 #endif

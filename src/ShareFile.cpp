@@ -209,6 +209,7 @@ GtkWidget *ShareFile::CreateSharedView()
 	GtkTreeSelection *selection;
 
 	view = gtk_tree_view_new_with_model(share_model);
+	gtk_tree_view_set_rubber_banding(GTK_TREE_VIEW(view), TRUE);
 	gtk_widget_show(view);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
@@ -306,11 +307,9 @@ void ShareFile::DeleteFiles(gpointer data)
 		return;
 	do {
  mark:		status =
-		    gtk_tree_selection_iter_is_selected(selection,
-							&iter);
+		    gtk_tree_selection_iter_is_selected(selection, &iter);
 		if (status) {
-			result =
-			    gtk_list_store_remove(GTK_LIST_STORE
+			result = gtk_list_store_remove(GTK_LIST_STORE
 						  (sf->share_model), &iter);
 			if (result)
 				goto mark;

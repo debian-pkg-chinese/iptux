@@ -27,29 +27,37 @@ class DialogPeer {
 	void CreateDialog();
 	void CreateAllArea();
 	void CreateInfoArea(GtkWidget * paned);
-	void FillInfoBuffer(GtkTextBuffer * info);
 	void CreateRecordArea(GtkWidget * paned);
 	void CreateInputArea(GtkWidget * paned);
 	GtkWidget *CreateMenuBar();
 	void CreateFileMenu(GtkWidget * menu_bar);
+	void CreateToolMenu(GtkWidget * menu_bar);
 	void CreateHelpMenu(GtkWidget * menu_bar);
 	static bool CheckExist(gpointer data);
 
 	GtkWidget *dialog;	//主窗口
 	GtkWidget *focus;	//焦点
 	GtkWidget *scroll;	//滚动
+	GtkTextBuffer *infobuf;
 	GtkAccelGroup *accel;
 	Pal *pal;
  public:
 	 friend class Pal;
 	friend class SendFile;
+
+	static void FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool sad = true);
 //回调处理部分
  public:
 	static void DragDataReceived(gpointer data, GdkDragContext * context,
 				     gint x, gint y, GtkSelectionData * select,
 				     guint info, guint time);
  private:
+	 static void DragPicReceived(GtkWidget *view, GdkDragContext * context,
+				     gint x, gint y, GtkSelectionData * select,
+				 guint info, guint time, GtkTextBuffer *buffer);
 	static void DialogDestroy(gpointer data);
+	static void InsertPixbuf(gpointer data);
+	static void ClearRecordBuffer(GtkTextBuffer *buffer);
 	static void SendMessage(gpointer data);
 //线程处理
  private:

@@ -32,6 +32,7 @@ class UdpData {
 
 	void InitSelf();
 	void UdpDataEntry(in_addr_t ipv4, char *msg, size_t size);
+	void SublayerEntry(gpointer data, uint32_t command, const char *path);
 
 	gpointer Ipv4GetPal(in_addr_t ipv4);
 	gpointer Ipv4GetPalPos(in_addr_t ipv4);
@@ -52,6 +53,7 @@ class UdpData {
 	void SomeoneRecvmsg(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneAskShared(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size);
+	void SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size);
 
 	static void ThreadAskShared(gpointer data);
 	static bool AllowAskShared(gpointer data);

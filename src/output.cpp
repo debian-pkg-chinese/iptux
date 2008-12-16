@@ -11,7 +11,7 @@
 //
 #include "output.h"
 
-void pwarning(enum RESULT rst, const char *format, ...)
+void pwarning(enum STATE_TYPE state, const char *format, ...)
 {
 	va_list ap;
 
@@ -20,7 +20,7 @@ void pwarning(enum RESULT rst, const char *format, ...)
 	vwarnx(format, ap);
 	va_end(ap);
 #endif
-	switch (rst) {
+	switch (state) {
 	case Quit:
 		exit(1);
 		break;
@@ -51,28 +51,6 @@ void pdebug(const char *format, ...)
 #endif
 }
 
-void pop_warning(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...)
-{
-	GtkWidget *dialog;
-	va_list ap;
-	gchar *msg;
-
-	va_start(ap, format);
-	msg = g_strdup_vprintf(format, ap);
-	va_end(ap);
-	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(parent),
-						    GTK_DIALOG_MODAL,
-						    GTK_MESSAGE_WARNING,
-						    GTK_BUTTONS_OK, msg);
-	g_free(msg);
-	gtk_window_set_title(GTK_WINDOW(dialog), _("Warning"));
-	gtk_dialog_run(GTK_DIALOG(dialog));
-	gtk_widget_destroy(dialog);
-
-	if (fw)
-		gtk_widget_grab_focus(fw);
-}
-
 void pop_info(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...)
 {
 	GtkWidget *dialog;
@@ -95,13 +73,54 @@ void pop_info(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...)
 		gtk_widget_grab_focus(fw);
 }
 
+void pop_warning(GtkWidget * parent, GtkWidget * fw, const gchar * format, ...)
+{
+	GtkWidget *dialog;
+	va_list ap;
+	gchar *msg;
+
+	va_start(ap, format);
+	msg = g_strdup_vprintf(format, ap);
+	va_end(ap);
+	dialog = gtk_message_dialog_new_with_markup(GTK_WINDOW(parent),
+						    GTK_DIALOG_MODAL,
+						    GTK_MESSAGE_WARNING,
+						    GTK_BUTTONS_OK, msg);
+	g_free(msg);
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Warning"));
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+
+	if (fw)
+		gtk_widget_grab_focus(fw);
+}
+
+void pop_error(const gchar * format, ...)
+{
+	GtkWidget *dialog;
+	va_list ap;
+	gchar *msg;
+
+	va_start(ap, format);
+	msg = g_strdup_vprintf(format, ap);
+	va_end(ap);
+	dialog = gtk_message_dialog_new_with_markup(NULL,
+						    GTK_DIALOG_MODAL,
+						    GTK_MESSAGE_ERROR,
+						    GTK_BUTTONS_OK, msg);
+	g_free(msg);
+	gtk_window_set_title(GTK_WINDOW(dialog), _("Error"));
+	gtk_dialog_run(GTK_DIALOG(dialog));
+	gtk_widget_destroy(dialog);
+}
+
 bool pop_request_quit(GtkWidget * parent)
 {
 	GtkWidget *dialog;
 	gint result;
 
 	dialog = gtk_message_dialog_new(GTK_WINDOW(parent), GTK_DIALOG_MODAL,
-					GTK_MESSAGE_INFO, GTK_BUTTONS_OK_CANCEL,
+					GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
 					_("The file transfer is running!"
 					  "\nAre you sure you want to quit?"));
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Confirm close"));

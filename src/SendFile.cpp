@@ -44,12 +44,13 @@ void SendFile::InitSelf()
 	client = gconf_client_get_default();
 	filelist = gconf_client_get_list(client, GCONF_PATH "/shared_file_list",
 					 GCONF_VALUE_STRING, NULL);
+	g_object_unref(client);
 	pthread_mutex_lock(&mutex);
 	pblist = NULL, tmp = filelist;
 	while (tmp) {
 		if (Stat((const char *)tmp->data, &st) == -1 ||
 		    !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) {
-			free(tmp->data);
+			free(tmp->data), tmp = tmp->next;
 			continue;
 		}
 		file =
@@ -73,46 +74,20 @@ void SendFile::WriteShared()
 	pthread_mutex_lock(&mutex);
 	filelist = NULL, tmp = pblist;
 	while (tmp) {
-		filelist =
-		    g_slist_append(filelist,
+		filelist = g_slist_append(filelist,
 				   ((FileInfo *) tmp->data)->filename);
 		tmp = tmp->next;
 	}
+	if (filelist) {
+		client = gconf_client_get_default();
+		gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
+				      GCONF_VALUE_STRING, filelist, NULL);
+		g_object_unref(client);
+	}
 	pthread_mutex_unlock(&mutex);
-	client = gconf_client_get_default();
-	gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
-			      GCONF_VALUE_STRING, filelist, NULL);
 	g_slist_free(filelist);
 
 	dirty = false;
-}
-
-void SendFile::RequestEntry(int sock)
-{
-	extern SendFile sfl;
-	char buf[MAX_SOCKBUF];
-	uint32_t commandno;
-	ssize_t size;
-
-	//不处理偏移量
-	size = my_read1(sock, buf, MAX_SOCKBUF, 6);
-	if (size <= 0) {
-		close(sock);
-		return;
-	}
-	commandno = iptux_get_dec_number(buf, 4);
-	switch (GET_MODE(commandno)) {
-	case IPMSG_GETFILEDATA:
-		sfl.RequestData(sock, IPMSG_FILE_REGULAR, buf);
-		break;
-	case IPMSG_GETDIRFILES:
-		sfl.RequestData(sock, IPMSG_FILE_DIR, buf);
-		break;
-	default:
-		break;
-	}
-
-	close(sock);
 }
 
 void SendFile::SendRegular(gpointer data)
@@ -127,39 +102,6 @@ void SendFile::SendFolder(gpointer data)
 	extern SendFile sfl;
 
 	sfl.PickFile(IPMSG_FILE_DIR, data);
-}
-
-void SendFile::SendShared(gpointer data)
-{
-	extern struct interactive inter;
-	extern SendFile sfl;
-	char buf[MAX_UDPBUF], *ptr, *filename;
-	GSList *tmp, *tmp1;
-	Command cmd;
-	FileInfo *file;
-	size_t len;
-
-	ptr = buf, len = 0, buf[0] = '\0';
-	pthread_mutex_lock(&sfl.mutex);
-	tmp = sfl.pblist;
-	while (tmp) {
-		file = (FileInfo *) tmp->data;
-		if (access(file->filename, F_OK) == -1) {
-			delete file, tmp1 = tmp->next;
-			sfl.pblist = g_slist_delete_link(sfl.pblist, tmp);
-			tmp = tmp1;
-			continue;
-		}
-		filename = ipmsg_set_filename_pal(file->filename);
-		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%x:%x:%x\a:",
-			 file->fileid, filename, file->filesize, 0,
-			 file->fileattr);
-		free(filename), len += strlen(ptr), ptr = buf + len;
-		tmp = tmp->next;
-	}
-	pthread_mutex_unlock(&sfl.mutex);
-
-	cmd.SendSharedInfo(inter.udpsock, data, buf);
 }
 
 void SendFile::RequestData(int sock, uint32_t fileattr, char *buf)
@@ -253,7 +195,7 @@ void SendFile::SendFileInfo(GSList * list, gpointer data)
 	pthread_mutex_lock(&mutex);
 	while (list) {
 		if (Stat((char *)list->data, &st) == -1) {
-			list = list->next, free(list->data);
+			free(list->data), list = list->next;
 			continue;
 		}
 		filename = ipmsg_set_filename_pal((char *)list->data);
@@ -270,6 +212,39 @@ void SendFile::SendFileInfo(GSList * list, gpointer data)
 		list = list->next, prn++;
 	}
 	pthread_mutex_unlock(&mutex);
+
+	cmd.SendSharedInfo(inter.udpsock, data, buf);
+}
+
+void SendFile::SendSharedInfo(gpointer data)
+{
+	extern struct interactive inter;
+	extern SendFile sfl;
+	char buf[MAX_UDPBUF], *ptr, *filename;
+	GSList *tmp, *tmp1;
+	Command cmd;
+	FileInfo *file;
+	size_t len;
+
+	ptr = buf, len = 0, buf[0] = '\0';
+	pthread_mutex_lock(&sfl.mutex);
+	tmp = sfl.pblist;
+	while (tmp) {
+		file = (FileInfo *) tmp->data;
+		if (access(file->filename, F_OK) == -1) {
+			delete file, tmp1 = tmp->next;
+			sfl.pblist = g_slist_delete_link(sfl.pblist, tmp);
+			tmp = tmp1;
+			continue;
+		}
+		filename = ipmsg_set_filename_pal(file->filename);
+		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%x:%x:%x\a:",
+			 file->fileid, filename, file->filesize, 0,
+			 file->fileattr);
+		free(filename), len += strlen(ptr), ptr = buf + len;
+		tmp = tmp->next;
+	}
+	pthread_mutex_unlock(&sfl.mutex);
 
 	cmd.SendSharedInfo(inter.udpsock, data, buf);
 }

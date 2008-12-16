@@ -87,7 +87,26 @@ void UdpData::UdpDataEntry(in_addr_t ipv4, char *msg, size_t size)
 		break;
 	case IPTUX_SENDICON:
 		SomeoneSendIcon(ipv4, msg, size);
+		break;
+	case IPTUX_SENDSIGN:
+		SomeoneSendSign(ipv4, msg, size);
+		break;
 	default:
+		break;
+	}
+}
+
+void UdpData::SublayerEntry(gpointer data, uint32_t command, const char *path)
+{
+	Pal *pal;
+
+	pal = (Pal*)data;
+	switch (GET_OPT(command)) {
+	case IPTUX_ADPICOPT:
+		pal->RecvAdPic(path);
+		break;
+	case IPTUX_MSGPICOPT:
+		pal->RecvMsgPic(path);
 		break;
 	}
 }
@@ -172,7 +191,7 @@ void UdpData::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * iter)
 		ip1 = ntohl(ip1);
 		inet_pton(AF_INET, udt.localip[(count << 1) + 1], &ip2);
 		ip2 = ntohl(ip2);
-		little_endian(&ip1, &ip2);
+		data_order(&ip1, &ip2);
 		if (ip1 <= ipv4 && ip2 >= ipv4)
 			break;
 		count++;
@@ -261,7 +280,6 @@ void UdpData::SomeoneLost(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 {
-	extern Control ctr;
 	GtkTreeIter iter, parent;
 	Pal *pal;
 
@@ -286,8 +304,8 @@ void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 	pal->SetPalmodelValue(pal_model, &iter);
 	gdk_threads_leave();
 	pal->SendAnsentry();
-	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR)))
-		pal->SendMyIcon();
+	if (FLAG_ISSET(pal->flags, 0))
+		thread_create(ThreadFunc(Pal::SendFeature), pal, false);
 }
 
 void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
@@ -316,14 +334,13 @@ void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size)
 {
-	extern Control ctr;
 	Pal *pal;
 
 	SomeoneAbsence(ipv4, msg, size);
 	if (!(pal = (Pal *) Ipv4GetPal(ipv4)))
 		return;
-	if (strncmp(ctr.myicon, __ICON_DIR, strlen(__ICON_DIR)))
-		pal->SendMyIcon();
+	if (FLAG_ISSET(pal->flags, 0))
+		thread_create(ThreadFunc(Pal::SendFeature), pal, false);
 }
 
 void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
@@ -396,7 +413,7 @@ void UdpData::SomeoneAskShared(in_addr_t ipv4, char *msg, size_t size)
 
 	if (!pal->RecvAskShared(msg))
 		return;
-	thread_create(ThreadFunc(ThreadAskShared), pal, FALSE);
+	thread_create(ThreadFunc(ThreadAskShared), pal, false);
 }
 
 void UdpData::SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size)
@@ -419,13 +436,26 @@ void UdpData::SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size)
 	gdk_threads_leave();
 }
 
+void UdpData::SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size)
+{
+	Pal *pal;
+
+	pal = (Pal *) Ipv4GetPal(ipv4);
+	if (!pal) {
+		SomeoneLost(ipv4, msg, size);
+		if (!(pal = (Pal *) Ipv4GetPal(ipv4)))
+			return;
+	}
+	pal->RecvSign(msg);
+}
+
 void UdpData::ThreadAskShared(gpointer data)
 {
 	extern Control ctr;
 	extern SendFile sfl;
 
 	if (!FLAG_ISSET(ctr.flags, 0) || AllowAskShared(data))
-		sfl.SendShared(data);
+		sfl.SendSharedInfo(data);
 }
 
 bool UdpData::AllowAskShared(gpointer data)

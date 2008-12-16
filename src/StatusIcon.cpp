@@ -40,7 +40,7 @@ void StatusIcon::CreateStatusIcon()
 	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/ip-tux.png",
 						  20, 20, NULL);
 	if (!pixbuf) {
-		pop_warning(NULL, NULL, "\n%s \"" __LOGO_DIR "/ip-tux.png\" %s",
+		pop_error("\n%s \"" __LOGO_DIR "/ip-tux.png\" %s",
 			    _("The notify icon"), _("is lost!"));
 		exit(1);
 	}
@@ -50,7 +50,7 @@ void StatusIcon::CreateStatusIcon()
 	g_object_unref(pixbuf);
 	screen = gdk_screen_get_default();
 	gtk_status_icon_set_screen(status_icon, screen);
-	gtk_status_icon_set_tooltip(status_icon, _("IpTux"));
+	gtk_status_icon_set_tooltip(status_icon, _("iptux"));
 
 	g_signal_connect(status_icon, "activate",
 			 G_CALLBACK(StatusIconActivate), NULL);
@@ -74,7 +74,7 @@ void StatusIcon::UpdateTips()
 		gtk_status_icon_set_blinking(inter.status_icon, FALSE);
 		ipstr = get_sys_host_addr_string(inter.udpsock);
 		gtk_status_icon_set_tooltip(inter.status_icon,
-					    ipstr ? ipstr : _("IpTux"));
+					    ipstr ? ipstr : _("iptux"));
 	}
 	free(ipstr);
 	pthread_mutex_unlock(&udt.mutex);

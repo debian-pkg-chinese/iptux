@@ -14,6 +14,7 @@
 #include "UdpData.h"
 #include "SendFile.h"
 #include "Transport.h"
+#include "Log.h"
 #include "baling.h"
 #include "output.h"
 #include "utils.h"
@@ -79,7 +80,29 @@ void update_widget_bg(GtkWidget * widget, const gchar * file)
 	g_object_unref(style);
 }
 
-void create_icon_folder()
+void pixbuf_shrink_scale_1(GdkPixbuf **pixbuf, int width, int height)
+{
+	gdouble scale_x, scale_y, scale;
+	gint _width, _height;
+	GdkPixbuf *tmp;
+
+	width = (width != -1)?width:G_MAXINT;
+	height = (height != -1)?height:G_MAXINT;
+	_width = gdk_pixbuf_get_width(*pixbuf);
+	_height = gdk_pixbuf_get_height(*pixbuf);
+	if (_width > width || _height > height) {
+		scale = ((scale_x = (gdouble) width / _width) <
+				(scale_y = (gdouble) height / _height))
+				? scale_x : scale_y;
+		_width = (gint) (_width * scale);
+		_height = (gint) (_height * scale);
+		tmp = *pixbuf;
+		*pixbuf = gdk_pixbuf_scale_simple(tmp, _width, _height, GDK_INTERP_BILINEAR);
+		g_object_unref(tmp);
+	}
+}
+
+void create_iptux_folder()
 {
 	char path[MAX_PATHBUF];
 

@@ -34,8 +34,8 @@ class IptuxSetup {
 	static bool CheckExist();
 
 	GtkTreeModel *icon_model, *ip_model;
-	GtkWidget *myname, *myicon, *save_path;
-	GtkWidget *encode, *palicon, *font, *black, *proof;
+	GtkWidget *myname, *myicon, *save_path, *ad, *sign;
+	GtkWidget *encode, *palicon, *font, *tidy, *log, *black, *proof;
 	GtkWidget *entry1, *entry2;
 	GtkWidget *ipseg_view;
 	static GtkWidget *setup;
@@ -51,13 +51,15 @@ class IptuxSetup {
 	static void UpdateMyInfo();
 //回调处理部分
  public:
-	static void AddPalIcon(gpointer data);
+	static void AddPalIcon(GtkWidget *combo);
  private:
 	static void ClickAddIpseg(gpointer data);
 	static void ClickDelIpseg(gpointer data);
 	static void ClickOk(gpointer data);
 	static void ClickApply(gpointer data);
 	static void SetupDestroy(gpointer data);
+
+	static void ChoosePortrait(GtkWidget *image);
 };
 
 #endif

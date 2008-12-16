@@ -109,11 +109,10 @@ gpointer RecvFile::DivideFileinfo(char **ptr)
 {
 	FileInfo *file;
 
-	file = new FileInfo;
-	file->fileid = iptux_get_dec_number(*ptr, 0);
-	file->filename = ipmsg_get_filename(*ptr, 1);
-	file->filesize = iptux_get_hex_number(*ptr, 2);
-	file->fileattr = iptux_get_hex_number(*ptr, 4);
+	file = new FileInfo(iptux_get_dec_number(*ptr, 0),
+			   ipmsg_get_filename(*ptr, 1),
+			   iptux_get_hex_number(*ptr, 2),
+			   iptux_get_hex_number(*ptr, 4));
 
 	//格式1 ... ;格式2 ...\a ;格式3 ...\a:
 	*ptr = strstr(*ptr, "\a:");

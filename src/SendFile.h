@@ -16,6 +16,8 @@
 #include "face.h"
 class DialogPeer;
 class ShareFile;
+class UdpData;
+class TcpData;
 
 class SendFile {
  public:
@@ -25,16 +27,15 @@ class SendFile {
 	void InitSelf();
 	void WriteShared();
 
-	static void RequestEntry(int sock);	//线程入口
 	static void SendRegular(gpointer data);	//回调入口
 	static void SendFolder(gpointer data);	//回调入口
-	void SendShared(gpointer data);
 
 	bool dirty;
  private:
 	void RequestData(int sock, uint32_t fileattr, char *buf);
 	void PickFile(uint32_t fileattr, gpointer data);
 	void SendFileInfo(GSList * list, gpointer data);
+	void SendSharedInfo(gpointer data);
 	pointer FindFileinfo(uint32_t fileid);
 
 	uint32_t pbn;
@@ -45,6 +46,8 @@ class SendFile {
  public:
 	 friend class DialogPeer;
 	friend class ShareFile;
+	friend class UdpData;
+	friend class TcpData;
 };
 
 #endif

@@ -74,7 +74,7 @@ void Command::DialUp(int sock)
 		ip1 = ntohl(ip1), tmp = tmp->next;
 		inet_pton(AF_INET, (char *)tmp->data, &ip2);
 		ip2 = ntohl(ip2), tmp = tmp->next;
-		little_endian(&ip1, &ip2);
+		data_order(&ip1, &ip2);
 		ip = ip1;
 		while (ip <= ip2) {
 			addr.sin_addr.s_addr = htonl(ip);
@@ -188,7 +188,7 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 		count++;
 	} while (!pal->CheckReply(packetno, false) && count < MAX_RETRYTIMES);
 	if (count >= MAX_RETRYTIMES)
-		pal->BufferInsertText(NULL, ERROR);
+		pal->BufferInsertData(NULL, ERROR);
 }
 
 //回复消息
@@ -335,6 +335,62 @@ void Command::SendMyIcon(int sock, pointer data)
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
+void Command::SendMySign(int sock, pointer data)
+{
+	extern Control ctr;
+	Pal *pal;
+	SI addr;
+
+	pal = (Pal *) data;
+	CreateCommand(IPTUX_SENDSIGN, ctr.sign);
+	TransferEncode(pal->encode);
+
+	bzero(&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
+	addr.sin_addr.s_addr = pal->ipv4;
+
+	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
+}
+
+void Command::SendSublayer(int sock, pointer data, uint32_t opttype, const char *path)
+{
+	Pal *pal;
+	SI addr;
+	int fd;
+
+	pal = (Pal *) data;
+	CreateCommand(opttype|IPTUX_SENDSUBLAYER, NULL);
+	TransferEncode(pal->encode);
+
+	bzero(&addr, sizeof(addr));
+	addr.sin_family = AF_INET;
+	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
+	addr.sin_addr.s_addr = pal->ipv4;
+
+	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1 ||
+		   Write(sock, buf, size) == -1 ||
+		   (fd = Open(path, O_RDONLY)) == -1)
+		return;
+
+	SendSublayerData(sock, fd);
+	close(fd);
+}
+
+void Command::SendSublayerData(int sock, int fd)
+{
+	ssize_t len;
+
+	do {
+		len = Read(fd, buf, MAX_UDPBUF);
+		if (len == 0 || len == -1)
+			break;
+		len = Write(sock, buf, len);
+		if (len == -1)
+			break;
+	} while (1);
+}
+
 void Command::CreateCommand(uint32_t command, const char *attach)
 {
 	char *ptr, *env;
@@ -411,7 +467,7 @@ void Command::CreateIconExtra()
 	snprintf(path, MAX_PATHBUF, "%s/.iptux/myicon", env);
 	if ((fd = Open(path, O_RDONLY)) == -1)
 		return;
-	len = Read(fd, buf + size, MAX_UDPBUF - size - 1);
+	len = Read(fd, buf + size, MAX_UDPBUF - size);
 	close(fd);
 	if (len != -1)
 		size += len;

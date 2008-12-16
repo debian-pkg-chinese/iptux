@@ -44,8 +44,8 @@ void AboutIptux::CreateAbout()
 	GdkPixbuf *pixbuf;
 
 	about = gtk_about_dialog_new();
-	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about), _("IpTux"));
-	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about), "0.4");
+	gtk_about_dialog_set_program_name(GTK_ABOUT_DIALOG(about), _("iptux"));
+	gtk_about_dialog_set_version(GTK_ABOUT_DIALOG(about), "0.4.3");
 	gtk_about_dialog_set_copyright(GTK_ABOUT_DIALOG(about),
 				       "Copyright @ 2008 Jally");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about),
