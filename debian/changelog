@@ -1,5 +1,11 @@
 iptux (0.4.3-0ubuntu1) jaunty; urgency=low
 
+  * new upstream released.
+
+ -- LI Daobing <lidaobing@gmail.com>  Sat, 27 Dec 2008 22:37:40 +0800
+
+iptux (0.4.1-0ubuntu1) jaunty; urgency=low
+
   [ LI Daobing ]
   * Initial release (LP: #292518)
 
@@ -7,4 +13,4 @@ iptux (0.4.3-0ubuntu1) jaunty; urgency=low
   * Add myself as an uploader. :)
   * Use /use/share/common-licenses/GPL-2 in copyright.
 
- -- LI Daobing <lidaobing@gmail.com>  Tue, 16 Dec 2008 19:37:07 +0800
+ -- Zhengpeng Hou <zhengpeng-hou@ubuntu.com>  Thu, 04 Dec 2008 03:27:36 +0000
