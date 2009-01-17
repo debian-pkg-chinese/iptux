@@ -1,8 +1,9 @@
 iptux (0.4.4-0ubuntu1) jaunty; urgency=low
 
   * new upstream released (LP: #318175)
+  * debian/rules: add "--as-needed" to LDFLAGS.
 
- -- LI Daobing <lidaobing@gmail.com>  Sat, 17 Jan 2009 23:46:16 +0800
+ -- LI Daobing <lidaobing@gmail.com>  Sat, 17 Jan 2009 23:52:02 +0800
 
 iptux (0.4.3-0ubuntu1) jaunty; urgency=low
 

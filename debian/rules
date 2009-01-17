@@ -33,7 +33,7 @@ endif
 		--disable-maintainer-mode \
 		--disable-dependency-tracking \
 		CFLAGS="$(CFLAGS)" \
-		LDFLAGS="-Wl,-z,defs"
+		LDFLAGS="-Wl,-z,defs,--as-needed"
 
 build: build-stamp
 
