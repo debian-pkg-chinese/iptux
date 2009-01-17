@@ -17,33 +17,25 @@
 #include "sys.h"
 class StatusIcon;
 class MainWindow;
-class RevisePal;
 class Pal;
 class DialogGroup;
-class IptuxSetup;
+class IptuxSetting;
 class DialogPeer;
 
 class UdpData {
- private:
-	static const char *localip[];
  public:
 	 UdpData();
 	~UdpData();
 
 	void InitSelf();
+	void AdjustMemory();
 	void UdpDataEntry(in_addr_t ipv4, char *msg, size_t size);
-	void SublayerEntry(gpointer data, uint32_t command, const char *path);
+	void SublayerEntry(gpointer data, uint32_t command, const char *path);	//Pal
 
 	gpointer Ipv4GetPal(in_addr_t ipv4);
 	gpointer Ipv4GetPalPos(in_addr_t ipv4);
 	gpointer PalGetMsgPos(gpointer data);
-	void Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * iter);
-	bool PalGetModelIter(gpointer pal, GtkTreeIter * parent,
-			     GtkTreeIter * iter);
  private:
-	 GtkTreeModel * CreatePalModel();
-	void InitPalModel();
-
 	void SomeoneLost(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneEntry(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneExit(in_addr_t ipv4, char *msg, size_t size);
@@ -55,20 +47,18 @@ class UdpData {
 	void SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size);
 	void SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size);
 
-	static void ThreadAskShared(gpointer data);
-	static bool AllowAskShared(gpointer data);
+	static void ThreadAskShared(gpointer data);	//
+	static bool AllowAskShared(gpointer data);	//
 
-	GSList *pallist;
-	GQueue *msgqueue;
+	GSList *pallist;		//好友链表，只能添加，不能删除
+	GQueue *msgqueue;	//消息队列
 	pthread_mutex_t mutex;
-	GtkTreeModel *pal_model;
  public:
 	 friend class StatusIcon;
 	friend class MainWindow;
-	friend class RevisePal;
 	friend class Pal;
 	friend class DialogGroup;
-	friend class IptuxSetup;
+	friend class IptuxSetting;
 	friend class DialogPeer;
 };
 

@@ -19,9 +19,13 @@ void iptux_gui_quit();		//图形用户界面退出
 void iptux_quit();		//底层退出
 
 void update_widget_bg(GtkWidget * widget, const gchar * file);
-void pixbuf_shrink_scale_1(GdkPixbuf **pixbuf, int width, int height);
-void create_iptux_folder();
+void pixbuf_shrink_scale_1(GdkPixbuf ** pixbuf, int width, int height);
+
+void init_iptux_environment();
+void bind_iptux_port();
+
 void socket_enable_broadcast(int sock);
+void socket_enable_reuse(int sock);
 GSList *get_sys_broadcast_addr(int sock);
 GSList *get_sys_host_addr(int sock);
 char *get_sys_host_addr_string(int sock);

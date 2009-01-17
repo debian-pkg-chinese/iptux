@@ -42,20 +42,17 @@ void DetectPal::CreateDetect()
 	detect = gtk_dialog_new_with_buttons(_("Detect the pals"),
 					     GTK_WINDOW(inter.window),
 					     GTK_DIALOG_MODAL,
-					     _("Detect"), GTK_RESPONSE_ACCEPT,
 					     _("Cancel"), GTK_RESPONSE_CANCEL,
+					     _("Detect"), GTK_RESPONSE_ACCEPT,
 					     NULL);
 	g_signal_connect(detect, "destroy", G_CALLBACK(DetectDestroy), NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(detect),
-					GTK_RESPONSE_ACCEPT);
+	gtk_dialog_set_default_response(GTK_DIALOG(detect), GTK_RESPONSE_ACCEPT);
 
 	frame = create_frame(_("Please input a legal address of IPv4:"));
 	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(detect)->vbox), frame,
-			   TRUE, TRUE, 0);
+						   TRUE, TRUE, 0);
 	ipstr = my_entry::create_entry(NULL,
-				       _
-				       ("Please input a legal address of IPv4!"),
-				       true);
+			     _("Please input a legal address of IPv4!"), true);
 	gtk_entry_set_max_length(GTK_ENTRY(ipstr), INET_ADDRSTRLEN);
 	gtk_container_add(GTK_CONTAINER(frame), ipstr);
 	gtk_widget_grab_focus(ipstr);
@@ -83,7 +80,7 @@ void DetectPal::SendDetectPacket()
 	text = gtk_entry_get_text(GTK_ENTRY(ipstr));
 	if (inet_pton(AF_INET, text, &ipv4) <= 0) {
 		pop_warning(detect, ipstr, _("\nThe address %s is illegal!"),
-			    text);
+								    text);
 		gtk_editable_select_region(GTK_EDITABLE(ipstr), 0, -1);
 		return;
 	}

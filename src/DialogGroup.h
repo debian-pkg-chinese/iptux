@@ -27,9 +27,6 @@ class DialogGroup {
 	void CreateChooseArea(GtkWidget * paned);
 	void CreateRecordArea(GtkWidget * paned);
 	void CreateInputArea(GtkWidget * paned);
-	void BufferInsertText(const gchar * msg);
-	void SendGroupMsg(const gchar * msg);
-	void ViewScroll();
 	GtkTreeModel *CreateGroupModel();
 	void InitGroupModel();
 	GtkWidget *CreateGroupView();
@@ -42,17 +39,21 @@ class DialogGroup {
 	GtkAccelGroup *accel;
 	GtkTreeModel *group_model;
 	static GtkWidget *dialog;
- public:
+ private:
+	void BufferInsertText(const gchar * msg);
+	void SendGroupMsg(const gchar * msg);
+	void ViewScroll();
 	static GtkWidget *CreatePopupMenu(GtkTreeModel * model);
 //回调处理部分
  public:
+	/*参数 model:0 为toggle项 */
 	static void ViewToggleChange(GtkTreeModel * model, gchar * path);
 	static gboolean PopupPickMenu(GtkTreeModel * model,
-				      GdkEventButton * event);
+					      GdkEventButton * event);
  private:
-	static void SendMessage(gpointer data);
-	static void UpdatePalList(gpointer data);
-	static void DialogDestroy(gpointer data);
+	static void SendMessage(gpointer data);	//DialogGroup
+	static void UpdatePalList(gpointer data);	//
+	static void DialogDestroy(gpointer data);	//
 
 	static void SelectAll(GtkTreeModel * model);
 	static void TurnSelect(GtkTreeModel * model);

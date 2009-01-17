@@ -13,6 +13,7 @@
 #include "output.h"
 #include "baling.h"
 
+uint64_t my_file::sumsize = 0;
 my_file::my_file(bool fg)
 {
 	if (!getcwd(path, MAX_PATHBUF))
@@ -42,7 +43,7 @@ void my_file::chdir(const char *dir)
 			snprintf(path + len, MAX_PATHBUF - len, "/%s", dir);
 		} else
 			snprintf(path, MAX_PATHBUF, "%s", dir);
-		if (flag)
+		if (flag && access(path, F_OK) != 0)
 			Mkdir(path, 0777);
 	}
 }
@@ -78,6 +79,15 @@ int my_file::stat(const char *filename, struct stat64 *st)
 	return result;
 }
 
+uint64_t my_file::ftw(const char *dir)
+{
+	chdir(dir);
+	sumsize = 0;
+	::ftw64(path, fn, 255);
+
+	return sumsize;
+}
+
 DIR *my_file::opendir()
 {
 	DIR *dir;
@@ -85,7 +95,14 @@ DIR *my_file::opendir()
 	dir =::opendir(path);
 	if (!dir)
 		pwarning(Fail, _("act: open directory '%s',warning: %s\n"),
-			 strerror(errno));
+			 path, strerror(errno));
 
 	return dir;
+}
+
+int my_file::fn(const char *file, const struct stat64 *sb, int flag)
+{
+	if (flag == FTW_F)
+		sumsize += sb->st_size;
+	return 0;
 }

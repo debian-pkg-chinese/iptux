@@ -37,8 +37,8 @@ GtkWidget *my_entry::create_entry(const char *text, const char *tip,
 				 G_CALLBACK(QueryTooltip), (gpointer) tip);
 	}
 	if (digital)
-		g_signal_connect(entry, "insert-text", G_CALLBACK(InsertText),
-				 NULL);
+		g_signal_connect(entry, "insert-text",
+				 G_CALLBACK(InsertText), NULL);
 	gtk_widget_show(entry);
 
 	return entry;

@@ -10,6 +10,7 @@
 //
 //
 #include "UdpData.h"
+#include "MainWindow.h"
 #include "SendFile.h"
 #include "Control.h"
 #include "Pal.h"
@@ -17,18 +18,7 @@
 #include "baling.h"
 #include "utils.h"
 
-const char *UdpData::localip[] = {
-	"10.0.0.0",
-	"10.255.255.255",
-	"172.16.0.0",
-	"172.31.255.255",
-	"192.168.0.0",
-	"192.168.255.255",
-	"Others",
-	NULL
-};
-
- UdpData::UdpData():pallist(NULL), msgqueue(NULL), pal_model(NULL)
+ UdpData::UdpData():pallist(NULL), msgqueue(NULL)
 {
 	pthread_mutex_init(&mutex, NULL);
 }
@@ -36,21 +26,51 @@ const char *UdpData::localip[] = {
 UdpData::~UdpData()
 {
 	pthread_mutex_lock(&mutex);
-	g_slist_foreach(pallist, remove_foreach, GINT_TO_POINTER(PALINFO));
+	g_slist_foreach(pallist, GFunc(remove_foreach),
+			GINT_TO_POINTER(PALINFO));
 	g_slist_free(pallist);
 	g_queue_clear(msgqueue);
 	g_queue_free(msgqueue);
 	pthread_mutex_unlock(&mutex);
 	pthread_mutex_destroy(&mutex);
-
-	g_object_unref(pal_model);
 }
 
 void UdpData::InitSelf()
 {
 	msgqueue = g_queue_new();
-	pal_model = CreatePalModel();
-	InitPalModel();
+}
+
+void UdpData::AdjustMemory()
+{
+	extern Control ctr;
+	GSList *tmp, *list;
+	Pal *pal;
+
+	//防止申请锁的方向出现错误
+	pthread_mutex_lock(&mutex);
+	tmp = list = g_slist_copy(pallist);	//根据其只增不减的特性，可以采用浅拷贝方案
+	pthread_mutex_unlock(&mutex);
+
+	while (tmp) {
+		pal = (Pal *) tmp->data;
+		if (FLAG_ISSET(ctr.flags, 5)) {	//最小化内存使用
+			if (pal->iconpix) {
+				gdk_threads_enter();
+				g_object_unref(pal->iconpix);
+				pal->iconpix = NULL;
+				gdk_threads_leave();
+			}
+		} else {	//以内存换取运行效率
+			if (!pal->iconpix) {
+				gdk_threads_enter();
+				pal->iconpix = pal->GetIconPixbuf();	//返回对象必须被释放
+				g_object_unref(pal->iconpix);
+				gdk_threads_leave();
+			}
+		}
+		tmp = tmp->next;
+	}
+	g_slist_free(list);
 }
 
 void UdpData::UdpDataEntry(in_addr_t ipv4, char *msg, size_t size)
@@ -100,7 +120,7 @@ void UdpData::SublayerEntry(gpointer data, uint32_t command, const char *path)
 {
 	Pal *pal;
 
-	pal = (Pal*)data;
+	pal = (Pal *) data;
 	switch (GET_OPT(command)) {
 	case IPTUX_ADPICOPT:
 		pal->RecvAdPic(path);
@@ -121,14 +141,14 @@ gpointer UdpData::Ipv4GetPal(in_addr_t ipv4)
 	tmp = udt.pallist;
 	while (tmp) {
 		pal = (Pal *) tmp->data;
-		if (ipv4 == pal->ipv4) {
-			pthread_mutex_unlock(&udt.mutex);
-			return pal;
-		}
+		if (ipv4 == pal->ipv4)
+			break;
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&udt.mutex);
 
+	if (tmp)
+		return pal;
 	return NULL;
 }
 
@@ -142,15 +162,13 @@ gpointer UdpData::Ipv4GetPalPos(in_addr_t ipv4)
 	tmp = udt.pallist;
 	while (tmp) {
 		pal = (Pal *) tmp->data;
-		if (ipv4 == pal->ipv4) {
-			pthread_mutex_unlock(&udt.mutex);
-			return tmp;
-		}
+		if (ipv4 == pal->ipv4)
+			break;
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&udt.mutex);
 
-	return NULL;
+	return tmp;
 }
 
 gpointer UdpData::PalGetMsgPos(pointer data)
@@ -164,99 +182,16 @@ gpointer UdpData::PalGetMsgPos(pointer data)
 	length = udt.msgqueue->length;
 	count = 0;
 	while (count < length) {
-		if (tmp->data == data) {
-			pthread_mutex_unlock(&udt.mutex);
-			return tmp;
-		}
+		if (tmp->data == data)
+			break;
 		tmp = tmp->next;
 		count++;
 	}
 	pthread_mutex_unlock(&udt.mutex);
 
+	if (count < length)
+		return tmp;
 	return NULL;
-}
-
-void UdpData::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * iter)
-{
-	extern UdpData udt;
-	in_addr_t ip1, ip2;
-	uint8_t count;
-
-	gtk_tree_model_get_iter_first(udt.pal_model, iter);
-	count = 0, ipv4 = ntohl(ipv4);
-	do {
-		if (!udt.localip[count << 1] || !udt.localip[(count << 1) + 1])
-			break;
-		inet_pton(AF_INET, udt.localip[count << 1], &ip1);
-		ip1 = ntohl(ip1);
-		inet_pton(AF_INET, udt.localip[(count << 1) + 1], &ip2);
-		ip2 = ntohl(ip2);
-		data_order(&ip1, &ip2);
-		if (ip1 <= ipv4 && ip2 >= ipv4)
-			break;
-		count++;
-	} while (gtk_tree_model_iter_next(udt.pal_model, iter));
-}
-
-bool UdpData::PalGetModelIter(gpointer pal, GtkTreeIter * parent,
-			      GtkTreeIter * iter)
-{
-	extern UdpData udt;
-	gpointer data;
-
-	if (!gtk_tree_model_iter_children(udt.pal_model, iter, parent))
-		return false;
-
-	do {
-		gtk_tree_model_get(udt.pal_model, iter, 7, &data, -1);
-		if (pal == data)
-			return true;
-	} while (gtk_tree_model_iter_next(udt.pal_model, iter));
-
-	return false;
-}
-
-//Panel 8,0 pixbuf,1 expand,2 nickname,3 font,4 visible,5 markup,6 visible,7 data/last
-GtkTreeModel *UdpData::CreatePalModel()
-{
-	GtkTreeStore *model;
-
-	model = gtk_tree_store_new(8, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN,
-				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
-				   G_TYPE_STRING, G_TYPE_BOOLEAN,
-				   G_TYPE_POINTER);
-
-	return GTK_TREE_MODEL(model);
-}
-
-void UdpData::InitPalModel()
-{
-	extern Control ctr;
-	gchar ipstr[32], buf[MAX_BUF];
-	GtkTreeIter iter;
-	GdkPixbuf *pixbuf;
-	uint8_t count;
-
-	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/hide.png", NULL);
-	count = 0;
-	while (localip[count << 1]) {
-		if (localip[(count << 1) + 1])
-			snprintf(ipstr, 32, "%s~%s", localip[count << 1],
-				 localip[(count << 1) + 1]);
-		else
-			snprintf(ipstr, 32, "%s", localip[count << 1]);
-		snprintf(buf, MAX_BUF,
-			 "<span style=\"italic\" underline=\"single\" size=\"small\" "
-			 "foreground=\"#52B838\" weight=\"bold\">%s</span>",
-			 ipstr);
-		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter, NULL);
-		gtk_tree_store_set(GTK_TREE_STORE(pal_model), &iter, 0, pixbuf,
-				   1, FALSE, 4, FALSE, 5, buf, 6, TRUE, 7, NULL,
-				   -1);
-		if (!localip[(count << 1) + 1])
-			break;
-		count++;
-	}
 }
 
 void UdpData::SomeoneLost(in_addr_t ipv4, char *msg, size_t size)
@@ -269,10 +204,12 @@ void UdpData::SomeoneLost(in_addr_t ipv4, char *msg, size_t size)
 	pallist = g_slist_append(pallist, pal);
 	pthread_mutex_unlock(&mutex);
 
+	//对底层调用函数中可能不会被初始化的数据进行预初始化
 	pal->ipv4 = ipv4;
+	pal->name = Strdup(_("mysterious"));
+	pal->group = Strdup(_("mysterious"));
 	pal->iconfile = Strdup(ctr.palicon);
 	pal->encode = Strdup(ctr.encode);
-	pal->name = Strdup(_("mysterious"));
 	FLAG_SET(pal->flags, 2);
 
 	SomeoneAbsence(ipv4, msg, size);
@@ -280,7 +217,8 @@ void UdpData::SomeoneLost(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 {
-	GtkTreeIter iter, parent;
+	extern MainWindow *mwp;
+	GtkTreeIter iter;
 	Pal *pal;
 
 	pal = (Pal *) Ipv4GetPal(ipv4);
@@ -291,17 +229,13 @@ void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 		pallist = g_slist_append(pallist, pal);
 		pthread_mutex_unlock(&mutex);
 		pal->CreateInfo(ipv4, msg, size, true);
-		Ipv4GetParent(ipv4, &parent);
-		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
-				      &parent);
+		mwp->AttachItemToModel(ipv4, &iter);
 	} else {
 		pal->UpdateInfo(msg, size, true);
-		Ipv4GetParent(ipv4, &parent);
-		if (!PalGetModelIter(pal, &parent, &iter))
-			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
-					      &parent);
+		if (!mwp->PalGetModelIter(pal, &iter))
+			mwp->AttachItemToModel(ipv4, &iter);
 	}
-	pal->SetPalmodelValue(pal_model, &iter);
+	mwp->SetValueToModel(pal, &iter);
 	gdk_threads_leave();
 	pal->SendAnsentry();
 	if (FLAG_ISSET(pal->flags, 0))
@@ -310,7 +244,7 @@ void UdpData::SomeoneEntry(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
 {
-	GtkTreeIter iter, parent;
+	extern MainWindow *mwp;
 	GSList *tmp1;
 	GList *tmp2;
 
@@ -319,9 +253,7 @@ void UdpData::SomeoneExit(in_addr_t ipv4, char *msg, size_t size)
 		return;
 
 	gdk_threads_enter();
-	Ipv4GetParent(ipv4, &parent);
-	if (PalGetModelIter(tmp1->data, &parent, &iter))
-		gtk_tree_store_remove(GTK_TREE_STORE(pal_model), &iter);
+	mwp->DelItemFromModel(tmp1->data);
 	gdk_threads_leave();
 	tmp2 = (GList *) PalGetMsgPos(tmp1->data);
 	if (tmp2) {
@@ -345,6 +277,7 @@ void UdpData::SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
 {
+	extern MainWindow *mwp;
 	GtkTreeIter iter, parent;
 	Pal *pal;
 
@@ -356,17 +289,13 @@ void UdpData::SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size)
 		pallist = g_slist_append(pallist, pal);
 		pthread_mutex_unlock(&mutex);
 		pal->CreateInfo(ipv4, msg, size, false);
-		Ipv4GetParent(ipv4, &parent);
-		gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
-				      &parent);
+		mwp->AttachItemToModel(ipv4, &iter);
 	} else {
 		pal->UpdateInfo(msg, size, false);
-		Ipv4GetParent(ipv4, &parent);
-		if (!PalGetModelIter(pal, &parent, &iter))
-			gtk_tree_store_append(GTK_TREE_STORE(pal_model), &iter,
-					      &parent);
+		if (!mwp->PalGetModelIter(pal, &iter))
+			mwp->AttachItemToModel(ipv4, &iter);
 	}
-	pal->SetPalmodelValue(pal_model, &iter);
+	mwp->SetValueToModel(pal, &iter);
 	gdk_threads_leave();
 }
 
@@ -418,6 +347,7 @@ void UdpData::SomeoneAskShared(in_addr_t ipv4, char *msg, size_t size)
 
 void UdpData::SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size)
 {
+	extern MainWindow *mwp;
 	GtkTreeIter iter, parent;
 	Pal *pal;
 	bool flag;
@@ -427,13 +357,12 @@ void UdpData::SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size)
 		return;
 
 	flag = pal->RecvIcon(msg, size);
-	gdk_threads_enter();
 	if (flag) {
-		Ipv4GetParent(ipv4, &parent);
-		PalGetModelIter(pal, &parent, &iter);
-		pal->SetPalmodelValue(pal_model, &iter);
+		gdk_threads_enter();
+		mwp->PalGetModelIter(pal, &iter);
+		mwp->SetValueToModel(pal, &iter);
+		gdk_threads_leave();
 	}
-	gdk_threads_leave();
 }
 
 void UdpData::SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size)
@@ -469,27 +398,25 @@ bool UdpData::AllowAskShared(gpointer data)
 	gdk_threads_enter();
 	dialog = gtk_dialog_new_with_buttons(_("Request for shared resources"),
 					     GTK_WINDOW(inter.window),
-					     GTK_DIALOG_MODAL, _("Agree"),
-					     GTK_RESPONSE_ACCEPT, _("Refuse"),
-					     GTK_RESPONSE_CANCEL, NULL);
+					     GTK_DIALOG_MODAL, _("Refuse"),
+					     GTK_RESPONSE_CANCEL, _("Agree"),
+					     GTK_RESPONSE_ACCEPT, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
 					GTK_RESPONSE_ACCEPT);
 
 	box = create_box(FALSE);
-	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE,
-			   0);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox), box, TRUE, TRUE, 0);
 
 	image = gtk_image_new_from_stock(GTK_STOCK_DIALOG_AUTHENTICATION,
-					 GTK_ICON_SIZE_DIALOG);
+							 GTK_ICON_SIZE_DIALOG);
 	gtk_widget_show(image);
 	gtk_box_pack_start(GTK_BOX(box), image, FALSE, FALSE, 0);
 
 	inet_ntop(AF_INET, &((Pal *) data)->ipv4, ipstr, INET_ADDRSTRLEN);
-	ptr =
-	    g_strdup_printf
-	    (_
-	     ("The pal (%s)[%s]\nis requesting for your shared resources,\nagree or not?"),
-	     ((Pal *) data)->name, ipstr);
+	ptr = g_strdup_printf(
+			        _("The pal (%s)[%s]\nis requesting for "
+				"your shared resources,\nagree or not?"),
+			       ((Pal *) data)->name, ipstr);
 	label = create_label(ptr);
 	free(ptr);
 	gtk_label_set_line_wrap(GTK_LABEL(label), TRUE);

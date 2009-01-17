@@ -16,12 +16,11 @@
 
 class RecvFile {
  public:
-	RecvFile(gpointer data);
+	RecvFile(gpointer data);	//struct recvfile_para
 	~RecvFile();
 
-	static void RecvEntry(gpointer data);
+	static void RecvEntry(gpointer data);	//
  private:
-	 bool GetValidData();
 	void ParseExtra();
 	void CreateRecvWindow();
 	gpointer DivideFileinfo(char **ptr);
@@ -30,14 +29,14 @@ class RecvFile {
 
 	Pal *pal;
 	char *msg;
-	GSList *filelist;
 	uint32_t packetn;
+	GSList *filelist;
 	GtkTreeModel *file_model;
 //回调处理部分
  private:
 	static void CellEditText(GtkCellRendererText * renderer, gchar * path,
 				 gchar * new_text, GtkTreeModel * model);
-	static void AddRecvFile(GtkTreeModel * model);
+	static void AdditionRecvFile(GtkTreeModel * model);
 };
 
 #endif

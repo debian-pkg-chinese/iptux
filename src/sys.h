@@ -29,6 +29,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <dirent.h>
+#include <ftw.h>
 #include <signal.h>
 typedef void *pointer;
 

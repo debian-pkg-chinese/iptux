@@ -25,12 +25,14 @@ class StatusIcon {
  public:
 	static void UpdateTips();
  private:
-	static GtkWidget *CreatePopupMenu();
+	 GtkWidget * CreatePopupMenu();
 //回调处理部分
+ public:
+	static void SwitchWindowMode();
  private:
 	static void StatusIconActivate();
 	static void PopupWorkMenu(GtkStatusIcon * status_icon, guint button,
-				  guint activate_time);
+				  guint activate_time, gpointer data);	//StatusIcon
 };
 
 #endif

@@ -23,7 +23,6 @@ class CoreThread {
 	static void RecvUdp();
 	static void RecvTcp();
 	static void WatchIptux();
-	static void Synchronism();
 
 	static bool server;
 };

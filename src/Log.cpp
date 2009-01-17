@@ -17,16 +17,8 @@
 #include "utils.h"
 #include "udt.h"
 
-Log::Log():communicate(NULL), system(NULL)
+ Log::Log():communicate(NULL), system(NULL)
 {
-	char path[MAX_PATHBUF], *env;
-
-	create_iptux_folder();
-	env = getenv("HOME");
-	snprintf(path, MAX_PATHBUF, "%s/.iptux/communicate.log", env);
-	communicate = Fopen(path, "a");
-	snprintf(path, MAX_PATHBUF, "%s/.iptux/system.log", env);
-	system = Fopen(path, "a");
 }
 
 Log::~Log()
@@ -35,10 +27,16 @@ Log::~Log()
 	fclose(system);
 }
 
-void Log::flush()
+void Log::InitSelf()
 {
-	fflush(communicate);
-	fflush(system);
+	const gchar *env;
+	char path[MAX_PATHBUF];
+
+	env = g_get_user_config_dir();
+	snprintf(path, MAX_PATHBUF, "%s/iptux/log/communicate.log", env);
+	communicate = Fopen(path, "a");
+	snprintf(path, MAX_PATHBUF, "%s/iptux/log/system.log", env);
+	system = Fopen(path, "a");
 }
 
 void Log::CommunicateLog(pointer data, const char *fmt, ...)
@@ -51,8 +49,9 @@ void Log::CommunicateLog(pointer data, const char *fmt, ...)
 	if (!FLAG_ISSET(ctr.flags, 2))
 		return;
 	if (data) {
-		pal = (Pal*)data;
-		ptr = getformattime("%s{%s@%s}", pal->name, pal->user, pal->host);
+		pal = (Pal *) data;
+		ptr = getformattime(_("Nickname: %s\tUser: %s\tHost: %s"),
+					    pal->name, pal->user, pal->host);
 	} else
 		ptr = getformattime(_("Me"));
 	va_start(ap, fmt);
@@ -70,7 +69,8 @@ void Log::SystemLog(const char *fmt, ...)
 
 	if (!FLAG_ISSET(ctr.flags, 2))
 		return;
-	ptr = getformattime("%s@%s", getenv("USERNAME"), getenv("HOSTNAME"));
+	ptr = getformattime(_("Name: %s\tHost: %s"), g_get_real_name(),
+					    g_get_host_name());
 	va_start(ap, fmt);
 	msg = g_strdup_vprintf(fmt, ap);
 	va_end(ap);

@@ -118,17 +118,23 @@ int strnchr(const char *str, char chr)
 	return count;
 }
 
-void remove_foreach(pointer data, pointer data1)
+void remove_foreach(pointer data, enum INFO_TYPE type)
 {
-	switch (GPOINTER_TO_INT(data1)) {
+	switch (type) {
 	case PALINFO:
 		delete(Pal *) data;
+		break;
+	case SYSICON:
+		delete(SysIcon*) data;
 		break;
 	case FILEINFO:
 		delete(FileInfo *) data;
 		break;
 	case CHIPDATA:
 		delete(ChipData *) data;
+		break;
+	case NETSEGMENT:
+		delete(NetSegment *) data;
 		break;
 	default:
 		free(data);
@@ -138,7 +144,7 @@ void remove_foreach(pointer data, pointer data1)
 
 bool compare_foreach(uint32_t src, uint32_t dst)
 {
-	return src==dst;
+	return src == dst;
 }
 
 char *getformattime(const char *format, ...)
@@ -158,7 +164,7 @@ char *getformattime(const char *format, ...)
 	return str2;
 }
 
-char *number_to_string(uint32_t number, bool rate)
+char *number_to_string_size(uint64_t number, bool rate)
 {
 	gchar *buf;
 
@@ -172,7 +178,11 @@ char *number_to_string(uint32_t number, bool rate)
 		buf =
 		    g_strdup_printf("%.1fK\x20\x20", (float)number / (1 << 10));
 	else
-		buf = g_strdup_printf("%uB\x20\x20", number);
+# if __WORDSIZE == 64
+		buf = g_strdup_printf("%luB\x20\x20", number);
+# else
+		buf = g_strdup_printf("%lluB\x20\x20", number);
+# endif
 
 	if (rate)
 		strcpy(buf + strlen(buf) - 2, "/s");
@@ -182,24 +192,67 @@ char *number_to_string(uint32_t number, bool rate)
 	return buf;
 }
 
-uint32_t iptux_get_dec_number(const char *msg, uint8_t times)
+const char *iptux_skip_string(const char *msg, size_t size, uint8_t times)
 {
 	const char *ptr;
-	uint32_t number;
 	uint8_t count;
-	int result;
 
-	ptr = msg;
-	count = 0;
+	ptr = msg, count = 0;
+	while (count < times) {
+		ptr += strlen(ptr) + 1;
+		if (ptr - msg < size)
+			count++;
+		else
+			return NULL;
+	}
+
+	return ptr;
+}
+
+const char *iptux_skip_section(const char *msg, uint8_t times)
+{
+	const char *ptr;
+	uint8_t count;
+
+	ptr = msg, count = 0;
 	while (count < times) {
 		ptr = strchr(ptr, ':');
 		if (ptr)
 			ptr++;
 		else
-			return 0;
+			return NULL;
 		count++;
 	}
 
+	return ptr;
+}
+
+uint64_t iptux_get_hex64_number(const char *msg, uint8_t times)
+{
+	const char *ptr;
+	uint64_t number;
+	int result;
+
+	if (!(ptr = iptux_skip_section(msg, times)))
+		return 0;
+# if __WORDSIZE == 64
+	result = sscanf(ptr, "%lx", &number);
+# else
+	result = sscanf(ptr, "%llx", &number);
+# endif
+	if (result == 1)
+		return number;
+	return 0;
+}
+
+uint32_t iptux_get_dec_number(const char *msg, uint8_t times)
+{
+	const char *ptr;
+	uint32_t number;
+	int result;
+
+	if (!(ptr = iptux_skip_section(msg, times)))
+		return 0;
 	result = sscanf(ptr, "%u", &number);
 	if (result == 1)
 		return number;
@@ -210,20 +263,10 @@ uint32_t iptux_get_hex_number(const char *msg, uint8_t times)
 {
 	const char *ptr;
 	uint32_t number;
-	uint8_t count;
 	int result;
 
-	ptr = msg;
-	count = 0;
-	while (count < times) {
-		ptr = strchr(ptr, ':');
-		if (ptr)
-			ptr++;
-		else
-			return 0;
-		count++;
-	}
-
+	if (!(ptr = iptux_skip_section(msg, times)))
+		return 0;
 	result = sscanf(ptr, "%x", &number);
 	if (result == 1)
 		return number;
@@ -234,22 +277,11 @@ char *iptux_get_section_string(const char *msg, uint8_t times)
 {
 	const char *ptr, *pptr;
 	char *string;
-	uint8_t count;
 	size_t len;
 
-	ptr = msg;
-	count = 0;
-	while (count < times) {
-		ptr = strchr(ptr, ':');
-		if (ptr)
-			ptr++;
-		else
-			return NULL;
-		count++;
-	}
-	pptr = strchr(ptr, ':');
-
-	if (pptr)
+	if (!(ptr = iptux_skip_section(msg, times)))
+		return NULL;
+	if (pptr = strchr(ptr, ':'))
 		len = pptr - ptr;
 	else
 		len = strlen(ptr);
@@ -265,20 +297,11 @@ char *ipmsg_get_filename(const char *msg, uint8_t times)
 	static uint32_t serial = 0;
 	const char *ptr;
 	char filename[256];
-	uint8_t count;
 	size_t len;
 
-	ptr = msg;
-	count = 0;
-	while (count < times) {
-		ptr = strchr(ptr, ':');
-		if (ptr)
-			ptr++;
-		else {
-			snprintf(filename, 256, "iptux%u", serial++);
-			return Strdup(filename);
-		}
-		count++;
+	if (!(ptr = iptux_skip_section(msg, times))) {
+		snprintf(filename, 256, "iptux%u", serial++);
+		return Strdup(filename);
 	}
 
 	len = 0;
@@ -299,33 +322,10 @@ char *ipmsg_get_filename(const char *msg, uint8_t times)
 char *ipmsg_get_attach(const char *msg, uint8_t times)
 {
 	const char *ptr;
-	uint8_t count;
 
-	ptr = msg;
-	count = 0;
-	while (count < times) {
-		ptr = strchr(ptr, ':');
-		if (ptr)
-			ptr++;
-		else
-			return NULL;
-		count++;
-	}
-
+	if (!(ptr = iptux_skip_section(msg, times)))
+		return NULL;
 	return Strdup(ptr);
-}
-
-char *ipmsg_get_extra(const char *msg)
-{
-	size_t size;
-	char *extra;
-
-	size = strlen(msg) + 1;
-	extra = (char *)msg + size;
-	if (*extra)
-		return Strdup(extra);
-
-	return NULL;
 }
 
 char *ipmsg_set_filename_pal(const char *pathname)

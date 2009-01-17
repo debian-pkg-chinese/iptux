@@ -32,7 +32,7 @@ void TcpData::TcpDataEntry(int sock)
 	uint32_t commandno;
 	ssize_t size;
 
-	size = my_read1(sock, buf, MAX_SOCKBUF, 5);
+	size = read_ipmsg_prefix(sock, buf, MAX_SOCKBUF, 5);
 	if (size <= 0) {
 		close(sock);
 		return;
@@ -40,17 +40,17 @@ void TcpData::TcpDataEntry(int sock)
 
 	commandno = iptux_get_dec_number(buf, 4);
 	switch (GET_MODE(commandno)) {
-		case IPMSG_GETFILEDATA:
-			sfl.RequestData(sock, IPMSG_FILE_REGULAR, buf);
-			break;
-		case IPMSG_GETDIRFILES:
-			sfl.RequestData(sock, IPMSG_FILE_DIR, buf);
-			break;
-		case IPTUX_SENDSUBLAYER:
-			RecvSublayer(sock, commandno, buf, size);
-			break;
-		default:
-			break;
+	case IPMSG_GETFILEDATA:
+		sfl.RequestData(sock, IPMSG_FILE_REGULAR, buf);
+		break;
+	case IPMSG_GETDIRFILES:
+		sfl.RequestData(sock, IPMSG_FILE_DIR, buf);
+		break;
+	case IPTUX_SENDSUBLAYER:
+		RecvSublayer(sock, commandno, buf, size);
+		break;
+	default:
+		break;
 	}
 
 	close(sock);
@@ -74,16 +74,18 @@ void TcpData::RecvSublayer(int sock, uint32_t command, char *buf, ssize_t size)
 	packetno = iptux_get_dec_number(buf, 1);
 	switch (GET_OPT(command)) {
 	case IPTUX_ADPICOPT:
-		snprintf(path, MAX_PATHBUF, "%s/.iptux/%x.ad", getenv("HOME"),
-			 		  pal->ipv4);
+		snprintf(path, MAX_PATHBUF, "%s/iptux/ads/%x",
+			 g_get_user_cache_dir(), pal->ipv4);
 		break;
 	case IPTUX_MSGPICOPT:
-		snprintf(path, MAX_PATHBUF, "%s/.iptux/%x-%x.pi", getenv("HOME"),
-					  pal->ipv4, packetno);
+		snprintf(path, MAX_PATHBUF, "%s/iptux/pic/%x-%x-%x",
+			 g_get_user_cache_dir(), pal->ipv4, packetno,
+			 time(NULL));
 		break;
 	default:
-		snprintf(path, MAX_PATHBUF, "%s/.iptux/%x-%x.un", getenv("HOME"),
-					  pal->ipv4, packetno);
+		snprintf(path, MAX_PATHBUF, "%s/iptux/%x-%x-%x",
+			 g_get_user_cache_dir(), pal->ipv4, packetno,
+			 time(NULL));
 		break;
 	}
 	if ((fd = Open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)

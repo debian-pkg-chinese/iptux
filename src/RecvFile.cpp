@@ -17,17 +17,19 @@
 #include "output.h"
 #include "baling.h"
 
- RecvFile::RecvFile(gpointer data):filelist(NULL), packetn(0), file_model(NULL)
+ RecvFile::RecvFile(gpointer data):filelist(NULL), file_model(NULL)
 {
 	pal = (Pal *) ((struct recvfile_para *)data)->data;
 	msg = ((struct recvfile_para *)data)->msg;
+	packetn = ((struct recvfile_para *)data)->packetn;
 	free(data);
 }
 
 RecvFile::~RecvFile()
 {
 	free(msg);
-	g_slist_foreach(filelist, remove_foreach, GINT_TO_POINTER(FILEINFO));
+	g_slist_foreach(filelist, GFunc(remove_foreach),
+				GINT_TO_POINTER(FILEINFO));
 	g_slist_free(filelist);
 //      g_object_unref(file_model); //他处释放
 }
@@ -36,32 +38,10 @@ void RecvFile::RecvEntry(gpointer data)
 {
 	RecvFile rf(data);
 
-	if (!rf.GetValidData())
-		return;
 	rf.ParseExtra();
-
 	gdk_threads_enter();
 	rf.CreateRecvWindow();
 	gdk_threads_leave();
-}
-
-bool RecvFile::GetValidData()
-{
-	char *ptr;
-
-	packetn = iptux_get_dec_number(msg, 1);
-	ptr = ipmsg_get_extra(msg);
-	if (!ptr)
-		return false;
-
-	free(msg);
-	if (!FLAG_ISSET(pal->flags, 0)) {
-		msg = transfer_encode(ptr, pal->encode, false);
-		free(ptr);
-	} else
-		msg = ptr;
-
-	return true;
 }
 
 void RecvFile::ParseExtra()
@@ -81,8 +61,8 @@ void RecvFile::CreateRecvWindow()
 	file_model = CreateRecvModel();
 	window = create_window(_("File receive management"), 132, 79);
 	gtk_container_set_border_width(GTK_CONTAINER(window), 5);
-	g_signal_connect_swapped(window, "destroy", G_CALLBACK(g_object_unref),
-				 file_model);
+	g_signal_connect_swapped(window, "destroy",
+				 G_CALLBACK(g_object_unref), file_model);
 	box = create_box();
 	gtk_container_add(GTK_CONTAINER(window), box);
 
@@ -95,7 +75,7 @@ void RecvFile::CreateRecvWindow()
 	gtk_box_pack_start(GTK_BOX(box), hbb, FALSE, FALSE, 0);
 	button = create_button(_("Receive"));
 	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(AddRecvFile), file_model);
+				 G_CALLBACK(AdditionRecvFile), file_model);
 	g_signal_connect_swapped(button, "clicked",
 				 G_CALLBACK(gtk_widget_destroy), window);
 	gtk_box_pack_end(GTK_BOX(hbb), button, FALSE, FALSE, 0);
@@ -110,9 +90,9 @@ gpointer RecvFile::DivideFileinfo(char **ptr)
 	FileInfo *file;
 
 	file = new FileInfo(iptux_get_dec_number(*ptr, 0),
-			   ipmsg_get_filename(*ptr, 1),
-			   iptux_get_hex_number(*ptr, 2),
-			   iptux_get_hex_number(*ptr, 4));
+			    ipmsg_get_filename(*ptr, 1),
+			    iptux_get_hex64_number(*ptr, 2),
+			    iptux_get_hex_number(*ptr, 4));
 
 	//格式1 ... ;格式2 ...\a ;格式3 ...\a:
 	*ptr = strstr(*ptr, "\a:");
@@ -134,11 +114,11 @@ GtkTreeModel *RecvFile::CreateRecvModel()
 	model = gtk_list_store_new(10, G_TYPE_BOOLEAN,
 				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT,
-				   G_TYPE_UINT, G_TYPE_UINT, G_TYPE_POINTER);
+				   G_TYPE_UINT64, G_TYPE_UINT, G_TYPE_POINTER);
 	tmp = filelist;
 	while (tmp) {
 		file = (FileInfo *) tmp->data;
-		ptr = number_to_string(file->filesize);
+		ptr = number_to_string_size(file->filesize);
 		gtk_list_store_append(model, &iter);
 		gtk_list_store_set(model, &iter, 0, TRUE, 1, file->filename,
 				   2, pal->name, 3, ptr, 5, packetn, 6,
@@ -174,8 +154,8 @@ GtkWidget *RecvFile::CreateRecvView()
 	gtk_tree_view_column_set_title(column, _("receive"));
 	renderer = gtk_cell_renderer_toggle_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "active", 0,
-					    NULL);
+	gtk_tree_view_column_set_attributes(column, renderer,
+					    "active", 0, NULL);
 	g_signal_connect_swapped(renderer, "toggled",
 				 G_CALLBACK(DialogGroup::ViewToggleChange),
 				 file_model);
@@ -189,7 +169,7 @@ GtkWidget *RecvFile::CreateRecvView()
 	gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
 	g_object_set(renderer, "editable", TRUE, NULL);
 	g_signal_connect(renderer, "edited", G_CALLBACK(CellEditText),
-			 file_model);
+							 file_model);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
 
 	column = gtk_tree_view_column_new();
@@ -228,20 +208,18 @@ void RecvFile::CellEditText(GtkCellRendererText * renderer, gchar * path,
 	gtk_list_store_set(GTK_LIST_STORE(model), &iter, 1, new_text, -1);
 }
 
-void RecvFile::AddRecvFile(GtkTreeModel * model)
+void RecvFile::AdditionRecvFile(GtkTreeModel * model)
 {
 	extern Control ctr;
 	extern Transport trans;
-	uint32_t packetn, fileid, filesize, fileattr;
+	uint64_t filesize;
+	uint32_t packetn, fileid, fileattr;
 	gchar *filename, *filestr;
-	GtkTreeIter iter1, iter2;
-	GtkTreePath *path;
+	GtkTreeIter iter1, iter2, *iter;
 	GdkPixbuf *pixbuf;
 	gboolean active;
-	bool demand;
 	Pal *pal;
 
-	demand = false;
 	if (!gtk_tree_model_get_iter_first(model, &iter1))
 		return;
 	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/recv.png", NULL);
@@ -253,24 +231,19 @@ void RecvFile::AddRecvFile(GtkTreeModel * model)
 			g_free(filename), g_free(filestr);
 			continue;
 		}
-		demand = true;
 
-		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model),
-				      &iter2);
+		gtk_list_store_append(GTK_LIST_STORE(trans.trans_model), &iter2);
 		gtk_list_store_set(GTK_LIST_STORE(trans.trans_model), &iter2, 0,
 				   pixbuf, 1, _("receive"), 2, filename, 3,
-				   pal->name, 4, "0B", 5, filestr, 6, "0B/s",
-				   7, 0, 8, 0, 9, packetn, 10, fileid, 11,
+				   pal->name, 4, "0B", 5, filestr, 6, "0B/s", 7,
+				   0, 8, 0, 9, packetn, 10, fileid, 11,
 				   filesize, 12, fileattr, 13, ctr.path, 14,
 				   pal, -1);
 		g_free(filename), g_free(filestr);
 
-		path = gtk_tree_model_get_path(trans.trans_model, &iter2);
-		thread_create(ThreadFunc(Transport::RecvFileEntry), path,
-			      false);
+		iter = gtk_tree_iter_copy(&iter2);
+		thread_create(ThreadFunc(Transport::RecvFileEntry), iter, false);
 	} while (gtk_tree_model_iter_next(model, &iter1));
 	if (pixbuf)
 		g_object_unref(pixbuf);
-	if (demand)
-		Transport::TransportEntry();
 }

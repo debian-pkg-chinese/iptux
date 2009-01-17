@@ -40,11 +40,11 @@ void pmessage(const char *format, ...)
 #endif
 }
 
-void pdebug(const char *format, ...)
+void ptrace(const char *format, ...)
 {
 	va_list ap;
 
-#ifdef DEBUG
+#ifdef TRACE
 	va_start(ap, format);
 	vprintf(format, ap);
 	va_end(ap);
@@ -120,7 +120,8 @@ bool pop_request_quit(GtkWidget * parent)
 	gint result;
 
 	dialog = gtk_message_dialog_new(GTK_WINDOW(parent), GTK_DIALOG_MODAL,
-					GTK_MESSAGE_QUESTION, GTK_BUTTONS_OK_CANCEL,
+					GTK_MESSAGE_QUESTION,
+					GTK_BUTTONS_OK_CANCEL,
 					_("The file transfer is running!"
 					  "\nAre you sure you want to quit?"));
 	gtk_window_set_title(GTK_WINDOW(dialog), _("Confirm close"));

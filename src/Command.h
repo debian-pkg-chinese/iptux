@@ -14,6 +14,7 @@
 
 #include "udt.h"
 
+/*参数 data 类型为class Pal*/
 class Command {
  public:
 	Command();
@@ -30,7 +31,7 @@ class Command {
 	void SendGroupMsg(int sock, pointer data, const char *msg);
 
 	bool SendAskData(int sock, pointer data, uint32_t packetno,
-			 uint32_t fileid, uint32_t offset);
+			 uint32_t fileid, uint64_t offset);
 	bool SendAskFiles(int sock, pointer data, uint32_t packetno,
 			  uint32_t fileid);
 	void SendAskShared(int sock, pointer data);
@@ -40,10 +41,10 @@ class Command {
 	void SendSublayer(int sock, pointer data, uint32_t opttype,
 			  const char *path);
  private:
-	 void SendSublayerData(int sock, int fd);
+	void SendSublayerData(int sock, int fd);
 	void CreateCommand(uint32_t command, const char *attach);
 	void TransferEncode(const char *encode);
-	void CreateIptuxExtra();
+	void CreateIptuxExtra(const char *encode);
 	void CreateIpmsgExtra(const char *extra);
 	void CreateIconExtra();
 
