@@ -12,7 +12,6 @@
 #include "DialogPeer.h"
 #include "SendFile.h"
 #include "AboutIptux.h"
-#include "MainWindow.h"
 #include "UdpData.h"
 #include "Control.h"
 #include "Command.h"
@@ -68,13 +67,13 @@ void DialogPeer::CreateDialog()
 	g_free(title);
 	gtk_widget_modify_bg(dialog, GTK_STATE_NORMAL, &color);
 	gtk_drag_dest_set(dialog, GTK_DEST_DEFAULT_ALL,
-			  &target, 1, GDK_ACTION_MOVE);
+				    &target, 1, GDK_ACTION_MOVE);
 	g_signal_connect_swapped(dialog, "drag-data-received",
-				 G_CALLBACK(DragDataReceived), pal);
+				    G_CALLBACK(DragDataReceived), pal);
 	accel = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW(dialog), accel);
-	g_signal_connect_swapped(dialog, "destroy", G_CALLBACK(DialogDestroy),
-				 this);
+	g_signal_connect_swapped(dialog, "destroy",
+				    G_CALLBACK(DialogDestroy), this);
 }
 
 void DialogPeer::CreateAllArea()
@@ -135,6 +134,7 @@ void DialogPeer::CreateRecordArea(GtkWidget * paned)
 
 void DialogPeer::CreateInputArea(GtkWidget * paned)
 {
+	extern Control ctr;
 	GtkWidget *frame, *sw;
 	GtkWidget *vbox, *hbb, *button;
 
@@ -144,8 +144,9 @@ void DialogPeer::CreateInputArea(GtkWidget * paned)
 	gtk_container_add(GTK_CONTAINER(frame), vbox);
 
 	focus = create_text_view();
-	g_signal_connect(focus, "drag-data-received", G_CALLBACK(DragPicReceived),
-				gtk_text_view_get_buffer(GTK_TEXT_VIEW(focus)));
+	g_signal_connect(focus, "drag-data-received",
+			 G_CALLBACK(DragPicReceived),
+			 gtk_text_view_get_buffer(GTK_TEXT_VIEW(focus)));
 	sw = create_scrolled_window();
 	gtk_box_pack_start(GTK_BOX(vbox), sw, TRUE, TRUE, 0);
 	gtk_container_add(GTK_CONTAINER(sw), focus);
@@ -159,10 +160,11 @@ void DialogPeer::CreateInputArea(GtkWidget * paned)
 				 G_CALLBACK(gtk_widget_destroy), dialog);
 	button = create_button(_("Send"));
 	gtk_box_pack_end(GTK_BOX(hbb), button, FALSE, FALSE, 0);
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(SendMessage),
-				 this);
+	g_signal_connect_swapped(button, "clicked",
+				 G_CALLBACK(SendMessage), this);
 	gtk_widget_add_accelerator(button, "clicked", accel, GDK_Return,
-				   GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
+	      FLAG_ISSET(ctr.flags, 4) ? GdkModifierType(0) : GDK_CONTROL_MASK,
+						      GTK_ACCEL_VISIBLE);
 	gtk_widget_grab_focus(focus);
 }
 
@@ -207,7 +209,7 @@ void DialogPeer::CreateFileMenu(GtkWidget * menu_bar)
 
 	menu_item = gtk_menu_item_new_with_label(_("Ask For Shared Files"));
 	g_signal_connect_swapped(menu_item, "activate",
-				 G_CALLBACK(MainWindow::AskSharedFiles), pal);
+				 G_CALLBACK(AskSharedFiles), pal);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
@@ -238,13 +240,13 @@ void DialogPeer::CreateToolMenu(GtkWidget * menu_bar)
 
 	menu_item = gtk_menu_item_new_with_label(_("Insert Picture"));
 	g_signal_connect_swapped(menu_item, "activate",
-			 G_CALLBACK(InsertPixbuf), this);
+				 G_CALLBACK(InsertPixbuf), this);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 	gtk_widget_show(menu_item);
 
 	menu_item = gtk_menu_item_new_with_label(_("Clear Buffer"));
 	g_signal_connect_swapped(menu_item, "activate",
-			 G_CALLBACK(ClearRecordBuffer), pal->record);
+				 G_CALLBACK(ClearRecordBuffer), pal->record);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 	gtk_widget_show(menu_item);
 }
@@ -277,8 +279,7 @@ bool DialogPeer::CheckExist(gpointer data)
 
 	pal = (Pal *) data;
 	if (pal->dialog) {
-		gtk_window_present(GTK_WINDOW
-				   (((DialogPeer *) pal->dialog)->dialog));
+		gtk_window_present(GTK_WINDOW(pal->dialog->dialog));
 		return true;
 	}
 	tmp = (GList *) udt.PalGetMsgPos(data);
@@ -291,7 +292,8 @@ bool DialogPeer::CheckExist(gpointer data)
 	return false;
 }
 
-void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool sad)
+void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer,
+				     bool sad)
 {
 	extern Control ctr;
 	char buf[MAX_BUF], ipstr[INET_ADDRSTRLEN];
@@ -299,12 +301,16 @@ void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool
 	GtkTextIter iter;
 	Pal *pal;
 
-	pal = (Pal*)data;
+	pal = (Pal *) data;
 	snprintf(buf, MAX_BUF, _("Version: %s\n"), pal->version);
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
 
-	snprintf(buf, MAX_BUF, _("Nickname: %s\n"), pal->name);
+	if (*pal->group == '\0')
+		snprintf(buf, MAX_BUF, _("Nickname: %s\n"), pal->name);
+	else
+		snprintf(buf, MAX_BUF, _("Nickname: %s@%s\n"), pal->name,
+								 pal->group);
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
 
@@ -317,7 +323,7 @@ void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
 
 	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	snprintf(buf, MAX_BUF, _("Host IP: %s\n"), ipstr);
+	snprintf(buf, MAX_BUF, _("Address: %s(%s)\n"), pal->segment, ipstr);
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
 
@@ -337,15 +343,16 @@ void DialogPeer::FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer, bool
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert_with_tags_by_name(buffer, &iter,
-			pal->sign?pal->sign:_("(lazy)"), -1, "sign", NULL);
+				       pal->sign ? pal->sign : _("(lazy)"),
+				       -1, "sign", NULL);
 
-	if (!sad || !pal->ad ||
-		    !(pixbuf = gdk_pixbuf_new_from_file(pal->ad, NULL)))
+	if (!sad || !pal->ad
+		  || !(pixbuf = gdk_pixbuf_new_from_file(pal->ad, NULL)))
 		return;
 	snprintf(buf, MAX_BUF, _("\nAdvertisement: \n"));
 	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert(buffer, &iter, buf, -1);
-	pixbuf_shrink_scale_1(&pixbuf, GINT(ctr.pix*51), -1);
+	pixbuf_shrink_scale_1(&pixbuf, GINT(ctr.pix * 51), -1);
 	gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
 	g_object_unref(pixbuf);
 }
@@ -361,8 +368,8 @@ void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 	GSList *list;
 	Pal *pal;
 
-	if (select->length <= 0 || select->format != 8 ||
-	    strcasestr((char *)select->data, prl) == NULL) {
+	if (select->length <= 0 || select->format != 8
+		   || strcasestr((char *)select->data, prl) == NULL) {
 		gtk_drag_finish(context, FALSE, FALSE, time);
 		return;
 	}
@@ -378,18 +385,25 @@ void DialogPeer::DragDataReceived(gpointer data, GdkDragContext * context,
 	g_slist_free(list);	//他处释放
 
 	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	pop_info(pal->dialog ? ((DialogPeer *) pal->dialog)->dialog :
-		 inter.window,
-		 pal->dialog ? ((DialogPeer *) pal->dialog)->focus : NULL,
+	pop_info(pal->dialog ? pal->dialog->dialog : inter.window,
+		 pal->dialog ? pal->dialog->focus : NULL,
 		 _("Sending the files' infomation to \n%s[%s] is done!"),
 		 pal->name, ipstr);
 
 	gtk_drag_finish(context, TRUE, FALSE, time);
 }
 
-void DialogPeer::DragPicReceived(GtkWidget *view, GdkDragContext * context,
+void DialogPeer::AskSharedFiles(gpointer data)
+{
+	extern struct interactive inter;
+	Command cmd;
+
+	cmd.SendAskShared(inter.udpsock, data);
+}
+
+void DialogPeer::DragPicReceived(GtkWidget * view, GdkDragContext * context,
 				 gint x, gint y, GtkSelectionData * select,
-				 guint info, guint time, GtkTextBuffer *buffer)
+				 guint info, guint time, GtkTextBuffer * buffer)
 {
 	const char *prl = "file://";
 	GdkPixbuf *pixbuf;
@@ -398,8 +412,8 @@ void DialogPeer::DragPicReceived(GtkWidget *view, GdkDragContext * context,
 	gboolean flag;
 	gint position;
 
-	if (select->length <= 0 || select->format != 8 ||
-	    strcasestr((char *)select->data, prl) == NULL) {
+	if (select->length <= 0 || select->format != 8
+		   || strcasestr((char *)select->data, prl) == NULL) {
 		gtk_drag_finish(context, FALSE, FALSE, time);
 		return;
 	}
@@ -431,7 +445,6 @@ void DialogPeer::DialogDestroy(gpointer data)
 
 void DialogPeer::InsertPixbuf(gpointer data)
 {
-	GtkWidget *chooser;
 	GdkPixbuf *pixbuf;
 	GtkTextBuffer *buffer;
 	GtkTextIter iter;
@@ -439,11 +452,10 @@ void DialogPeer::InsertPixbuf(gpointer data)
 	gchar *filename;
 	gint position;
 
-	peer = (DialogPeer*)data;
-	chooser = my_chooser::create_chooser(
-			     _("Please choose a picture to insert the buffer"), peer->dialog);
-	filename = my_chooser::run_chooser(chooser);
-	if (!filename)
+	peer = (DialogPeer *) data;
+	if (!(filename = my_chooser:: choose_file(
+			     _("Please choose a picture to insert the buffer"),
+			     peer->dialog)))
 		return;
 
 	pixbuf = gdk_pixbuf_new_from_file(filename, NULL);
@@ -457,7 +469,7 @@ void DialogPeer::InsertPixbuf(gpointer data)
 	g_object_unref(pixbuf);
 }
 
-void DialogPeer::ClearRecordBuffer(GtkTextBuffer *buffer)
+void DialogPeer::ClearRecordBuffer(GtkTextBuffer * buffer)
 {
 	GtkTextIter start, end;
 
@@ -468,7 +480,7 @@ void DialogPeer::ClearRecordBuffer(GtkTextBuffer *buffer)
 
 void DialogPeer::SendMessage(gpointer data)
 {
-	uint8_t count = 0;
+	static uint32_t count = 0;
 	struct sendmsg_para *para;
 	DialogPeer *peer;
 	GtkTextBuffer *buffer;
@@ -490,15 +502,15 @@ void DialogPeer::SendMessage(gpointer data)
 	chiplist = NULL, iter = start;
 	do {
 		if (pixbuf = gtk_text_iter_get_pixbuf(&iter)) {
-			ptr = g_strdup_printf("%s/.iptux/%x", getenv("HOME"),
-					      time(NULL)+(count++));
+			ptr = g_strdup_printf("%s/iptux/%x",
+					    g_get_user_config_dir(), count++);
 			gdk_pixbuf_save(pixbuf, ptr, "bmp", NULL, NULL);
-			chiplist = g_slist_append(chiplist, new ChipData(PICTURE, ptr));
+			chiplist = g_slist_append(chiplist,
+					   new ChipData(PICTURE, ptr));
 		}
 	} while (gtk_text_iter_forward_find_char(&iter,
-			    GtkTextCharPredicate(compare_foreach),
-			    GUINT_TO_POINTER(ATOM_OBJECT),
-			    &end));
+				     GtkTextCharPredicate(compare_foreach),
+				     GUINT_TO_POINTER(ATOM_OBJECT), &end));
 	ptr = gtk_text_buffer_get_text(buffer, &start, &end, FALSE);
 	if (*ptr)
 		chiplist = g_slist_append(chiplist, new ChipData(STRING, ptr));
@@ -509,7 +521,7 @@ void DialogPeer::SendMessage(gpointer data)
 	peer->pal->BufferInsertData(chiplist, SELF);
 	gtk_widget_grab_focus(peer->focus);
 
-	para = (struct sendmsg_para*)Malloc(sizeof(struct sendmsg_para));
+	para = (struct sendmsg_para *)Malloc(sizeof(struct sendmsg_para));
 	para->data = peer->pal, para->chiplist = chiplist;
 	thread_create(ThreadFunc(ThreadSendMessage), para, false);
 }
@@ -523,11 +535,11 @@ void DialogPeer::ThreadSendMessage(gpointer data)
 	char *ptr;
 	int sock;
 
-	para = (struct sendmsg_para*)data;
+	para = (struct sendmsg_para *)data;
 	tmp = para->chiplist;
 	while (tmp) {
-		ptr = ((ChipData*)tmp->data)->data;
-		switch (((ChipData*)tmp->data)->type) {
+		ptr = ((ChipData *) tmp->data)->data;
+		switch (((ChipData *) tmp->data)->type) {
 		case STRING:
 			cmd.SendMessage(inter.udpsock, para->data, ptr);
 			break;
@@ -542,7 +554,8 @@ void DialogPeer::ThreadSendMessage(gpointer data)
 		tmp = tmp->next;
 	}
 
-	g_slist_foreach(para->chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_foreach(para->chiplist, GFunc(remove_foreach),
+					GINT_TO_POINTER(CHIPDATA));
 	g_slist_free(para->chiplist);
 	free(para);
 }

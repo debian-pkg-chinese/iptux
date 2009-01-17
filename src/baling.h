@@ -17,9 +17,8 @@
 
 //sys
 char *Strdup(const char *str);
-char *Strndup(const char *str, size_t n);
 void *Malloc(size_t size);
-void *operator     new(size_t size);
+void *operator      new(size_t size);
 
 int Socket(int domain, int type, int protocol);
 int Accept(int sockfd, struct sockaddr *addr, socklen_t * addr_len);
@@ -29,8 +28,8 @@ int Stat(const char *path, struct stat64 *buf);
 int Open(const char *pathname, int flags, ...);
 ssize_t Read(int fd, void *buf, size_t count);
 ssize_t Write(int fd, const void *buf, size_t count);
-ssize_t my_read1(int fd, void *buf, size_t count, uint8_t times);
-ssize_t my_read2(int fd, void *buf, size_t count, size_t offset);
+ssize_t read_ipmsg_prefix(int fd, void *buf, size_t count, uint8_t times);
+ssize_t read_ipmsg_fileinfo(int fd, void *buf, size_t count, size_t offset);
 
 FILE *Fopen(const char *path, const char *mode);
 int Mkdir(const char *pathname, mode_t mode);

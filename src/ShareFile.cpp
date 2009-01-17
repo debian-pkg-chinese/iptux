@@ -11,6 +11,7 @@
 //
 #include "ShareFile.h"
 #include "SendFile.h"
+#include "my_file.h"
 #include "output.h"
 #include "baling.h"
 #include "utils.h"
@@ -51,11 +52,11 @@ void ShareFile::CreateShare()
 	share = create_window(_("Shared files management"), 132, 79);
 	gtk_container_set_border_width(GTK_CONTAINER(share), 5);
 	gtk_drag_dest_set(share, GTK_DEST_DEFAULT_ALL,
-			  &target, 1, GDK_ACTION_MOVE);
+				  &target, 1, GDK_ACTION_MOVE);
 	g_signal_connect_swapped(share, "drag-data-received",
 				 G_CALLBACK(DragDataReceived), this);
-	g_signal_connect_swapped(share, "destroy", G_CALLBACK(ShareDestroy),
-				 this);
+	g_signal_connect_swapped(share, "destroy",
+				 G_CALLBACK(ShareDestroy), this);
 	vbox = create_box();
 	gtk_container_add(GTK_CONTAINER(share), vbox);
 
@@ -98,6 +99,7 @@ void ShareFile::CreateShare()
 
 void ShareFile::AddSharedFiles(GSList * list)
 {
+	my_file mf(false);
 	GdkPixbuf *pixbuf1, *pixbuf2;
 	GdkPixbuf *pixbuf;
 	GtkTreeIter iter;
@@ -109,14 +111,15 @@ void ShareFile::AddSharedFiles(GSList * list)
 	while (list) {
 		if (Stat((char *)list->data, &st) == -1)
 			continue;
-		ptr = number_to_string(st.st_size);
+		if (S_ISDIR(st.st_mode))
+			st.st_size = mf.ftw((const char *)list->data);
+		ptr = number_to_string_size(st.st_size);
 		FindInsertPosition((char *)list->data, S_ISREG(st.st_mode) ?
 				   IPMSG_FILE_REGULAR : IPMSG_FILE_DIR, &iter);
 		gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 				   1, (char *)list->data, 2, ptr,
-				   4, (uint32_t) st.st_size, 5,
-				   S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-				   IPMSG_FILE_DIR, -1);
+				   4, st.st_size, 5, S_ISREG(st.st_mode) ?
+				   IPMSG_FILE_REGULAR : IPMSG_FILE_DIR, -1);
 		if (S_ISREG(st.st_mode))
 			gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
 					   0, pixbuf1, 3, _("regular"), -1);
@@ -145,13 +148,11 @@ void ShareFile::FindInsertPosition(const gchar * path, uint32_t fileattr,
 	}
 	do {
 		gtk_tree_model_get(share_model, iter, 1, &tmp, 5, &attr, -1);
-		if (GET_MODE(fileattr) == IPMSG_FILE_DIR &&
-		    GET_MODE(attr) != IPMSG_FILE_DIR ||
-		    GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0) {
+		if (GET_MODE(fileattr) == IPMSG_FILE_DIR && GET_MODE(attr) != IPMSG_FILE_DIR
+			  || GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0) {
 			g_free(tmp), sibling = *iter;
-			gtk_list_store_insert_before(GTK_LIST_STORE
-						     (share_model), iter,
-						     &sibling);
+			gtk_list_store_insert_before(GTK_LIST_STORE (share_model),
+							iter, &sibling);
 			return;
 		}
 		g_free(tmp);
@@ -172,14 +173,14 @@ GtkTreeModel *ShareFile::CreateSharedModel()
 
 	model = gtk_list_store_new(6, GDK_TYPE_PIXBUF, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_STRING,
-				   G_TYPE_UINT, G_TYPE_UINT);
+				   G_TYPE_UINT64, G_TYPE_UINT);
 	pixbuf1 = gdk_pixbuf_new_from_file(__TIP_DIR "/regular.png", NULL);
 	pixbuf2 = gdk_pixbuf_new_from_file(__TIP_DIR "/folder.png", NULL);
 	pthread_mutex_lock(&sfl.mutex);
 	tmp = sfl.pblist;
 	while (tmp) {
 		file = (FileInfo *) tmp->data;
-		ptr = number_to_string(file->filesize);
+		ptr = number_to_string_size(file->filesize);
 		gtk_list_store_append(model, &iter);
 		gtk_list_store_set(model, &iter, 1, file->filename, 2, ptr,
 				   4, file->filesize, 5, file->fileattr, -1);
@@ -219,8 +220,7 @@ GtkWidget *ShareFile::CreateSharedView()
 	gtk_tree_view_column_set_title(column, _("file"));
 	renderer = gtk_cell_renderer_pixbuf_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 0,
-					    NULL);
+	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 0, NULL);
 	renderer = gtk_cell_renderer_text_new();
 	gtk_tree_view_column_pack_start(column, renderer, FALSE);
 	gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
@@ -253,7 +253,7 @@ bool ShareFile::CheckExist()
 	return true;
 }
 
-void ShareFile::PickFile(uint32_t fileattr, gpointer data)
+void ShareFile::PickFile(uint32_t fileattr)
 {
 	GtkFileChooserAction action;
 	gchar *title;
@@ -266,19 +266,22 @@ void ShareFile::PickFile(uint32_t fileattr, gpointer data)
 	    GTK_FILE_CHOOSER_ACTION_OPEN :
 	    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
 
-	dialog = gtk_file_chooser_dialog_new(title,
-					     GTK_WINDOW(share), action,
-					     GTK_STOCK_OK, GTK_RESPONSE_OK,
+	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(share), action,
 					     GTK_STOCK_CANCEL,
-					     GTK_RESPONSE_CANCEL, NULL);
+					     GTK_RESPONSE_CANCEL,
+					     GTK_STOCK_OPEN,
+					     GTK_RESPONSE_ACCEPT, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
+					GTK_RESPONSE_ACCEPT);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
-					    getenv("HOME"));
+					    g_get_home_dir());
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		((ShareFile *) data)->AddSharedFiles(list);
-		g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
+		AddSharedFiles(list);
+		g_slist_foreach(list, GFunc(remove_foreach),
+				GINT_TO_POINTER(UNKNOWN));
 		g_slist_free(list);
 	}
 	gtk_widget_destroy(dialog);
@@ -286,12 +289,18 @@ void ShareFile::PickFile(uint32_t fileattr, gpointer data)
 
 void ShareFile::AddRegular(gpointer data)
 {
-	PickFile(IPMSG_FILE_REGULAR, data);
+	ShareFile *sf;
+
+	sf = (ShareFile *) data;
+	sf->PickFile(IPMSG_FILE_REGULAR);
 }
 
 void ShareFile::AddFolder(gpointer data)
 {
-	PickFile(IPMSG_FILE_DIR, data);
+	ShareFile *sf;
+
+	sf = (ShareFile *) data;
+	sf->PickFile(IPMSG_FILE_DIR);
 }
 
 void ShareFile::DeleteFiles(gpointer data)
@@ -306,11 +315,10 @@ void ShareFile::DeleteFiles(gpointer data)
 	if (!gtk_tree_model_get_iter_first(sf->share_model, &iter))
 		return;
 	do {
- mark:		status =
-		    gtk_tree_selection_iter_is_selected(selection, &iter);
+ mark:		status = gtk_tree_selection_iter_is_selected(selection, &iter);
 		if (status) {
-			result = gtk_list_store_remove(GTK_LIST_STORE
-						  (sf->share_model), &iter);
+			result = gtk_list_store_remove(
+				GTK_LIST_STORE(sf->share_model), &iter);
 			if (result)
 				goto mark;
 			break;
@@ -327,14 +335,16 @@ void ShareFile::ClickOk(gpointer data)
 void ShareFile::ClickApply(gpointer data)
 {
 	extern SendFile sfl;
-	uint32_t filesize, fileattr;
+	uint64_t filesize;
+	uint32_t fileattr;
 	gchar *pathname;
 	GtkTreeIter iter;
 	ShareFile *sf;
 	FileInfo *file;
 
 	pthread_mutex_lock(&sfl.mutex);
-	g_slist_foreach(sfl.pblist, remove_foreach, GINT_TO_POINTER(FILEINFO));
+	g_slist_foreach(sfl.pblist, GFunc(remove_foreach),
+				GINT_TO_POINTER(FILEINFO));
 	g_slist_free(sfl.pblist);
 	sfl.pblist = NULL;
 	pthread_mutex_unlock(&sfl.mutex);
@@ -347,7 +357,7 @@ void ShareFile::ClickApply(gpointer data)
 	pthread_mutex_lock(&sfl.mutex);
 	do {
 		gtk_tree_model_get(sf->share_model, &iter, 1, &pathname,
-				   4, &filesize, 5, &fileattr, -1);
+					   4, &filesize, 5, &fileattr, -1);
 		file = new FileInfo(sfl.pbn, pathname, filesize, fileattr);
 		sfl.pblist = g_slist_append(sfl.pblist, file);
 		sfl.pbn++;
@@ -370,8 +380,8 @@ void ShareFile::DragDataReceived(gpointer data, GdkDragContext * context,
 	ShareFile *sf;
 	GSList *list;
 
-	if (select->length <= 0 || select->format != 8 ||
-	    strcasestr((char *)select->data, prl) == NULL) {
+	if (select->length <= 0 || select->format != 8
+		   || strcasestr((char *)select->data, prl) == NULL) {
 		gtk_drag_finish(context, FALSE, FALSE, time);
 		return;
 	}
@@ -384,7 +394,7 @@ void ShareFile::DragDataReceived(gpointer data, GdkDragContext * context,
 	}
 	sf = (ShareFile *) data;
 	sf->AddSharedFiles(list);
-	g_slist_foreach(list, remove_foreach, GINT_TO_POINTER(UNKNOWN));
+	g_slist_foreach(list, GFunc(remove_foreach), GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(list);
 	gtk_drag_finish(context, TRUE, FALSE, time);
 }

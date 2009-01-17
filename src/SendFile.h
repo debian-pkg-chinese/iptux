@@ -27,15 +27,15 @@ class SendFile {
 	void InitSelf();
 	void WriteShared();
 
-	static void SendRegular(gpointer data);	//回调入口
-	static void SendFolder(gpointer data);	//回调入口
+	static void SendRegular(gpointer data);	//Pal, 回调入口
+	static void SendFolder(gpointer data);	//
 
 	bool dirty;
  private:
 	void RequestData(int sock, uint32_t fileattr, char *buf);
-	void PickFile(uint32_t fileattr, gpointer data);
-	void SendFileInfo(GSList * list, gpointer data);
-	void SendSharedInfo(gpointer data);
+	void PickFile(uint32_t fileattr, gpointer data);	//
+	void SendFileInfo(GSList * list, gpointer data);	//
+	void SendSharedInfo(gpointer data);	//
 	pointer FindFileinfo(uint32_t fileid);
 
 	uint32_t pbn;

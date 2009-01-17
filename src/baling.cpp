@@ -27,17 +27,6 @@ char *Strdup(const char *str)
 	return dst;
 }
 
-char *Strndup(const char *str, size_t n)
-{
-	char *dst;
-
-	dst = (char *)Malloc(n + 1);
-	memcpy(dst, str, n);
-	*(dst + n) = '\0';
-
-	return dst;
-}
-
 void *Malloc(size_t size)
 {
 	void *dst;
@@ -50,7 +39,7 @@ void *Malloc(size_t size)
 	return dst;
 }
 
-void *operator     new(size_t size)
+void *operator      new(size_t size)
 {
 	return Malloc(size);
 }
@@ -183,7 +172,7 @@ ssize_t Write(int fd, const void *buf, size_t count)
 	return len;
 }
 
-ssize_t my_read1(int fd, void *buf, size_t count, uint8_t times)
+ssize_t read_ipmsg_prefix(int fd, void *buf, size_t count, uint8_t times)
 {
 	size_t len;
 	ssize_t size;
@@ -208,15 +197,16 @@ ssize_t my_read1(int fd, void *buf, size_t count, uint8_t times)
 	return len;
 }
 
-ssize_t my_read2(int fd, void *buf, size_t count, size_t offset)
+ssize_t read_ipmsg_fileinfo(int fd, void *buf, size_t count, size_t offset)
 {
 	ssize_t size;
 	uint32_t headsize;
 
 	if (offset < count)
 		((char *)buf)[offset] = '\0';
-	while (!offset || !strchr((char *)buf, ':') ||
-	       sscanf((char *)buf, "%x", &headsize) != 1 || headsize > offset) {
+	while (!offset || !strchr((char *)buf, ':')
+		       || sscanf((char *)buf, "%x", &headsize) != 1
+		       || headsize > offset) {
 		size = read(fd, (char *)buf + offset, count - offset);
 		if (size == -1) {
 			if (errno == EINTR)

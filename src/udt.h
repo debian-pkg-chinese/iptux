@@ -29,8 +29,10 @@ enum BELONG_TYPE {
 
 enum INFO_TYPE {
 	PALINFO,
-	CHIPDATA,
+	SYSICON,
 	FILEINFO,
+	CHIPDATA,
+	NETSEGMENT,
 	UNKNOWN
 };
 
@@ -47,7 +49,6 @@ enum MSG_TYPE {
 
 struct interactive {
 	GtkWidget *window;
-	GtkWidget *online;
 	GtkStatusIcon *status_icon;
 	int udpsock, tcpsock;
 };
@@ -55,6 +56,7 @@ struct interactive {
 struct recvfile_para {
 	gpointer data;
 	char *msg;
+	uint32_t packetn;
 };
 
 struct sendmsg_para {
@@ -62,31 +64,58 @@ struct sendmsg_para {
 	GSList *chiplist;
 };
 
+class SysIcon {
+public:
+	SysIcon(char *path, GdkPixbuf *pix):
+		pathname(path), pixbuf(pix) {
+	} ~SysIcon() {
+		free(pathname);
+		if (pixbuf)
+			g_object_unref(pixbuf);
+	}
+	char *pathname;
+	GdkPixbuf *pixbuf;
+};
+
 class FileInfo {
  public:
-	FileInfo(uint32_t id, char *name, uint32_t size,
+	FileInfo(uint32_t id, char *name, uint64_t size,
 		 uint32_t attr):fileid(id), filename(name),
-		 filesize(size), fileattr(attr) {
+	    filesize(size), fileattr(attr) {
 	} ~FileInfo() {
 		free(filename);
 	}
 
 	uint32_t fileid;
 	char *filename;
-	uint32_t filesize;
+	uint64_t filesize;
 	uint32_t fileattr;
 };
 
 class ChipData {
-public:
-	ChipData(enum MSG_TYPE tp, char *dt):
-		type(tp), data(dt) {
+ public:
+	ChipData(enum MSG_TYPE tp, char *dt):type(tp), data(dt) {
 	} ~ChipData() {
 		free(data);
 	}
 
 	enum MSG_TYPE type;
 	char *data;
+};
+
+class NetSegment {
+ public:
+	NetSegment(char *start, char *end, char *dsc):startip(start),
+	    endip(end), describe(dsc) {
+	} ~NetSegment() {
+		free(startip);
+		free(endip);
+		free(describe);
+	}
+
+	char *startip;
+	char *endip;
+	char *describe;
 };
 
 typedef struct sockaddr SA;

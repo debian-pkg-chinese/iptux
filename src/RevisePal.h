@@ -16,10 +16,10 @@
 
 class RevisePal {
  public:
-	RevisePal(gpointer data);
+	RevisePal(gpointer data);	//Pal
 	~RevisePal();
 
-	static void ReviseEntry(gpointer data);
+	static void ReviseEntry(gpointer data);	//
  private:
 	void InitRevise();
 	void CreateRevise();
@@ -28,7 +28,7 @@ class RevisePal {
 
 	GtkWidget *revise;
 	GtkTreeModel *icon_model;
-	GtkWidget *name, *encode, *icon, *compatible;
+	GtkWidget *name, *group, *encode, *icon, *compatible;
 	Pal *pal;
 };
 

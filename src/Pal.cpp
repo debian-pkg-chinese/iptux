@@ -20,9 +20,10 @@
 #include "baling.h"
 #include "utils.h"
 
- Pal::Pal():ipv4(0), version(NULL), packetn(0), user(NULL),
-host(NULL), name(NULL), ad(NULL), sign(NULL), iconfile(NULL),
-encode(NULL), flags(0), dialog(NULL), mypacketn(0), reply(true)
+ Pal::Pal():ipv4(0), segment(NULL), version(NULL), packetn(0),
+user(NULL), host(NULL), name(NULL), group(NULL), ad(NULL),
+sign(NULL), iconfile(NULL), encode(NULL), flags(0), iconpixfile(NULL),
+iconpix(NULL), dialog(NULL), mypacketn(0), reply(true)
 {
 	extern Control ctr;
 	record = gtk_text_buffer_new(ctr.table);
@@ -32,36 +33,46 @@ Pal::~Pal()
 {
 	SendExit();
 
+	free(segment);
 	free(version);
 	free(user);
 	free(host);
 	free(name);
+	free(group);
 	free(ad);
 	free(sign);
 	free(iconfile);
 	free(encode);
 
+	if (iconpix)
+		g_object_unref(iconpix);
 	if (dialog)
-		gtk_widget_destroy(((DialogPeer *) dialog)->dialog);
+		gtk_widget_destroy(dialog->dialog);
 	g_object_unref(record);
 }
 
-// //trans 是否转换编码,true 必须;false 情况而定
-void Pal::CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans)
+//entry 是否为通知登录消息,true 必须转换编码;false 情况而定
+void Pal::CreateInfo(in_addr_t ip, const char *msg, size_t size, bool entry)
 {
 	extern Control ctr;
 	char *ptr;
 
 	ipv4 = ip;
+	segment = ctr.FindNetSegDescribe(ipv4);
 	if (!IptuxGetIcon(msg, size))
 		iconfile = Strdup(ctr.palicon);
 	if (!IptuxGetEncode(msg, size))
 		encode = Strdup(ctr.encode);
+	if (!IptuxGetGroup(msg, size, entry))	//依赖编码支持
+		group = Strdup("");
 
-	if (trans || !FLAG_ISSET(flags, 0))
+	if (!entry) {
+		if (FLAG_ISSET(flags, 0))
+			ptr = Strdup(msg);
+		else		//当用户修正过此编码后发挥效用
+			ptr = transfer_encode(msg, encode, false);
+	} else
 		ptr = transfer_encode(msg, ctr.encode, false);
-	else
-		ptr = Strdup(msg);
 	version = iptux_get_section_string(ptr, 0);
 	packetn = 0;
 	user = iptux_get_section_string(ptr, 2);
@@ -71,13 +82,16 @@ void Pal::CreateInfo(in_addr_t ip, const char *msg, size_t size, bool trans)
 	FLAG_SET(flags, 1);
 }
 
-void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
+void Pal::UpdateInfo(const char *msg, size_t size, bool entry)
 {
 	extern Control ctr;
 	char *ptr;
 	bool cpt;
 
-	if (!FLAG_ISSET(flags, 2)) {
+	free(segment);
+	segment = ctr.FindNetSegDescribe(ipv4);
+
+	if (entry || !FLAG_ISSET(flags, 2)) {
 		cpt = FLAG_ISSET(flags, 0);
 		ptr = iconfile;
 		if (IptuxGetIcon(msg, size))
@@ -85,14 +99,23 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 		ptr = encode;
 		if (IptuxGetEncode(msg, size))
 			free(ptr);
-		if (cpt)	//如果以前兼容，则此次也兼容
+		if (entry && !FLAG_ISSET(flags, 0)) {
+			free(encode);
+			encode = Strdup(ctr.encode);
+		} else if (cpt)		//如果以前兼容，则此次也兼容
 			FLAG_SET(flags, 0);
+		ptr = group;
+		if (IptuxGetGroup(msg, size, entry))	//依赖兼容性支持
+			free(ptr);
 	}
 
-	if (trans || !FLAG_ISSET(flags, 0))
+	if (!entry) {
+		if (FLAG_ISSET(flags, 0))
+			ptr = Strdup(msg);
+		else
+			ptr = transfer_encode(msg, encode, false);
+	} else
 		ptr = transfer_encode(msg, ctr.encode, false);
-	else
-		ptr = Strdup(msg);
 	free(version);
 	version = iptux_get_section_string(ptr, 0);
 	packetn = 0;
@@ -100,7 +123,7 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 	user = iptux_get_section_string(ptr, 2);
 	free(host);
 	host = iptux_get_section_string(ptr, 3);
-	if (!FLAG_ISSET(flags, 2)) {
+	if (entry || !FLAG_ISSET(flags, 2)) {
 		free(name);
 		name = ipmsg_get_attach(ptr, 5);
 	}
@@ -108,25 +131,54 @@ void Pal::UpdateInfo(const char *msg, size_t size, bool trans)
 	FLAG_SET(flags, 1);
 }
 
-void Pal::SetPalmodelValue(GtkTreeModel * model, GtkTreeIter * iter)
+GdkPixbuf *Pal::GetIconPixbuf()
 {
 	extern Control ctr;
-	GdkPixbuf *pixbuf;
-	char buf[MAX_BUF], ipstr[INET_ADDRSTRLEN];
+	GSList *tmp;
+	SysIcon *si;
 
-	pixbuf = gdk_pixbuf_new_from_file_at_size(iconfile,
-						  MAX_ICONSIZE, MAX_ICONSIZE,
-						  NULL);
-	if (!pixbuf)
-		pixbuf = gdk_pixbuf_new_from_file_at_size(ctr.palicon,
-							  MAX_ICONSIZE,
-							  MAX_ICONSIZE, NULL);
-	inet_ntop(AF_INET, &ipv4, ipstr, INET_ADDRSTRLEN);
-	snprintf(buf, MAX_BUF, "%s\n%s", name, ipstr);
-	gtk_tree_store_set(GTK_TREE_STORE(model), iter, 0, pixbuf, 2, buf, 3,
-			   ctr.font, 4, TRUE, 6, FALSE, 7, this, -1);
-	if (pixbuf)
-		g_object_unref(pixbuf);
+	if (iconpix) {	//对象存在
+		if (iconpixfile == iconfile) {	//最新
+			g_object_ref(iconpix);
+			return iconpix;
+		} else {	//否则
+			g_object_unref(iconpix);
+			iconpix = NULL;
+		}
+	}
+
+	iconpixfile = iconfile;
+	tmp = ctr.iconlist;
+	while (tmp) {	//查询是否为系统图标
+		si = (SysIcon *) tmp->data;
+		if (strcmp(si->pathname, iconfile) == 0)
+			break;
+		tmp = tmp->next;
+	}
+	if (!tmp) {	//不是系统图标
+		iconpix = gdk_pixbuf_new_from_file_at_size(iconfile,
+				MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+		if (iconpix)
+			g_object_ref(iconpix);
+		return iconpix;
+	}
+
+	//是系统图标，且已经加载进入内存
+	if (si->pixbuf) {
+		g_object_ref(si->pixbuf);
+		iconpix = si->pixbuf;
+		g_object_ref(si->pixbuf);
+		return iconpix;
+	}
+	//是系统图标，但是未加载进入内存
+	iconpix = gdk_pixbuf_new_from_file_at_size(iconfile,
+			MAX_ICONSIZE, MAX_ICONSIZE, NULL);
+	if (iconpix) {
+		g_object_ref(iconpix);
+		si->pixbuf = iconpix;
+		g_object_ref(iconpix);
+	}
+	return iconpix;
 }
 
 bool Pal::CheckReply(uint32_t packetno, bool install)
@@ -142,7 +194,7 @@ bool Pal::CheckReply(uint32_t packetno, bool install)
 	return false;
 }
 
-void Pal::BufferInsertData(GSList *chiplist, enum BELONG_TYPE type)
+void Pal::BufferInsertData(GSList * chiplist, enum BELONG_TYPE type)
 {
 	switch (type) {
 	case PAL:
@@ -178,12 +230,15 @@ bool Pal::RecvMessage(const char *msg)
 	packetn = packetno;
 
 	ptr = ipmsg_get_attach(msg, 5);
-	if (!ptr)
+	if (!ptr || *ptr == '\0') {
+		free(ptr);
 		return true;
+	}
 
 	chiplist = g_slist_append(NULL, new ChipData(STRING, ptr));
 	BufferInsertData(chiplist, PAL);
-	g_slist_foreach(chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_foreach(chiplist, GFunc(remove_foreach),
+				GINT_TO_POINTER(CHIPDATA));
 	g_slist_free(chiplist);
 
 	if (!dialog) {
@@ -216,7 +271,8 @@ bool Pal::RecvIcon(const char *msg, size_t size)
 
 	if (FLAG_ISSET(flags, 2) || (len = strlen(msg) + 1) >= size)
 		return false;
-	snprintf(file, MAX_PATHBUF, "%s/.iptux/%x.ic", getenv("HOME"), ipv4);
+	snprintf(file, MAX_PATHBUF, "%s/iptux/icon/%x",
+				 g_get_user_cache_dir(), ipv4);
 	if ((fd = Open(file, O_WRONLY | O_CREAT | O_TRUNC, 0644)) == -1)
 		return false;
 	Write(fd, msg + len, size - len);
@@ -238,11 +294,14 @@ void Pal::RecvReply(const char *msg)
 void Pal::RecvFile(const char *msg, size_t size)
 {
 	struct recvfile_para *para;
+	const char *ptr;
 
+	if (!(ptr = iptux_skip_string(msg, size, 1)) || *ptr == '\0')
+		return;
 	para = (struct recvfile_para *)Malloc(sizeof(struct recvfile_para));
 	para->data = this;
-	para->msg = Strndup(msg, size + 2);
-	memcpy(para->msg + size, "\0\0", 2);	//防止搜索超越合法区域
+	para->msg = transfer_encode(ptr, encode, false);
+	para->packetn = iptux_get_dec_number(msg, 1);
 	thread_create(ThreadFunc(RecvFile::RecvEntry), para, false);
 }
 
@@ -269,7 +328,8 @@ void Pal::RecvMsgPic(const char *path)
 
 	chiplist = g_slist_append(NULL, new ChipData(PICTURE, Strdup(path)));
 	BufferInsertData(chiplist, PAL);
-	g_slist_foreach(chiplist, remove_foreach, GINT_TO_POINTER(CHIPDATA));
+	g_slist_foreach(chiplist, GFunc(remove_foreach),
+				GINT_TO_POINTER(CHIPDATA));
 	g_slist_free(chiplist);
 }
 
@@ -299,21 +359,39 @@ void Pal::SendExit()
 	cmd.SendExit(inter.udpsock, this);
 }
 
-//是否成功获得头像文件
+//是否成功获得组名
+bool Pal::IptuxGetGroup(const char *msg, size_t size, bool entry)
+{
+	extern Control ctr;
+	const char *ptr;
+
+	if (!(ptr = iptux_skip_string(msg, size, 1)) || *ptr == '\0')
+		return false;
+
+	//必须对编码作一定的处理
+	if (!entry) {
+		if (FLAG_ISSET(flags, 0))
+			group = Strdup(ptr);
+		else
+			group = transfer_encode(ptr, encode, false);
+	} else
+		group = transfer_encode(ptr, ctr.encode, false);
+
+	return true;
+}
+
+//是否成功获得头像文件名
 bool Pal::IptuxGetIcon(const char *msg, size_t size)
 {
-	char file[MAX_PATHBUF], *ptr;
-	size_t len;
+	const char *ptr;
+	char path[MAX_PATHBUF];
 
-	len = strlen(msg) + 1;
-	if (len >= size)
+	if (!(ptr = iptux_skip_string(msg, size, 2)) || *ptr == '\0')
 		return false;
-	ptr = my_getline(msg + len);
-	snprintf(file, MAX_PATHBUF, __ICON_DIR "/%s", ptr);
-	free(ptr);
-	if (access(file, F_OK) != 0)
+	snprintf(path, MAX_PATHBUF, __ICON_DIR "/%s", ptr);
+	if (access(path, F_OK) != 0)
 		return false;
-	iconfile = Strdup(file);
+	iconfile = Strdup(path);
 	return true;
 }
 
@@ -321,25 +399,16 @@ bool Pal::IptuxGetIcon(const char *msg, size_t size)
 bool Pal::IptuxGetEncode(const char *msg, size_t size)
 {
 	const char *ptr;
-	size_t len;
 
 	FLAG_CLR(flags, 0);
-	if ((len = strlen(msg) + 1) >= size ||
-	    (len += strlen(msg + len) + 1) >= size)
+	if (!(ptr = iptux_skip_string(msg, size, 3)) || *ptr == '\0')
 		return false;
-
-	ptr = msg + len;
-	while (*ptr && !isalnum(*ptr))
-		ptr++;
-	if (*ptr == '\0')
-		return false;
-
 	FLAG_SET(flags, 0);
 	encode = Strdup(ptr);
 	return true;
 }
 
-void Pal::BufferInsertPal(GSList *chiplist)
+void Pal::BufferInsertPal(GSList * chiplist)
 {
 	extern Log mylog;
 	char *ptr, *pptr;
@@ -349,15 +418,15 @@ void Pal::BufferInsertPal(GSList *chiplist)
 
 	ptr = getformattime("%s", name);
 	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert_with_tags_by_name(record, &iter, ptr,
-				-1, "blue", NULL);
+	gtk_text_buffer_insert_with_tags_by_name(record, &iter,
+						 ptr, -1, "blue", NULL);
 	g_free(ptr);
 
 	tmp = chiplist;
 	while (tmp) {
 		gtk_text_buffer_get_end_iter(record, &iter);
-		ptr = ((ChipData*)tmp->data)->data;
-		switch (((ChipData*)tmp->data)->type) {
+		ptr = ((ChipData *) tmp->data)->data;
+		switch (((ChipData *) tmp->data)->type) {
 		case STRING:
 			if (!FLAG_ISSET(flags, 0))
 				pptr = transfer_encode(ptr, encode, false);
@@ -370,7 +439,8 @@ void Pal::BufferInsertPal(GSList *chiplist)
 		case PICTURE:
 			pixbuf = gdk_pixbuf_new_from_file(ptr, NULL);
 			if (pixbuf) {
-				gtk_text_buffer_insert_pixbuf(record, &iter, pixbuf);
+				gtk_text_buffer_insert_pixbuf(record,
+							&iter, pixbuf);
 				g_object_unref(pixbuf);
 			}
 			break;
@@ -385,7 +455,7 @@ void Pal::BufferInsertPal(GSList *chiplist)
 	ViewScroll();
 }
 
-void Pal::BufferInsertSelf(GSList *chiplist)
+void Pal::BufferInsertSelf(GSList * chiplist)
 {
 	extern Control ctr;
 	extern Log mylog;
@@ -396,15 +466,15 @@ void Pal::BufferInsertSelf(GSList *chiplist)
 
 	ptr = getformattime("%s", ctr.myname);
 	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert_with_tags_by_name(record, &iter, ptr,
-						 -1, "green", NULL);
+	gtk_text_buffer_insert_with_tags_by_name(record, &iter,
+						ptr, -1, "green", NULL);
 	g_free(ptr);
 
 	tmp = chiplist;
 	while (tmp) {
 		gtk_text_buffer_get_end_iter(record, &iter);
-		ptr = ((ChipData*)tmp->data)->data;
-		switch (((ChipData*)tmp->data)->type) {
+		ptr = ((ChipData *) tmp->data)->data;
+		switch (((ChipData *) tmp->data)->type) {
 		case STRING:
 			gtk_text_buffer_insert(record, &iter, ptr, -1);
 			mylog.CommunicateLog(NULL, ptr);
@@ -412,7 +482,8 @@ void Pal::BufferInsertSelf(GSList *chiplist)
 		case PICTURE:
 			pixbuf = gdk_pixbuf_new_from_file(ptr, NULL);
 			if (pixbuf) {
-				gtk_text_buffer_insert_pixbuf(record, &iter, pixbuf);
+				gtk_text_buffer_insert_pixbuf(record,
+							&iter, pixbuf);
 				g_object_unref(pixbuf);
 			}
 			break;
@@ -439,12 +510,12 @@ void Pal::BufferInsertError()
 
 	ptr = getformattime("%s", tips[0]);
 	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert_with_tags_by_name(record, &iter, ptr,
-						 -1, "red", NULL);
+	gtk_text_buffer_insert_with_tags_by_name(record, &iter,
+						ptr, -1, "red", NULL);
 	g_free(ptr);
 	gtk_text_buffer_get_end_iter(record, &iter);
-	gtk_text_buffer_insert_with_tags_by_name(record, &iter, tips[1],
-						 -1, "red", NULL);
+	gtk_text_buffer_insert_with_tags_by_name(record, &iter,
+						tips[1], -1, "red", NULL);
 	mylog.SystemLog(_("send data packet fail!"));
 
 	ViewScroll();
@@ -462,11 +533,10 @@ void Pal::ViewScroll()
 	if (gtk_text_iter_equal(&start, &end))
 		return;
 	mark = gtk_text_buffer_create_mark(record, NULL, &end, FALSE);
-	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW
-				     (((DialogPeer *) dialog)->scroll), mark,
-				     0.0, TRUE, 0.0, 0.0);
+	gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(dialog->scroll), mark,
+							0.0, TRUE, 0.0, 0.0);
 	gtk_text_buffer_delete_mark(record, mark);
-	gtk_window_present(GTK_WINDOW(((DialogPeer *) dialog)->dialog));
+	gtk_window_present(GTK_WINDOW(dialog->dialog));
 }
 
 void Pal::SendFeature(gpointer data)
@@ -481,7 +551,8 @@ void Pal::SendFeature(gpointer data)
 		cmd.SendMyIcon(inter.udpsock, data);
 	if (ctr.sign && *ctr.sign != '\0')
 		cmd.SendMySign(inter.udpsock, data);
-	snprintf(path, MAX_PATHBUF, "%s/.iptux/myad", getenv("HOME"));
+	snprintf(path, MAX_PATHBUF, "%s/iptux/complex/ad",
+					 g_get_user_config_dir());
 	if (access(path, F_OK) == 0) {
 		sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 		cmd.SendSublayer(sock, data, IPTUX_ADPICOPT, path);

@@ -8,7 +8,7 @@ src/DetectPal.cpp
 src/DialogGroup.cpp
 src/DialogPeer.cpp
 src/iptux.cpp
-src/IptuxSetup.cpp
+src/IptuxSetting.cpp
 src/Log.cpp
 src/MainWindow.cpp
 src/my_chooser.cpp

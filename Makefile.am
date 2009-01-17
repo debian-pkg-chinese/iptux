@@ -2,6 +2,6 @@
 # have all needed files, that a GNU package needs
 AUTOMAKE_OPTIONS = foreign 1.4
 
-SUBDIRS = src desktop icons po
+SUBDIRS = src desktop pixmaps po
 
 EXTRA_DIST = Makefile.cvs protocol

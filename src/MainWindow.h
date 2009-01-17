@@ -13,17 +13,30 @@
 #define MAINWINDOW_H
 
 #include "face.h"
+#include "net.h"
 
 class MainWindow {
+ private:
+	static const char *localip[];
  public:
 	MainWindow();
 	~MainWindow();
 
 	void CreateWindow();
-	void CreateAllArea();
+
+	bool PalGetModelIter(gpointer data, GtkTreeIter * iter);	//Pal
+	void AttachItemToModel(in_addr_t ipv4, GtkTreeIter * iter);
+	void SetValueToModel(gpointer data, GtkTreeIter * iter);	//
+	void DelItemFromModel(gpointer data);	//
  private:
+	 void InitPanel();
+	 void CreatePanel();
+	 void CreateAllArea();
 	 GtkWidget * CreateMenuBar();
-	GtkWidget *CreatePalView();
+	GtkWidget *CreatePalTree();
+	GtkTreeModel * CreatePalTreeModel();
+	void InitPalTreeModel();
+	void Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * parent);
 
 	void CreateFileMenu(GtkWidget * menu_bar);
 	void CreateToolMenu(GtkWidget * menu_bar);
@@ -31,46 +44,53 @@ class MainWindow {
 
 	GtkWidget *window;
 	GtkWidget *client_paned;
+	GtkWidget *tips;
+	GtkWidget *pal_tree;
+	GtkTreeModel *tree_model;
 	GtkAccelGroup *accel;
+	GtkTreeIter opt_iter;
  public:
 	static void UpdateTips();
  private:
-	static GtkWidget *CreatePopupMenu(gpointer data);	//pal
-	static GtkTreeModel *CreateFindModel();
-	static GtkWidget *CreateFindView();
+	 GtkWidget * CreatePopupPalMenu(gpointer data);	//
+	GtkWidget *CreatePopupSectionMenu();
+	GtkTreeModel *CreatePalListModel();
+	GtkWidget *CreatePalListView();
 //回调处理部分
- public:
-	static void SwitchWindowMode();
-	static void AskSharedFiles(gpointer data);
  private:
-	static void UpdatePalList();
-	static void DeletePal(gpointer data);
-	static gboolean ViewQueryTooltip(GtkWidget * view, gint x, gint y,
+	static void UpdatePalTree(gpointer data);	//MainWindow
+	static void DeletePal(gpointer data);	//Pal
+	static gboolean TreeQueryTooltip(GtkWidget * view, gint x, gint y,
 					 gboolean key, GtkTooltip * tooltip,
 					 GtkTreeModel * model);
-	static void ViewRowActivated(GtkWidget * view, GtkTreePath * path,
-				     GtkTreeViewColumn * column,
-				     GtkTreeModel * model);
-	static gboolean PopupPalMenu(GtkWidget * view, GdkEventButton * event,
-				     GtkTreeModel * model);
-	static gboolean ViewChangeStatus(GtkWidget * view,
-					 GdkEventButton * event,
+	static void TreeItemActivated(GtkWidget * view, GtkTreePath * path,
+				      GtkTreeViewColumn * column,
+				      GtkTreeModel * model);
+	static gboolean TreePopupMenu(GtkWidget * view, GdkEventButton * event,
+				      gpointer data);	//MainWindow
+	static gboolean TreeChangeStatus(GtkWidget * view, GdkEventButton * event,
+					 gpointer data);	//
+	static void TreeItemChangeStatus(gpointer data);	//
+	static void TreeDragDataReceived(GtkWidget * view,
+					 GdkDragContext * context, gint x,
+					 gint y, GtkSelectionData * select,
+					 guint info, guint time,
 					 GtkTreeModel * model);
-	static void DragDataReceived(GtkWidget * view, GdkDragContext * context,
-				     gint x, gint y, GtkSelectionData * select,
-				     guint info, guint time,
-				     GtkTreeModel * model);
 
-	static void FindSpecifyPal(gpointer data);
-	static gboolean FindClearEntry(GtkWidget * entry, GdkEventKey * event);
+	static void SortSectionByIP(gpointer data);	//
+	static void SortSectionByNickname(gpointer data);
+	static void SortSectionByGroup(gpointer data);
+	static void SortSectionByCommunication(gpointer data);
+
+	static void AttachFindArea(gpointer data);	//
+	static gboolean ClearFindEntry(GtkWidget * entry, GdkEventKey * event);
 	static void FindEntryChanged(GtkWidget * entry, GtkWidget * view);
-	static void FindViewRowActivated(GtkWidget * view, GtkTreePath * path,
-					 GtkTreeViewColumn * column,
-					 GtkTreeModel * model);
-	static gboolean FindPopupPalMenu(GtkWidget * view,
-					 GdkEventButton * event,
-					 GtkTreeModel * model);
-	static void FindDragDataReceived(GtkWidget * view,
+	static void ListItemActivated(GtkWidget * view, GtkTreePath * path,
+				      GtkTreeViewColumn * column,
+				      GtkTreeModel * model);
+	static gboolean ListPopupMenu(GtkWidget * view, GdkEventButton * event,
+				      gpointer data);	//
+	static void ListDragDataReceived(GtkWidget * view,
 					 GdkDragContext * context, gint x,
 					 gint y, GtkSelectionData * select,
 					 guint info, guint time,

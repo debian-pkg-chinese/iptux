@@ -39,11 +39,10 @@ int main(int argc, char *argv[])
 	gtk_init(&argc, &argv);
 
 	iptux_init();
+	mwp = &window;
 	icon.CreateStatusIcon();
 	thread_create(ThreadFunc(CoreThread::CoreThreadEntry), NULL, false);
-
 	window.CreateWindow();
-	window.CreateAllArea();
 
 	gtk_main();
 	gdk_threads_leave();

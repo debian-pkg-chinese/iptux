@@ -14,18 +14,17 @@
 
 #include "sys.h"
 
-class Log
-{
-public:
-        Log();
-        ~Log();
+class Log {
+ public:
+	Log();
+	~Log();
 
-	void flush();
-	void CommunicateLog(pointer data, const char *fmt, ...);	//data pal,NULL
+	void InitSelf();
+	void CommunicateLog(pointer data, const char *fmt, ...);	//data pal|NULL
 	void SystemLog(const char *fmt, ...);
  private:
-	 FILE *communicate;
-	 FILE *system;
+	 FILE * communicate;
+	FILE *system;
 };
 
 #endif

@@ -1,7 +1,7 @@
 //
 // C++ Interface: my_file
 //
-// Description:
+// Description:虚拟文件系统
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
@@ -22,8 +22,12 @@ class my_file {
 	void chdir(const char *dir);
 	int open(const char *filename, int flags, ...);
 	int stat(const char *filename, struct stat64 *st);
+	uint64_t ftw(const char *dir);
 	DIR *opendir();
  private:
+	static int fn(const char *file, const struct stat64 *sb, int flag);
+	static uint64_t sumsize;
+
 	char path[MAX_PATHBUF];
 	bool flag;
 };
