@@ -29,9 +29,11 @@ int main(int argc, char *argv[])
 	StatusIcon icon;
 	MainWindow window;
 
-	bindtextdomain(GETTEXT_PACKAGE, __LOCALE_DIR);
+	mwp = &window;
+	bindtextdomain(GETTEXT_PACKAGE, __LOCALE_PATH);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 	textdomain(GETTEXT_PACKAGE);
+
 	if (!g_thread_supported())
 		g_thread_init(NULL);
 	gdk_threads_init();
@@ -39,7 +41,6 @@ int main(int argc, char *argv[])
 	gtk_init(&argc, &argv);
 
 	iptux_init();
-	mwp = &window;
 	icon.CreateStatusIcon();
 	thread_create(ThreadFunc(CoreThread::CoreThreadEntry), NULL, false);
 	window.CreateWindow();

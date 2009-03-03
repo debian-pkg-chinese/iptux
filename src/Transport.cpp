@@ -11,6 +11,9 @@
 //
 #include "Transport.h"
 #include "Command.h"
+#include "Control.h"
+#include "Sound.h"
+#include "Log.h"
 #include "Pal.h"
 #include "my_file.h"
 #include "baling.h"
@@ -61,8 +64,9 @@ void Transport::TransportEntry()
 void Transport::RecvFileEntry(GtkTreeIter * iter)
 {
 	extern Transport trans;
+	extern Control ctr;
+	extern Sound sound;
 	uint32_t fileattr;
-	gboolean result;
 
 	gdk_threads_enter();
 	gtk_tree_model_get(trans.trans_model, iter, 12, &fileattr, -1);
@@ -79,11 +83,16 @@ void Transport::RecvFileEntry(GtkTreeIter * iter)
 		break;
 	}
 	gtk_tree_iter_free(iter);
+
+	if (FLAG_ISSET(ctr.sndfgs, 2))
+		sound.Playing(ctr.transtip);
 }
 
 void Transport::SendFileEntry(int sock, GtkTreeIter * iter, uint32_t fileattr)
 {
 	extern Transport trans;
+	extern Control ctr;
+	extern Sound sound;
 
 	gdk_threads_enter();
 	TransportEntry();
@@ -99,6 +108,9 @@ void Transport::SendFileEntry(int sock, GtkTreeIter * iter, uint32_t fileattr)
 	default:
 		break;
 	}
+
+	if (FLAG_ISSET(ctr.sndfgs, 2))
+		sound.Playing(ctr.transtip);
 }
 
 //传输 15,0 status,1 task,2 filename,3 side,4 finishsize,5 filesize,6 rate,7 progress,
@@ -228,6 +240,7 @@ void Transport::CreateTransDialog()
 
 void Transport::RecvFileData(GtkTreeIter * iter)
 {
+	extern Log mylog;
 	uint64_t filesize, finishsize;
 	uint32_t packetno, fileid;
 	gchar *filename, *pathname;
@@ -248,19 +261,23 @@ void Transport::RecvFileData(GtkTreeIter * iter)
 								     00644);
 	g_free(filename), g_free(pathname);
 	if (fd == -1 || !cmd.SendAskData(sock, pal, packetno, fileid, 0)) {
-		EndTransportData(sock, fd, iter, __TIP_DIR "/error.png");
+		EndTransportData(sock, fd, iter, __TIP_PATH "/error.png");
 		return;
 	}
 
 	finishsize = RecvData(sock, fd, iter, filesize, buf, 0);
-	if (finishsize >= filesize)
-		EndTransportData(sock, fd, iter, __TIP_DIR "/finish.png");
-	else
-		EndTransportData(sock, fd, iter, __TIP_DIR "/error.png");
+	if (finishsize >= filesize) {
+		EndTransportData(sock, fd, iter, __TIP_PATH "/finish.png");
+		mylog.SystemLog(_("Receive the file successfully!"));
+	} else {
+		EndTransportData(sock, fd, iter, __TIP_PATH "/error.png");
+		mylog.SystemLog(_("Failure to receive the file!"));
+	}
 }
 
 void Transport::RecvDirFiles(GtkTreeIter * iter)
 {
+	extern Log mylog;
 	uint64_t filesize, finishsize, sumsize, dirsize;
 	uint32_t packetno, fileid, headsize, fileattr;
 	gchar *dirname, *pathname, *filename;
@@ -283,7 +300,7 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 	sock = Socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
 	mf.chdir(pathname), g_free(pathname);
 	if (!cmd.SendAskFiles(sock, pal, packetno, fileid)) {
-		EndTransportData(sock, -1, iter, __TIP_DIR "/error.png");
+		EndTransportData(sock, -1, iter, __TIP_PATH "/error.png");
 		g_free(dirname);
 		return;
 	}
@@ -299,8 +316,9 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 		fileattr = iptux_get_hex_number(buf, 3);
 
 		len = size - headsize;
-		if (!FLAG_ISSET(pal->flags, 0)) {
-			filename = transfer_encode(pathname, pal->encode, false);
+		if (!FLAG_ISSET(pal->FlagsQuote(), 0)) {
+			filename = transfer_encode(pathname,
+					pal->EncodeQuote(), false);
 			free(pathname);
 		} else
 			filename = pathname;
@@ -366,11 +384,13 @@ void Transport::RecvDirFiles(GtkTreeIter * iter)
 	result = true;
 
  end:	if (result) {
-		EndTransportData(sock, -1, iter, __TIP_DIR "/finish.png");
+		EndTransportData(sock, -1, iter, __TIP_PATH "/finish.png");
 		EndTransportDirFiles(iter, dirname, sumsize, dirsize);
+		mylog.SystemLog(_("Receive the file successfully!"));
 	} else {
-		EndTransportData(sock, -1, iter, __TIP_DIR "/error.png");
+		EndTransportData(sock, -1, iter, __TIP_PATH "/error.png");
 		g_free(dirname);
+		mylog.SystemLog(_("Failure to receive the file!"));
 	}
 }
 
@@ -434,6 +454,7 @@ uint32_t Transport::RecvData(int sock, int fd, GtkTreeIter * iter,
 
 void Transport::SendFileData(int sock, GtkTreeIter * iter)
 {
+	extern Log mylog;
 	gchar *filename, *pathname;
 	char buf[MAX_SOCKBUF];
 	uint64_t filesize, finishsize;
@@ -449,19 +470,23 @@ void Transport::SendFileData(int sock, GtkTreeIter * iter)
 	fd = mf.open(filename, O_RDONLY | O_LARGEFILE);
 	g_free(filename), g_free(pathname);
 	if (fd == -1) {
-		EndTransportData(-1, -1, iter, __TIP_DIR "/error.png");
+		EndTransportData(-1, -1, iter, __TIP_PATH "/error.png");
 		return;
 	}
 
 	finishsize = SendData(sock, fd, iter, filesize, buf);
-	if (finishsize >= filesize)
-		EndTransportData(-1, fd, iter, __TIP_DIR "/finish.png");
-	else
-		EndTransportData(-1, fd, iter, __TIP_DIR "/error.png");
+	if (finishsize >= filesize) {
+		EndTransportData(-1, fd, iter, __TIP_PATH "/finish.png");
+		mylog.SystemLog(_("Send the file successfully!"));
+	} else {
+		EndTransportData(-1, fd, iter, __TIP_PATH "/error.png");
+		mylog.SystemLog(_("Failure to send the file!"));
+	}
 }
 
 void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 {
+	extern Log mylog;
 	gchar *dirname, *pathname, *filename;
 	char buf[MAX_SOCKBUF], *ptr;
 	uint64_t finishsize, sumsize, dirsize;
@@ -494,7 +519,7 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 				continue;
 
  start:		if (mf.stat(dirt->d_name, &st) == -1
-			     || !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode))
+			     || (!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)))
 				continue;
 			ptr = number_to_string_size(st.st_size);
 			gdk_threads_enter();
@@ -507,22 +532,16 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 			if (terminate == -1)
 				goto end;
 
-			pathname = transfer_encode(dirt->d_name, pal->encode, true);
+			pathname = transfer_encode(dirt->d_name,
+					pal->EncodeQuote(), true);
 			filename = ipmsg_set_filename_pal(pathname);
-# if __WORDSIZE == 64
-			snprintf(buf, MAX_SOCKBUF, "000:%s:%lx:%x:",
+			snprintf(buf, MAX_SOCKBUF, "000:%s:%" PRIx64 ":%" PRIx32 ":",
 				 filename, st.st_size,
 				 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
 				 IPMSG_FILE_DIR);
-# else
-			snprintf(buf, MAX_SOCKBUF, "000:%s:%llx:%x:",
-				 filename, st.st_size,
-				 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-				 IPMSG_FILE_DIR);
-# endif
 			free(filename), free(pathname);
 			headsize = strlen(buf);
-			snprintf(buf, MAX_SOCKBUF, "%.3x", headsize);
+			snprintf(buf, MAX_SOCKBUF, "%.3" PRIx32, headsize);
 			*(buf + strlen(buf)) = ':';
 			if (Write(sock, buf, headsize) == -1)
 				goto end;
@@ -546,9 +565,9 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 		}
 		closedir(dir), dir = NULL;
 
-		snprintf(buf, MAX_SOCKBUF, "000:.:0:%x:", IPMSG_FILE_RETPARENT);
+		snprintf(buf, MAX_SOCKBUF, "000:.:0:%" PRIx32 ":", IPMSG_FILE_RETPARENT);
 		headsize = strlen(buf);
-		snprintf(buf, MAX_SOCKBUF, "%.3x", headsize);
+		snprintf(buf, MAX_SOCKBUF, "%.3" PRIx32, headsize);
 		*(buf + strlen(buf)) = ':';
 		if (Write(sock, buf, headsize) == -1)
 			goto end;
@@ -557,14 +576,16 @@ void Transport::SendDirFiles(int sock, GtkTreeIter * iter)
 	result = true;
 
  end:	if (result) {
-		EndTransportData(-1, -1, iter, __TIP_DIR "/finish.png");
+		EndTransportData(-1, -1, iter, __TIP_PATH "/finish.png");
 		EndTransportDirFiles(iter, dirname, sumsize, dirsize);
+		mylog.SystemLog(_("Send the file successfully!"));
 	} else {
 		closedir(dir);
 		g_queue_foreach(dir_stack, GFunc(closedir), NULL);
 		g_queue_clear(dir_stack);
-		EndTransportData(-1, -1, iter, __TIP_DIR "/error.png");
+		EndTransportData(-1, -1, iter, __TIP_PATH "/error.png");
 		g_free(dirname);
+		mylog.SystemLog(_("Failure to send the file!"));
 	}
 	g_queue_free(dir_stack);
 }

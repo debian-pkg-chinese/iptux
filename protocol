@@ -18,13 +18,16 @@
 注:好友头像名为文件名，而不是全路径
 如果满足如上条件，则认为兼容iptux，iptux将严格使用好友提供的相关数据；否则不兼容，iptux将使用一些软件默认数据来填充好友的数据结构。
 	2、自定义命令字实现相关功能如下：
-#define IPTUX_ASKSHARED	0x000000FFUL	请求共享文件
+/* 命令字 */
+#define IPTUX_ASKSHARED	0x000000FFUL	请求获取共享文件
 #define IPTUX_SENDICON	0x000000FEUL	发送自定义头像数据
-#define IPTUX_SENDSUBLAYER	0x000000FDUL	发送底层数据，须与选项配合使用
+#define IPTUX_SENDSUBLAYER	0x000000FDUL	发送底层数据，必须与选项配合使用
 #define IPTUX_SENDSIGN	0x000000FCUL	发送个人签名
-
-#define IPTUX_ADPICOPT	0x00000100UL	广告选项 for sublayer
-#define IPTUX_MSGPICOPT	0x00000200UL	消息图像 for sublayer
+/* 命令字选项 */
+#define IPTUX_ADPICOPT	0x00000100UL	广告选项
+#define IPTUX_MSGPICOPT	0x00000200UL	消息图片选项
+#define IPTUX_SHAREDOPT	0x80000000UL	共享文件选项
+#define IPTUX_PASSWDOPT	0x40000000UL	密码选项
 1)当iptux接收到IPTUX_ASKSHARED命令字的数据包时，就应该直接将软件设置的共享文件提供给请求者或是先向使用者(用户)询问；
 2)当iptux接收到IPTUX_SENDICON命令字的数据包时，应该提取数据包的图像数据，然后将好友头像转换为此图像；此命令格式如下：
 (IPMsg协议标准实现)\0(图像数据)	注:图像数据应为存盘文件中的数据，而不是内存数据；另，图像数据不能超过8096字节

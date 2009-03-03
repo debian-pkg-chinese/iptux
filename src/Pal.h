@@ -13,18 +13,7 @@
 #define PAL_H
 
 #include "udt.h"
-class MainWindow;
-class IptuxSetting;
-class UdpData;
-class TcpData;
-class Cammand;
-class RevisePal;
-class DialogGroup;
-class RecvFile;
-class SendFile;
-class Transport;
 class DialogPeer;
-class Log;
 
 //对自己而言操作
 class Pal {
@@ -38,6 +27,8 @@ class Pal {
 
 	bool CheckReply(uint32_t packetno, bool install);
 	void BufferInsertData(GSList * chiplist, enum BELONG_TYPE type);
+	void ViewScroll();
+
 	bool RecvMessage(const char *msg);
 	bool RecvAskShared(const char *msg);
 	bool RecvIcon(const char *msg, size_t size);
@@ -56,8 +47,7 @@ class Pal {
 	bool IptuxGetEncode(const char *msg, size_t size);
 	void BufferInsertPal(GSList * chiplist);
 	void BufferInsertSelf(GSList * chiplist);
-	void BufferInsertError();
-	void ViewScroll();
+	void BufferInsertError(GSList * chiplist);
 
 	in_addr_t ipv4;		//用户IP
 	char *segment;		//所在网段，segment != NULL
@@ -73,7 +63,7 @@ class Pal {
 	char *encode;		//用户编码 *
 	uint8_t flags;		//3 黑名单:2 更改:1 在线:0 兼容
 
-	const char *iconpixfile;	//与iconpix配合使用，用于判定当前头像是否最新；不能被访问更不能被修改
+	char *tpointer;		//与iconpix配合使用，用于判定当前头像是否最新
 	GdkPixbuf *iconpix;	//头像缓冲对象
 
 	GtkTextBuffer *record;
@@ -81,20 +71,43 @@ class Pal {
 	uint32_t mypacketn;
 	bool reply;
  public:
-	static void SendFeature(gpointer data);	//Pal
+	inline in_addr_t &Ipv4Quote() {
+		return ipv4;
+	} inline char *&NameQuote() {
+		return name;
+	} inline char *&GroupQuote() {
+		return group;
+	} inline char *&IconfileQuote() {
+		return iconfile;
+	} inline char *&EncodeQuote() {
+		return encode;
+	} inline uint8_t &FlagsQuote() {
+		return flags;
+	} inline GdkPixbuf *&IconpixQuote() {
+		return iconpix;
+	} inline DialogPeer *&DialogQuote() {
+		return dialog;
+	}
 
-	friend class MainWindow;
-	friend class IptuxSetting;
-	friend class UdpData;
-	friend class TcpData;
-	friend class Command;
-	friend class RevisePal;
-	friend class DialogGroup;
-	friend class RecvFile;
-	friend class SendFile;
-	friend class Transport;
-	friend class DialogPeer;
-	friend class Log;
+	inline char *SegmentQuote() {
+		return segment;
+	} inline char *VersionQuote() {
+		return version;
+	} inline uint32_t PacketnQuote() {
+		return packetn;
+	} inline char *UserQuote() {
+		return user;
+	} inline char *HostQuote() {
+		return host;
+	} inline char *AdQuote() {
+		return ad;
+	} inline char *SignQuote() {
+		return sign;
+	} inline GtkTextBuffer *RecordQuote() {
+		return record;
+	}
+
+	static void SendFeature(gpointer data);	//Pal
 };
 
 #endif

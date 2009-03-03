@@ -17,9 +17,9 @@
 #include "baling.h"
 #include "utils.h"
 
- RevisePal::RevisePal(gpointer data):pal((Pal *) data),
-revise(NULL), icon_model(NULL), name(NULL), group(NULL),
-encode(NULL), icon(NULL), compatible(NULL)
+ RevisePal::RevisePal(gpointer data): revise(NULL), icon_model(NULL),
+name(NULL), group(NULL), encode(NULL), icon(NULL),
+compatible(NULL), pal((Pal *) data)
 {
 }
 
@@ -48,10 +48,9 @@ void RevisePal::CreateRevise()
 	GtkWidget *box, *button;
 
 	revise = gtk_dialog_new_with_buttons(_("Change pal's information"),
-					     GTK_WINDOW(inter.window),
-					     GTK_DIALOG_MODAL,
-					     _("Cancel"), GTK_RESPONSE_CANCEL,
-					     _("OK"), GTK_RESPONSE_OK, NULL);
+				    GTK_WINDOW(inter.window), GTK_DIALOG_MODAL,
+				    GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				    GTK_STOCK_OK, GTK_RESPONSE_OK, NULL);
 	gtk_dialog_set_default_response(GTK_DIALOG(revise), GTK_RESPONSE_OK);
 
 	box = create_box(FALSE);
@@ -59,7 +58,7 @@ void RevisePal::CreateRevise()
 					   box, FALSE, FALSE, 0);
 	name = create_label(_("Pal's nickname:"));
 	gtk_box_pack_start(GTK_BOX(box), name, FALSE, FALSE, 0);
-	name = my_entry::create_entry(pal->name,
+	name = my_entry::create_entry(pal->NameQuote(),
 				      _("Please input pal's new nickname!"),
 				      FALSE);
 	gtk_box_pack_start(GTK_BOX(box), name, TRUE, TRUE, 0);
@@ -69,7 +68,7 @@ void RevisePal::CreateRevise()
 			   box, FALSE, FALSE, 0);
 	group = create_label(_("Pal's group name:"));
 	gtk_box_pack_start(GTK_BOX(box), group, FALSE, FALSE, 0);
-	group = my_entry::create_entry(pal->group,
+	group = my_entry::create_entry(pal->GroupQuote(),
 				       _("Please input pal's new group name!"),
 				       FALSE);
 	gtk_box_pack_start(GTK_BOX(box), group, TRUE, TRUE, 0);
@@ -79,7 +78,7 @@ void RevisePal::CreateRevise()
 			   box, FALSE, FALSE, 0);
 	encode = create_label(_("System encode:"));
 	gtk_box_pack_start(GTK_BOX(box), encode, FALSE, FALSE, 0);
-	encode = my_entry::create_entry(pal->encode,
+	encode = my_entry::create_entry(pal->EncodeQuote(),
 				_("you must understand what you are doing!"),
 				FALSE);
 	gtk_box_pack_start(GTK_BOX(box), encode, TRUE, TRUE, 0);
@@ -89,7 +88,8 @@ void RevisePal::CreateRevise()
 					   box, FALSE, FALSE, 0);
 	icon = create_label(_("Head portrait:"));
 	gtk_box_pack_start(GTK_BOX(box), icon, FALSE, FALSE, 0);
-	icon = IptuxSetting::CreateComboBoxWithModel(icon_model, pal->iconfile);
+	icon = IptuxSetting::CreateComboBoxWithModel(icon_model,
+					 pal->IconfileQuote());
 	gtk_box_pack_start(GTK_BOX(box), icon, TRUE, TRUE, 0);
 	button = create_button("...");
 	g_signal_connect_swapped(button, "clicked",
@@ -102,7 +102,7 @@ void RevisePal::CreateRevise()
 	compatible = gtk_check_button_new_with_label(
 				_("Be compatible with iptux protocol"));
 	gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(compatible),
-					     FLAG_ISSET(pal->flags, 0));
+				     FLAG_ISSET(pal->FlagsQuote(), 0));
 	gtk_widget_show(compatible);
 	gtk_box_pack_start(GTK_BOX(box), compatible, FALSE, FALSE, 0);
 }
@@ -124,23 +124,25 @@ void RevisePal::ApplyRevise()
 	GtkTreeIter iter;
 	gint active;
 
-	free(pal->name), free(pal->group), free(pal->encode);
-	pal->name = gtk_editable_get_chars(GTK_EDITABLE(name), 0, -1);
-	pal->group = gtk_editable_get_chars(GTK_EDITABLE(group), 0, -1);
-	pal->encode = gtk_editable_get_chars(GTK_EDITABLE(encode), 0, -1);
+	free(pal->NameQuote());
+	pal->NameQuote() = gtk_editable_get_chars(GTK_EDITABLE(name), 0, -1);
+	free(pal->GroupQuote());
+	pal->GroupQuote() = gtk_editable_get_chars(GTK_EDITABLE(group), 0, -1);
+	free(pal->EncodeQuote());
+	pal->EncodeQuote() = gtk_editable_get_chars(GTK_EDITABLE(encode), 0, -1);
 
 	active = gtk_combo_box_get_active(GTK_COMBO_BOX(icon));
 	snprintf(buf, MAX_BUF, "%d", active);
 	gtk_tree_model_get_iter_from_string(icon_model, &iter, buf);
-	free(pal->iconfile);
-	gtk_tree_model_get(icon_model, &iter, 1, &pal->iconfile, -1);
+	free(pal->IconfileQuote());
+	gtk_tree_model_get(icon_model, &iter, 1, &pal->IconfileQuote(), -1);
 	if (mwp->PalGetModelIter(pal, &iter))
 		mwp->SetValueToModel(pal, &iter);
 
 	if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(compatible)))
-		FLAG_SET(pal->flags, 0);
+		FLAG_SET(pal->FlagsQuote(), 0);
 	else
-		FLAG_CLR(pal->flags, 0);
+		FLAG_CLR(pal->FlagsQuote(), 0);
 
-	FLAG_SET(pal->flags, 2);
+	FLAG_SET(pal->FlagsQuote(), 2);
 }

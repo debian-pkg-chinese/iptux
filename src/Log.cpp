@@ -17,6 +17,9 @@
 #include "utils.h"
 #include "udt.h"
 
+#define LOG_START_HEADER "====================================="
+#define LOG_END_HEADER   "-------------------------------------"
+
  Log::Log():communicate(NULL), system(NULL)
 {
 }
@@ -33,9 +36,9 @@ void Log::InitSelf()
 	char path[MAX_PATHBUF];
 
 	env = g_get_user_config_dir();
-	snprintf(path, MAX_PATHBUF, "%s/iptux/log/communicate.log", env);
+	snprintf(path, MAX_PATHBUF, "%s" LOG_PATH "/communicate.log", env);
 	communicate = Fopen(path, "a");
-	snprintf(path, MAX_PATHBUF, "%s/iptux/log/system.log", env);
+	snprintf(path, MAX_PATHBUF, "%s" LOG_PATH "/system.log", env);
 	system = Fopen(path, "a");
 }
 
@@ -51,13 +54,15 @@ void Log::CommunicateLog(pointer data, const char *fmt, ...)
 	if (data) {
 		pal = (Pal *) data;
 		ptr = getformattime(_("Nickname: %s\tUser: %s\tHost: %s"),
-					    pal->name, pal->user, pal->host);
+					    pal->NameQuote(), pal->UserQuote(),
+					    pal->HostQuote());
 	} else
 		ptr = getformattime(_("Me"));
 	va_start(ap, fmt);
 	msg = g_strdup_vprintf(fmt, ap);
 	va_end(ap);
-	fprintf(communicate, "%s%s\n", ptr, msg);
+	fprintf(communicate, "%s\n%s%s\n%s\n\n", LOG_START_HEADER,
+					    ptr, msg, LOG_END_HEADER);
 	g_free(ptr), g_free(msg);
 }
 
@@ -74,6 +79,7 @@ void Log::SystemLog(const char *fmt, ...)
 	va_start(ap, fmt);
 	msg = g_strdup_vprintf(fmt, ap);
 	va_end(ap);
-	fprintf(system, "%s%s\n\n", ptr, msg);
+	fprintf(system, "%s\n%s%s\n%s\n\n", LOG_START_HEADER, ptr,
+					    msg, LOG_END_HEADER);
 	g_free(ptr), g_free(msg);
 }

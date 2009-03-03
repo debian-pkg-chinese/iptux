@@ -73,7 +73,7 @@ void Command::DialUp(int sock)
 		inet_pton(AF_INET, ns->startip, &ip1);
 		inet_pton(AF_INET, ns->endip, &ip2);
 		ip1 = ntohl(ip1), ip2 = ntohl(ip2);
-		data_order(&ip1, &ip2);
+		ipv4_order(&ip1, &ip2);
 		ip = ip1;
 		while (ip <= ip2) {
 			addr.sin_addr.s_addr = htonl(ip++);
@@ -96,13 +96,13 @@ void Command::SendAnsentry(int sock, pointer data)
 
 	pal = (Pal *) data;
 	CreateCommand(IPMSG_ABSENCEOPT | IPMSG_ANSENTRY, ctr.myname);
-	TransferEncode(pal->encode);
-	CreateIptuxExtra(pal->encode);
+	TransferEncode(pal->EncodeQuote());
+	CreateIptuxExtra(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -115,12 +115,12 @@ void Command::SendExit(int sock, pointer data)
 
 	pal = (Pal *) data;
 	CreateCommand(IPMSG_DIALUPOPT | IPMSG_BR_EXIT, NULL);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -134,13 +134,13 @@ void Command::SendAbsence(int sock, pointer data)
 
 	pal = (Pal *) data;
 	CreateCommand(IPMSG_ABSENCEOPT | IPMSG_BR_ABSENCE, ctr.myname);
-	TransferEncode(pal->encode);
-	CreateIptuxExtra(pal->encode);
+	TransferEncode(pal->EncodeQuote());
+	CreateIptuxExtra(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -169,18 +169,19 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 {
 	uint32_t packetno;
 	uint8_t count;
+	GSList *chiplist;
 	Pal *pal;
 	SI addr;
 
 	pal = (Pal *) data, packetno = packetn;
 	pal->CheckReply(packetno, true);
 	CreateCommand(IPMSG_SENDCHECKOPT | IPMSG_SENDMSG, msg);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	count = 0;
 	do {
@@ -188,8 +189,14 @@ void Command::SendMessage(int sock, pointer data, const char *msg)
 		my_delay(1, 0);
 		count++;
 	} while (!pal->CheckReply(packetno, false) && count < MAX_RETRYTIMES);
-	if (count >= MAX_RETRYTIMES)
-		pal->BufferInsertData(NULL, ERROR);
+	if (count >= MAX_RETRYTIMES) {
+		chiplist = g_slist_append(NULL, new ChipData(STRING,
+			  _("It's offline, or not receive the data packet!")));
+		pal->BufferInsertData(chiplist, ERROR);
+		g_slist_foreach(chiplist, GFunc(remove_foreach),
+				GINT_TO_POINTER(UNKNOWN));	//静态内存，不需析构释放
+		g_slist_free(chiplist);
+	}
 }
 
 //回复消息
@@ -200,14 +207,14 @@ void Command::SendReply(int sock, pointer data, uint32_t packetno)
 	SI addr;
 
 	pal = (Pal *) data;
-	snprintf(packetstr, 11, "%u", packetno);
+	snprintf(packetstr, 11, "%" PRIu32, packetno);
 	CreateCommand(IPMSG_SENDCHECKOPT | IPMSG_RECVMSG, packetstr);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -220,12 +227,12 @@ void Command::SendGroupMsg(int sock, pointer data, const char *msg)
 
 	pal = (Pal *) data;
 	CreateCommand(IPMSG_BROADCASTOPT | IPMSG_SENDMSG, msg);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -238,18 +245,15 @@ bool Command::SendAskData(int sock, pointer data, uint32_t packetno,
 	SI addr;
 
 	pal = (Pal *) data;
-# if __WORDSIZE == 64
-	snprintf(attrstr, 43, "%x:%x:%lx", packetno, fileid, offset);
-# else
-	snprintf(attrstr, 43, "%x:%x:%llx", packetno, fileid, offset);
-# endif
+	snprintf(attrstr, 43, "%" PRIx32 ":%" PRIx32 ":%" PRIx64,
+						 packetno, fileid, offset);
 	CreateCommand(IPMSG_FILEATTACHOPT | IPMSG_GETFILEDATA, attrstr);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1)
 		return false;
@@ -267,14 +271,14 @@ bool Command::SendAskFiles(int sock, pointer data, uint32_t packetno,
 	SI addr;
 
 	pal = (Pal *) data;
-	snprintf(attrstr, 24, "%x:%x:0", packetno, fileid);	//兼容 LanQQ 软件
+	snprintf(attrstr, 24, "%" PRIx32 ":%" PRIx32 ":0", packetno, fileid);	//兼容 LanQQ 软件
 	CreateCommand(IPMSG_FILEATTACHOPT | IPMSG_GETDIRFILES, attrstr);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1)
 		return false;
@@ -284,40 +288,42 @@ bool Command::SendAskFiles(int sock, pointer data, uint32_t packetno,
 	return true;
 }
 
-void Command::SendAskShared(int sock, pointer data)
+void Command::SendAskShared(int sock, pointer data, uint32_t opttype,
+			    const char *extra)
 {
 	Pal *pal;
 	SI addr;
 
 	pal = (Pal *) data;
-	CreateCommand(IPTUX_ASKSHARED, NULL);
-	TransferEncode(pal->encode);
+	CreateCommand(opttype | IPTUX_ASKSHARED, extra);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
 
-void Command::SendSharedInfo(int sock, pointer data, const char *extra)
+void Command::SendFileInfo(int sock, pointer data, uint32_t opttype,
+			    const char *extra)
 {
 	char *ptr;
 	Pal *pal;
 	SI addr;
 
 	pal = (Pal *) data;
-	CreateCommand(IPMSG_FILEATTACHOPT | IPMSG_SENDMSG, NULL);
-	TransferEncode(pal->encode);
-	ptr = transfer_encode(extra, pal->encode, true);
+	CreateCommand(opttype | IPMSG_FILEATTACHOPT | IPMSG_SENDMSG, NULL);
+	TransferEncode(pal->EncodeQuote());
+	ptr = transfer_encode(extra, pal->EncodeQuote(), true);
 	CreateIpmsgExtra(ptr);
 	free(ptr);
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -329,13 +335,13 @@ void Command::SendMyIcon(int sock, pointer data)
 
 	pal = (Pal *) data;
 	CreateCommand(IPTUX_SENDICON, NULL);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 	CreateIconExtra();
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -348,12 +354,12 @@ void Command::SendMySign(int sock, pointer data)
 
 	pal = (Pal *) data;
 	CreateCommand(IPTUX_SENDSIGN, ctr.sign);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	sendto(sock, buf, size, 0, (SA *) & addr, sizeof(addr));
 }
@@ -367,12 +373,12 @@ void Command::SendSublayer(int sock, pointer data, uint32_t opttype,
 
 	pal = (Pal *) data;
 	CreateCommand(opttype | IPTUX_SENDSUBLAYER, NULL);
-	TransferEncode(pal->encode);
+	TransferEncode(pal->EncodeQuote());
 
 	bzero(&addr, sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(IPTUX_DEFAULT_PORT);
-	addr.sin_addr.s_addr = pal->ipv4;
+	addr.sin_addr.s_addr = pal->Ipv4Quote();
 
 	if (Connect(sock, (SA *) & addr, sizeof(addr)) == -1
 		   || Write(sock, buf, size) == -1
@@ -406,7 +412,7 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 	size = strlen(buf);
 	ptr = buf + size;
 
-	snprintf(ptr, MAX_UDPBUF - size, ":%u", packetn++);
+	snprintf(ptr, MAX_UDPBUF - size, ":%" PRIu32, packetn++);
 	size += strlen(ptr);
 	ptr = buf + size;
 
@@ -420,7 +426,7 @@ void Command::CreateCommand(uint32_t command, const char *attach)
 	size += strlen(ptr);
 	ptr = buf + size;
 
-	snprintf(ptr, MAX_UDPBUF - size, ":%u", command);
+	snprintf(ptr, MAX_UDPBUF - size, ":%" PRIu32, command);
 	size += strlen(ptr);
 	ptr = buf + size;
 
@@ -465,21 +471,20 @@ void Command::CreateIpmsgExtra(const char *extra)
 
 	ptr = buf + size;
 	snprintf(ptr, MAX_UDPBUF - size, "%s", extra);
-	if (tmp = strrchr(ptr, '\a'))
+	if ( (tmp = strrchr(ptr, '\a')))
 		*(tmp + 1) = '\0';
 	size += strlen(ptr) + 1;
 }
 
 void Command::CreateIconExtra()
 {
-	extern Control ctr;
 	const gchar *env;
 	char path[MAX_PATHBUF];
 	ssize_t len;
 	int fd;
 
 	env = g_get_user_config_dir();
-	snprintf(path, MAX_PATHBUF, "%s/iptux/complex/icon", env);
+	snprintf(path, MAX_PATHBUF, "%s" COMPLEX_PATH "/icon", env);
 	if ((fd = Open(path, O_RDONLY)) == -1)
 		return;
 	len = Read(fd, buf + size, MAX_UDPBUF - size);

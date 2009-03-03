@@ -14,8 +14,6 @@
 
 #include "face.h"
 #include "sys.h"
-class RecvFile;
-class SendFile;
 
 class Transport {
  public:
@@ -52,8 +50,9 @@ class Transport {
 	GtkTreeIter opt_iter;
 	bool flag;
  public:
-	 friend class RecvFile;
-	friend class SendFile;
+	inline GtkTreeModel *TransModelQuote() {
+		return trans_model;
+	}
  private:
 	 GtkWidget * CreatePopupMenu();
 //回调处理部分

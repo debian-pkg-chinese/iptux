@@ -14,8 +14,6 @@
 
 #include "face.h"
 #include "Pal.h"
-class Pal;
-class SendFile;
 
 class DialogPeer {
  public:
@@ -42,8 +40,11 @@ class DialogPeer {
 	GtkAccelGroup *accel;
 	Pal *pal;
  public:
-	 friend class Pal;
-	friend class SendFile;
+	inline GtkWidget *DialogQuote() {
+		return dialog;
+	} inline GtkWidget *ScrollQuote() {
+		return scroll;
+	}
 
 	static void FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer,
 					bool sad = true);	//

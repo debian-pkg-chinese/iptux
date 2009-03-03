@@ -22,17 +22,18 @@ class MainWindow {
 	MainWindow();
 	~MainWindow();
 
+	void InitSelf();
 	void CreateWindow();
 
 	bool PalGetModelIter(gpointer data, GtkTreeIter * iter);	//Pal
 	void AttachItemToModel(in_addr_t ipv4, GtkTreeIter * iter);
 	void SetValueToModel(gpointer data, GtkTreeIter * iter);	//
+	void MakeItemBlinking(GtkTreeIter * iter, bool blink);
 	void DelItemFromModel(gpointer data);	//
  private:
-	 void InitPanel();
-	 void CreatePanel();
-	 void CreateAllArea();
-	 GtkWidget * CreateMenuBar();
+	void CreatePanel();
+	void CreateAllArea();
+	GtkWidget * CreateMenuBar();
 	GtkWidget *CreatePalTree();
 	GtkTreeModel * CreatePalTreeModel();
 	void InitPalTreeModel();

@@ -15,12 +15,6 @@
 #include "face.h"
 #include "net.h"
 #include "sys.h"
-class StatusIcon;
-class MainWindow;
-class Pal;
-class DialogGroup;
-class IptuxSetting;
-class DialogPeer;
 
 class UdpData {
  public:
@@ -29,6 +23,7 @@ class UdpData {
 
 	void InitSelf();
 	void AdjustMemory();
+	void MsgBlinking();
 	void UdpDataEntry(in_addr_t ipv4, char *msg, size_t size);
 	void SublayerEntry(gpointer data, uint32_t command, const char *path);	//Pal
 
@@ -48,18 +43,20 @@ class UdpData {
 	void SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size);
 
 	static void ThreadAskShared(gpointer data);	//
-	static bool AllowAskShared(gpointer data);	//
 
-	GSList *pallist;		//好友链表，只能添加，不能删除
+	GSList *pallist;	//好友链表，只能添加，不能删除
 	GQueue *msgqueue;	//消息队列
 	pthread_mutex_t mutex;
  public:
-	 friend class StatusIcon;
-	friend class MainWindow;
-	friend class Pal;
-	friend class DialogGroup;
-	friend class IptuxSetting;
-	friend class DialogPeer;
+	inline GSList *&PallistQuote() {
+		return pallist;
+	} inline GQueue *&MsgqueueQuote() {
+		return msgqueue;
+	}
+
+	inline pthread_mutex_t *MutexQuote() {
+		return &mutex;
+	}
 };
 
 #endif

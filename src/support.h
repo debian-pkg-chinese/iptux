@@ -18,8 +18,12 @@ void iptux_init();		//初始化程序数据
 void iptux_gui_quit();		//图形用户界面退出
 void iptux_quit();		//底层退出
 
-void update_widget_bg(GtkWidget * widget, const gchar * file);
 void pixbuf_shrink_scale_1(GdkPixbuf ** pixbuf, int width, int height);
+GdkPixbuf *obtain_pixbuf_from_stock(const gchar * stock_id);
+void widget_enable_dnd_uri(GtkWidget *widget);
+GSList *selection_data_get_path(GtkSelectionData *data);
+
+char *assert_file_inexistent(const char *path);
 
 void init_iptux_environment();
 void bind_iptux_port();

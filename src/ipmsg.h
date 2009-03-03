@@ -25,7 +25,7 @@
 
 #if !defined(IPMSG_H)
 #define IPMSG_H
-#define IPMSG_VERSION		        0x001
+#define IPMSG_VERSION			0x001
 #define IPMSG_PORT			0x979
 
 /*  command  */
@@ -95,9 +95,9 @@
 #define IPMSG_RC2_256			0x00008000UL
 #define IPMSG_BLOWFISH_128		0x00020000UL
 #define IPMSG_BLOWFISH_256		0x00040000UL
-#define IPMSG_AES_128		        0x00100000UL
-#define IPMSG_AES_192		        0x00200000UL
-#define IPMSG_AES_256		        0x00400000UL
+#define IPMSG_AES_128			0x00100000UL
+#define IPMSG_AES_192			0x00200000UL
+#define IPMSG_AES_256			0x00400000UL
 #define IPMSG_SIGN_STAMPOPT		0x01000000UL
 #define IPMSG_SIGN_MD5		0x10000000UL
 #define IPMSG_SIGN_SHA1		0x20000000UL
@@ -122,7 +122,7 @@
 
 /* file attribute options for fileattach command */
 #define IPMSG_FILE_RONLYOPT		0x00000100UL
-#define IPMSG_FILE_HIDDENOPT	        0x00001000UL
+#define IPMSG_FILE_HIDDENOPT		0x00001000UL
 #define IPMSG_FILE_EXHIDDENOPT	0x00002000UL	// for MacOS X
 #define IPMSG_FILE_ARCHIVEOPT	0x00004000UL
 #define IPMSG_FILE_SYSTEMOPT	0x00008000UL
@@ -152,15 +152,15 @@
 #define HLIST_ENTRY_SEPARATOR	':'
 #endif
 
-///*	@(#)Copyright (C) Jally 2008   iptux.h    Version 0.4.1 *///
+///*	@(#)Copyright (C) Jally 2008   iptux.h    Version 0.4 *///
 #ifdef __IP_TUX__
 
 /*  macro  */
-#define GET_MODE(command)	(command & 0x000000ffUL)
-#define GET_OPT(command)	(command & 0xffffff00UL)
+#define GET_MODE(command)		(command & 0x000000ffUL)
+#define GET_OPT(command)		(command & 0xffffff00UL)
 
 /*  header  */
-#define IPTUX_VERSION			"1_iptux_0#4#4"
+#define IPTUX_VERSION			"1_iptux_0#4#5"
 #define IPTUX_DEFAULT_PORT		IPMSG_PORT
 
 /*command*/
@@ -171,6 +171,8 @@
 /*  option for command  */
 #define IPTUX_ADPICOPT		0x00000100UL
 #define IPTUX_MSGPICOPT		0x00000200UL
+#define IPTUX_SHAREDOPT		0x80000000UL
+#define IPTUX_PASSWDOPT		0x40000000UL
 
 /*data*/
 #define MAX_SOCKBUF			8192
