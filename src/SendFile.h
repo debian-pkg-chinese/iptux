@@ -14,10 +14,6 @@
 
 #include "sys.h"
 #include "face.h"
-class DialogPeer;
-class ShareFile;
-class UdpData;
-class TcpData;
 
 class SendFile {
  public:
@@ -30,24 +26,33 @@ class SendFile {
 	static void SendRegular(gpointer data);	//Pal, 回调入口
 	static void SendFolder(gpointer data);	//
 
-	bool dirty;
- private:
 	void RequestData(int sock, uint32_t fileattr, char *buf);
-	void PickFile(uint32_t fileattr, gpointer data);	//
 	void SendFileInfo(GSList * list, gpointer data);	//
 	void SendSharedInfo(gpointer data);	//
+
+	bool dirty;
+ private:
+	void PickFile(uint32_t fileattr, gpointer data);	//
 	pointer FindFileinfo(uint32_t fileid);
 
 	uint32_t pbn;
-	uint32_t prn;
 	GSList *pblist;
+	char *passwd;	//共享文件密码, passwd != NULL
+	uint32_t prn;
 	GSList *prlist;
 	pthread_mutex_t mutex;
  public:
-	 friend class DialogPeer;
-	friend class ShareFile;
-	friend class UdpData;
-	friend class TcpData;
+	inline uint32_t &PbnQuote() {	//返回合适的编号
+		return ++pbn;
+	} inline GSList *&PblistQuote() {
+		return pblist;
+	} inline char *&PasswdQuote() {
+		return passwd;
+	}
+
+	inline pthread_mutex_t *MutexQuote() {
+		return &mutex;
+	}
 };
 
 #endif

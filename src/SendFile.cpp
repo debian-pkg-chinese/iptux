@@ -14,18 +14,20 @@
 #include "UdpData.h"
 #include "Transport.h"
 #include "DialogPeer.h"
+#include "Log.h"
 #include "my_file.h"
 #include "baling.h"
 #include "utils.h"
 
- SendFile::SendFile():dirty(false), pbn(0),
-prn(MAX_SHAREDFILE), pblist(NULL), prlist(NULL)
+ SendFile::SendFile():dirty(false), pbn(0), pblist(NULL), passwd(NULL),
+prn(MAX_SHAREDFILE), prlist(NULL)
 {
 	pthread_mutex_init(&mutex, NULL);
 }
 
 SendFile::~SendFile()
 {
+	free(passwd);
 	pthread_mutex_lock(&mutex);
 	g_slist_foreach(pblist, GFunc(remove_foreach),
 			GINT_TO_POINTER(FILEINFO));
@@ -48,21 +50,25 @@ void SendFile::InitSelf()
 	client = gconf_client_get_default();
 	filelist = gconf_client_get_list(client, GCONF_PATH "/shared_file_list",
 					 GCONF_VALUE_STRING, NULL);
+	if (!(passwd =
+	      gconf_client_get_string(client, GCONF_PATH "/shared_passwd", NULL)))
+		passwd = Strdup("");
 	g_object_unref(client);
+
 	pthread_mutex_lock(&mutex);
 	pblist = NULL, tmp = filelist;
 	while (tmp) {
 		if (Stat((const char *)tmp->data, &st) == -1
-			  || !S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode)) {
+			  || (!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode))) {
 			free(tmp->data), tmp = tmp->next;
 			continue;
 		}
 		if (S_ISDIR(st.st_mode))
 			st.st_size = mf.ftw((const char *)tmp->data);
-		file = new FileInfo(pbn, (char *)tmp->data, st.st_size,
-			    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
+		file = new FileInfo(PbnQuote(), (char *)tmp->data, st.st_size,
+		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
 		pblist = g_slist_append(pblist, file);
-		tmp = tmp->next, pbn++;
+		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&mutex);
 	g_slist_free(filelist);
@@ -82,12 +88,12 @@ void SendFile::WriteShared()
 			  ((FileInfo *) tmp->data)->filename);
 		tmp = tmp->next;
 	}
-	if (filelist) {
-		client = gconf_client_get_default();
-		gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
+	client = gconf_client_get_default();
+	gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
 				      GCONF_VALUE_STRING, filelist, NULL);
-		g_object_unref(client);
-	}
+	gconf_client_set_string(client, GCONF_PATH "/shared_passwd",
+						    passwd, NULL);
+	g_object_unref(client);
 	pthread_mutex_unlock(&mutex);
 	g_slist_free(filelist);
 
@@ -135,13 +141,14 @@ void SendFile::RequestData(int sock, uint32_t fileattr, char *buf)
 	ptr = number_to_string_size(file->filesize);
 	filename = ipmsg_set_filename_self(file->filename);
 	gdk_threads_enter();
-	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/send.png", NULL);
-	gtk_list_store_append(GTK_LIST_STORE(trans.trans_model), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(trans.trans_model), &iter,
-			   0, pixbuf, 1, _("send"), 2, filename, 3, pal->name,
-			   4, "0B", 5, ptr, 6, "0B/s", 7, 0, 8, 0, 9, 0,
-			   10, file->fileid, 11, file->filesize, 12,
-			   file->fileattr, 13, file->filename, 14, pal, -1);
+	pixbuf = gdk_pixbuf_new_from_file(__TIP_PATH "/send.png", NULL);
+	gtk_list_store_append(GTK_LIST_STORE(trans.TransModelQuote()), &iter);
+	gtk_list_store_set(GTK_LIST_STORE(trans.TransModelQuote()), &iter,
+			   0, pixbuf, 1, _("send"), 2, filename,
+			   3, pal->NameQuote(), 4, "0B", 5, ptr,
+			   6, "0B/s", 7, 0, 8, 0, 9, 0, 10, file->fileid,
+			   11, file->filesize, 12, file->fileattr,
+			   13, file->filename, 14, pal, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
 	gdk_threads_leave();
@@ -152,45 +159,10 @@ void SendFile::RequestData(int sock, uint32_t fileattr, char *buf)
 	Transport::SendFileEntry(sock, &iter, fileattr);
 }
 
-void SendFile::PickFile(uint32_t fileattr, gpointer data)
-{
-	extern struct interactive inter;
-	GtkFileChooserAction action;
-	GtkWidget *dialog, *parent;
-	gchar *title;
-	GSList *list;
-	Pal *pal;
-
-	pal = (Pal *) data;
-	parent = pal->dialog ? pal->dialog->dialog : inter.window;
-	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-		    _("Choose sending files") : _("Choose sending folders");
-	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-		    GTK_FILE_CHOOSER_ACTION_OPEN :
-		    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
-
-	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(parent), action,
-					     GTK_STOCK_CANCEL,
-					     GTK_RESPONSE_CANCEL,
-					     GTK_STOCK_OPEN,
-					     GTK_RESPONSE_ACCEPT, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
-					GTK_RESPONSE_ACCEPT);
-	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
-						    g_get_home_dir());
-
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		SendFileInfo(list, data);
-		g_slist_free(list);	//他处释放
-	}
-	gtk_widget_destroy(dialog);
-}
-
 void SendFile::SendFileInfo(GSList * list, gpointer data)
 {
 	extern struct interactive inter;
+	extern Log mylog;
 	my_file mf(false);
 	char buf[MAX_UDPBUF], *ptr, *filename;
 	struct stat64 st;
@@ -208,32 +180,27 @@ void SendFile::SendFileInfo(GSList * list, gpointer data)
 		if (S_ISDIR(st.st_mode))
 			st.st_size = mf.ftw((const char *)list->data);
 		filename = ipmsg_set_filename_pal((char *)list->data);
-# if __WORDSIZE == 64
-		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%lx:%x:%x\a:",
-			 prn, filename, st.st_size, st.st_mtime,
-			 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-			 IPMSG_FILE_DIR);
-# else
-		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%llx:%x:%x\a:",
-			 prn, filename, st.st_size, st.st_mtime,
-			 S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
-			 IPMSG_FILE_DIR);
-# endif
+		snprintf(ptr, MAX_UDPBUF - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
+		    PRIx32 ":%" PRIx32 ":\a:",
+		    prn, filename, st.st_size, st.st_mtime,
+		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
 		free(filename), len += strlen(ptr), ptr = buf + len;
 		file = new FileInfo(prn, (char *)list->data, st.st_size,
-			    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
+		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
 		prlist = g_slist_prepend(prlist, file);
 		list = list->next, prn++;
 	}
 	pthread_mutex_unlock(&mutex);
 
-	cmd.SendSharedInfo(inter.udpsock, data, buf);
+	cmd.SendFileInfo(inter.udpsock, data, 0, buf);
+	mylog.SystemLog(_("Send some files' information to a pal!"));
 }
 
 void SendFile::SendSharedInfo(gpointer data)
 {
 	extern struct interactive inter;
 	extern SendFile sfl;
+	extern Log mylog;
 	char buf[MAX_UDPBUF], *ptr, *filename;
 	GSList *tmp, *tmp1;
 	Command cmd;
@@ -252,21 +219,51 @@ void SendFile::SendSharedInfo(gpointer data)
 			continue;
 		}
 		filename = ipmsg_set_filename_pal(file->filename);
-# if __WORDSIZE == 64
-		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%lx:%x:%x\a:",
-			 file->fileid, filename, file->filesize, 0,
-			 file->fileattr);
-# else
-		snprintf(ptr, MAX_UDPBUF - len, "%u:%s:%llx:%x:%x\a:",
-			 file->fileid, filename, file->filesize, 0,
-			 file->fileattr);
-#endif
+		snprintf(ptr, MAX_UDPBUF - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
+			    PRIx32 ":%" PRIx32 ":\a:", file->fileid, filename,
+			    file->filesize, 0, file->fileattr);
 		free(filename), len += strlen(ptr), ptr = buf + len;
 		tmp = tmp->next;
 	}
 	pthread_mutex_unlock(&sfl.mutex);
 
-	cmd.SendSharedInfo(inter.udpsock, data, buf);
+	cmd.SendFileInfo(inter.udpsock, data, IPTUX_SHAREDOPT, buf);
+	mylog.SystemLog(_("Send some shared files' information to a pal!"));
+}
+
+void SendFile::PickFile(uint32_t fileattr, gpointer data)
+{
+	extern struct interactive inter;
+	GtkFileChooserAction action;
+	GtkWidget *dialog, *parent;
+	gchar *title;
+	GSList *list;
+	Pal *pal;
+
+	pal = (Pal *) data;
+	parent = pal->DialogQuote() ? pal->DialogQuote()->DialogQuote()
+					  : inter.window;
+	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
+		    _("Choose sending files") : _("Choose sending folders");
+	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
+		    GTK_FILE_CHOOSER_ACTION_OPEN :
+		    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+
+	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(parent), action,
+				     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
+				     GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
+					GTK_RESPONSE_ACCEPT);
+	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
+						    g_get_home_dir());
+
+	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
+		SendFileInfo(list, data);
+		g_slist_free(list);	//他处释放
+	}
+	gtk_widget_destroy(dialog);
 }
 
 pointer SendFile::FindFileinfo(uint32_t fileid)

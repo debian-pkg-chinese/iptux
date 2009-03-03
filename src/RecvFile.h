@@ -29,6 +29,7 @@ class RecvFile {
 
 	Pal *pal;
 	char *msg;
+	uint32_t commandn;
 	uint32_t packetn;
 	GSList *filelist;
 	GtkTreeModel *file_model;
@@ -36,6 +37,9 @@ class RecvFile {
  private:
 	static void CellEditText(GtkCellRendererText * renderer, gchar * path,
 				 gchar * new_text, GtkTreeModel * model);
+	static void CursorItemChanged(GtkWidget *view, GtkWidget *chooser);
+	static void ChooserResetLabel(GtkWidget *chooser, GtkWidget *label);
+	static void ChooserResetView(GtkWidget *chooser, GtkWidget *view);
 	static void AdditionRecvFile(GtkTreeModel * model);
 };
 

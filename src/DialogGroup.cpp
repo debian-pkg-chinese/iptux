@@ -10,11 +10,13 @@
 //
 //
 #include "DialogGroup.h"
+#include "DialogPeer.h"
 #include "AboutIptux.h"
 #include "UdpData.h"
 #include "Control.h"
 #include "Command.h"
 #include "Pal.h"
+#include "Log.h"
 #include "support.h"
 #include "baling.h"
 #include "output.h"
@@ -52,12 +54,10 @@ void DialogGroup::InitDialog()
 void DialogGroup::CreateDialog()
 {
 	extern Control ctr;
-	GdkColor color = { 8, 39321, 41634, 65535 };
 	GtkWidget *hpaned, *vpaned;
 	GtkWidget *vbox;
 
 	dialog = create_window(_("Group message"), 141, 138);
-	gtk_widget_modify_bg(dialog, GTK_STATE_NORMAL, &color);
 	accel = gtk_accel_group_new();
 	gtk_window_add_accel_group(GTK_WINDOW(dialog), accel);
 	g_signal_connect_swapped(dialog, "destroy",
@@ -84,7 +84,6 @@ GtkWidget *DialogGroup::CreateMenuBar()
 	GtkWidget *menu_bar;
 
 	menu_bar = gtk_menu_bar_new();
-	update_widget_bg(menu_bar, __BACK_DIR "/title.png");
 	gtk_widget_show(menu_bar);
 	CreateFileMenu(menu_bar);
 	CreateHelpMenu(menu_bar);
@@ -97,8 +96,6 @@ void DialogGroup::CreateChooseArea(GtkWidget * paned)
 	GtkWidget *frame, *sw;
 
 	pal_view = CreateGroupView();
-	g_signal_connect_swapped(pal_view, "button-press-event",
-				 G_CALLBACK(PopupPickMenu), group_model);
 	frame = create_frame(_("Choose Pals"));
 	gtk_paned_pack1(GTK_PANED(paned), frame, FALSE, TRUE);
 	sw = create_scrolled_window();
@@ -172,21 +169,21 @@ void DialogGroup::InitGroupModel()
 	GSList *tmp;
 	Pal *pal;
 
-	pthread_mutex_lock(&udt.mutex);
-	tmp = udt.pallist;
+	pthread_mutex_lock(udt.MutexQuote());
+	tmp = udt.PallistQuote();
 	while (tmp) {
 		pal = (Pal *) tmp->data;
 		tmp = tmp->next;
-		if (!FLAG_ISSET(pal->flags, 1))
+		if (!FLAG_ISSET(pal->FlagsQuote(), 1))
 			continue;
 		pixbuf = pal->GetIconPixbuf();
 		gtk_list_store_append(GTK_LIST_STORE(group_model), &iter);
 		gtk_list_store_set(GTK_LIST_STORE(group_model), &iter, 0, TRUE,
-					   1, pixbuf, 2, pal->name, 3, pal, -1);
+				   1, pixbuf, 2, pal->NameQuote(), 3, pal, -1);
 		if (pixbuf)
 			g_object_unref(pixbuf);
 	}
-	pthread_mutex_unlock(&udt.mutex);
+	pthread_mutex_unlock(udt.MutexQuote());
 }
 
 GtkWidget *DialogGroup::CreateGroupView()
@@ -196,6 +193,10 @@ GtkWidget *DialogGroup::CreateGroupView()
 	GtkTreeViewColumn *column;
 
 	view = gtk_tree_view_new_with_model(group_model);
+	g_signal_connect_swapped(view, "button-press-event",
+			 G_CALLBACK(PopupPickMenu), group_model);
+	g_signal_connect(view, "row-activated",
+			 G_CALLBACK(ViewItemActivated), group_model);
 	gtk_widget_show(view);
 
 	column = gtk_tree_view_column_new();
@@ -270,6 +271,12 @@ void DialogGroup::CreateHelpMenu(GtkWidget * menu_bar)
 			 G_CALLBACK(AboutIptux::AboutEntry), NULL);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_More"));
+	g_signal_connect(menu_item, "activate",
+			 G_CALLBACK(AboutIptux::MoreEntry), NULL);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 }
 
 bool DialogGroup::CheckExist()
@@ -288,12 +295,11 @@ void DialogGroup::BufferInsertText(const gchar * msg)
 	char *ptr;
 
 	buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(record));
-	ptr = getformattime("%s", ctr.myname);
 	gtk_text_buffer_get_end_iter(buffer, &iter);
+	ptr = getformattime("%s", ctr.myname);
 	gtk_text_buffer_insert(buffer, &iter, ptr, -1);
 	free(ptr);
 	ptr = g_strdup_printf("%s\n", msg);
-	gtk_text_buffer_get_end_iter(buffer, &iter);
 	gtk_text_buffer_insert(buffer, &iter, ptr, -1);
 	g_free(ptr);
 }
@@ -383,8 +389,21 @@ gboolean DialogGroup::PopupPickMenu(GtkTreeModel * model,
 	return TRUE;
 }
 
+void DialogGroup::ViewItemActivated(GtkWidget * view, GtkTreePath * path,
+				      GtkTreeViewColumn * column,
+				      GtkTreeModel * model)
+{
+	GtkTreeIter iter;
+	gpointer data;
+
+	gtk_tree_model_get_iter(model, &iter, path);
+	gtk_tree_model_get(model, &iter, 3, &data, -1);
+	DialogPeer::DialogEntry(data);
+}
+
 void DialogGroup::SendMessage(gpointer data)
 {
+	extern Log mylog;
 	GtkTextBuffer *buffer;
 	GtkTextIter start, end;
 	DialogGroup *dg;
@@ -403,6 +422,7 @@ void DialogGroup::SendMessage(gpointer data)
 	gtk_text_buffer_delete(buffer, &start, &end);
 
 	dg->BufferInsertText(msg);
+	mylog.CommunicateLog(NULL, msg);
 	dg->SendGroupMsg(msg);
 	dg->ViewScroll();
 

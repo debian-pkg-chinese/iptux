@@ -52,9 +52,14 @@ MainWindow::~MainWindow()
 	g_object_unref(accel);
 }
 
+void MainWindow::InitSelf()
+{
+	tree_model = CreatePalTreeModel();
+	InitPalTreeModel();
+}
+
 void MainWindow::CreateWindow()
 {
-	InitPanel();
 	CreatePanel();
 	CreateAllArea();
 }
@@ -64,7 +69,7 @@ bool MainWindow::PalGetModelIter(gpointer data, GtkTreeIter * iter)
 	GtkTreeIter parent;
 	gpointer pal;
 
-	Ipv4GetParent(((Pal*)data)->ipv4, &parent);
+	Ipv4GetParent(((Pal*)data)->Ipv4Quote(), &parent);
 	if (!gtk_tree_model_iter_children(tree_model, iter, &parent))
 		return false;
 
@@ -94,12 +99,23 @@ void MainWindow::SetValueToModel(gpointer data, GtkTreeIter * iter)
 
 	pal = (Pal *)data;
 	pixbuf = pal->GetIconPixbuf();
-	inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-	snprintf(buf, MAX_BUF, "%s\n%s", pal->name, ipstr);
-	gtk_tree_store_set(GTK_TREE_STORE(tree_model), iter, 0, pixbuf, 2, buf, 3,
-			   ctr.font, 4, TRUE, 6, FALSE, 7, data, -1);
+	inet_ntop(AF_INET, &pal->Ipv4Quote(), ipstr, INET_ADDRSTRLEN);
+	snprintf(buf, MAX_BUF, "%s\n%s", pal->NameQuote(), ipstr);
+	gtk_tree_store_set(GTK_TREE_STORE(tree_model), iter, 0, pixbuf,
+			   1, NULL, 2, buf, 3, ctr.font, 4, TRUE, 6, FALSE,
+			   7, data, 8, FALSE, -1);
 	if (pixbuf)
 		g_object_unref(pixbuf);
+}
+
+void MainWindow::MakeItemBlinking(GtkTreeIter * iter, bool blink)
+{
+	gchar *color;
+
+	gtk_tree_model_get(tree_model, iter, 1, &color, -1);
+	g_free(color);
+	gtk_tree_store_set(GTK_TREE_STORE(tree_model), iter, 1,
+			   (!color && blink) ? "#52B838" : NULL, -1);
 }
 
 void MainWindow::DelItemFromModel(gpointer data)
@@ -108,12 +124,6 @@ void MainWindow::DelItemFromModel(gpointer data)
 
 	if (PalGetModelIter(data, &iter))
 		gtk_tree_store_remove(GTK_TREE_STORE(tree_model), &iter);
-}
-
-void MainWindow::InitPanel()
-{
-	tree_model = CreatePalTreeModel();
-	InitPalTreeModel();
 }
 
 void MainWindow::CreatePanel()
@@ -131,15 +141,14 @@ void MainWindow::CreatePanel()
 	GdkPixbuf *pixbuf;
 
 	inter.window = window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-	update_widget_bg(window, __BACK_DIR "/back.png");
 	gtk_window_set_title(GTK_WINDOW(window), _("iptux"));
-	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/ip-tux.png",
+	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_PATH "/ip-tux.png",
 							25, 25, NULL);
 	if (pixbuf) {
 		gtk_window_set_default_icon(pixbuf);
 		g_object_unref(pixbuf);
 	} else
-		pwarning(Fail, "%s \"" __LOGO_DIR "/ip-tux.png\" %s",
+		pwarning(Fail, "%s \"" __LOGO_PATH "/ip-tux.png\" %s",
 			 _("Icon file"), _("is lost!"));
 	gtk_window_set_geometry_hints(GTK_WINDOW(window), window,
 						      &geometry, hints);
@@ -178,7 +187,6 @@ GtkWidget *MainWindow::CreateMenuBar()
 	GtkWidget *menu_bar;
 
 	menu_bar = gtk_menu_bar_new();
-	update_widget_bg(menu_bar, __BACK_DIR "/title.png");
 	gtk_widget_show(menu_bar);
 	CreateFileMenu(menu_bar);
 	CreateToolMenu(menu_bar);
@@ -189,17 +197,13 @@ GtkWidget *MainWindow::CreateMenuBar()
 
 GtkWidget *MainWindow::CreatePalTree()
 {
-	GdkColor color = { 8, 65535, 65535, 55000 };
-	GtkTargetEntry target = { "text/plain", 0, 0 };
 	GtkTreeSelection *selection;
 	GtkTreeViewColumn *column;
 	GtkCellRenderer *renderer;
 	GtkWidget *view;
 
 	view = gtk_tree_view_new_with_model(tree_model);
-	gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
-	gtk_drag_dest_set(view, GTK_DEST_DEFAULT_ALL,
-				  &target, 1, GDK_ACTION_MOVE);
+	widget_enable_dnd_uri(view);
 	gtk_tree_view_set_level_indentation(GTK_TREE_VIEW(view), 10);
 	gtk_tree_view_set_show_expanders(GTK_TREE_VIEW(view), FALSE);
 	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(view), FALSE);
@@ -215,7 +219,7 @@ GtkWidget *MainWindow::CreatePalTree()
 							renderer, FALSE);
 	g_object_set(renderer, "follow-state", TRUE, NULL);
 	gtk_tree_view_column_set_attributes(GTK_TREE_VIEW_COLUMN(column),
-					    renderer, "pixbuf", 0, NULL);
+			    renderer, "pixbuf", 0, "cell-background", 1, NULL);
 	renderer = gtk_cell_renderer_text_new();	//
 	gtk_tree_view_column_pack_start(GTK_TREE_VIEW_COLUMN(column),
 							renderer, TRUE);
@@ -246,28 +250,27 @@ GtkWidget *MainWindow::CreatePalTree()
 	return view;
 }
 
-//Panel 8,0 pixbuf,1 expand,2 nickname,3 font,4 visible,5 markup,6 visible,7 data/last
+//Panel 9,0 pixbuf,1 color,2 nickname,3 font,4 visible,5 markup,6 visible,7 data/last,8 expend
 GtkTreeModel *MainWindow::CreatePalTreeModel()
 {
 	GtkTreeStore *model;
 
-	model = gtk_tree_store_new(8, GDK_TYPE_PIXBUF, G_TYPE_BOOLEAN,
+	model = gtk_tree_store_new(9, GDK_TYPE_PIXBUF, G_TYPE_STRING,
 				   G_TYPE_STRING, G_TYPE_STRING, G_TYPE_BOOLEAN,
 				   G_TYPE_STRING, G_TYPE_BOOLEAN,
-				   G_TYPE_POINTER);
+				   G_TYPE_POINTER, G_TYPE_BOOLEAN);
 
 	return GTK_TREE_MODEL(model);
 }
 
 void MainWindow::InitPalTreeModel()
 {
-	extern Control ctr;
 	gchar ipstr[32], buf[MAX_BUF];
 	GtkTreeIter iter;
 	GdkPixbuf *pixbuf;
 	uint8_t count;
 
-	pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/hide.png", NULL);
+	pixbuf = gdk_pixbuf_new_from_file(__TIP_PATH "/hide.png", NULL);
 	count = 0;
 	while (localip[count << 1]) {
 		if (localip[(count << 1) + 1])
@@ -281,8 +284,8 @@ void MainWindow::InitPalTreeModel()
 			 ipstr);
 		gtk_tree_store_append(GTK_TREE_STORE(tree_model), &iter, NULL);
 		gtk_tree_store_set(GTK_TREE_STORE(tree_model), &iter, 0, pixbuf,
-				   1, FALSE, 4, FALSE, 5, buf, 6, TRUE,
-				   7, NULL, -1);
+				   1, NULL, 4, FALSE, 5, buf, 6, TRUE, 7, NULL,
+				   8, FALSE, -1);
 		if (!localip[(count << 1) + 1])
 			break;
 		count++;
@@ -303,7 +306,7 @@ void MainWindow::Ipv4GetParent(in_addr_t ipv4, GtkTreeIter * parent)
 		ip1 = ntohl(ip1);
 		inet_pton(AF_INET, localip[(count << 1) + 1], &ip2);
 		ip2 = ntohl(ip2);
-		data_order(&ip1, &ip2);
+		ipv4_order(&ip1, &ip2);
 		if (ip1 <= ipv4 && ip2 >= ipv4)
 			break;
 		count++;
@@ -325,7 +328,7 @@ void MainWindow::CreateFileMenu(GtkWidget * menu_bar)
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Detect"));
-	image = gtk_image_new_from_file(__TIP_DIR "/detect.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/detect.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(DetectPal::DetectEntry), NULL);
@@ -333,7 +336,7 @@ void MainWindow::CreateFileMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Find"));
-	image = gtk_image_new_from_file(__TIP_DIR "/find.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_FIND, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect_swapped(menu_item, "activate",
 				 G_CALLBACK(AttachFindArea), this);
@@ -345,7 +348,7 @@ void MainWindow::CreateFileMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Quit"));
-	image = gtk_image_new_from_file(__TIP_DIR "/out.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_QUIT, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(iptux_gui_quit), NULL);
@@ -368,7 +371,7 @@ void MainWindow::CreateToolMenu(GtkWidget * menu_bar)
 	gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), menu);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Transport"));
-	image = gtk_image_new_from_file(__TIP_DIR "/trans.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_CONNECT, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(Transport::TransportEntry), NULL);
@@ -376,7 +379,8 @@ void MainWindow::CreateToolMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Settings"));
-	image = gtk_image_new_from_file(__TIP_DIR "/setting.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_PREFERENCES,
+						 GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(IptuxSetting::SettingEntry), NULL);
@@ -384,7 +388,7 @@ void MainWindow::CreateToolMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Public"));
-	image = gtk_image_new_from_file(__TIP_DIR "/share.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/share.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(ShareFile::ShareEntry), NULL);
@@ -392,7 +396,7 @@ void MainWindow::CreateToolMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Group"));
-	image = gtk_image_new_from_file(__TIP_DIR "/net.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/group.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(DialogGroup::DialogEntry), NULL);
@@ -400,7 +404,7 @@ void MainWindow::CreateToolMenu(GtkWidget * menu_bar)
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Update"));
-	image = gtk_image_new_from_file(__TIP_DIR "/fresh.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_REFRESH, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect_swapped(menu_item, "activate",
 			 G_CALLBACK(UpdatePalTree), this);
@@ -426,6 +430,12 @@ void MainWindow::CreateHelpMenu(GtkWidget * menu_bar)
 			 G_CALLBACK(AboutIptux::AboutEntry), NULL);
 	gtk_widget_show(menu_item);
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_More"));
+	g_signal_connect(menu_item, "activate",
+			 G_CALLBACK(AboutIptux::MoreEntry), NULL);
+	gtk_widget_show(menu_item);
+	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 }
 
 void MainWindow::UpdateTips()
@@ -436,15 +446,15 @@ void MainWindow::UpdateTips()
 	uint32_t sum;
 	GSList *tmp;
 
-	pthread_mutex_lock(&udt.mutex);
-	sum = 0, tmp = udt.pallist;
+	pthread_mutex_lock(udt.MutexQuote());
+	sum = 0, tmp = udt.PallistQuote();
 	while (tmp) {
-		if (FLAG_ISSET(((Pal *) tmp->data)->flags, 1))
+		if (FLAG_ISSET(((Pal *) tmp->data)->FlagsQuote(), 1))
 			sum++;
 		tmp = tmp->next;
 	}
-	pthread_mutex_unlock(&udt.mutex);
-	snprintf(buf, MAX_BUF, _("pals online: %u"), sum);
+	pthread_mutex_unlock(udt.MutexQuote());
+	snprintf(buf, MAX_BUF, _("pals online: %" PRIu32), sum);
 	gtk_label_set_text(GTK_LABEL(mwp->tips), buf);
 }
 
@@ -538,7 +548,7 @@ GtkWidget *MainWindow::CreatePopupSectionMenu()
 
 	/************************************/
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(pal_tree));
-	gtk_tree_model_get(model, &opt_iter, 1, &expend, -1);
+	gtk_tree_model_get(model, &opt_iter, 8, &expend, -1);
 	if (expend)
 		menu_item = gtk_menu_item_new_with_label(_("Collapse"));
 	else
@@ -566,8 +576,6 @@ GtkTreeModel *MainWindow::CreatePalListModel()
 
 GtkWidget *MainWindow::CreatePalListView()
 {
-	GdkColor color = { 8, 65535, 65535, 55000 };
-	GtkTargetEntry target = { "text/plain", 0, 0 };
 	GtkWidget *view;
 	GtkTreeModel *model;
 	GtkTreeViewColumn *column;
@@ -576,9 +584,7 @@ GtkWidget *MainWindow::CreatePalListView()
 
 	model = CreatePalListModel();
 	view = gtk_tree_view_new_with_model(model);
-	gtk_widget_modify_base(view, GTK_STATE_NORMAL, &color);
-	gtk_drag_dest_set(view, GTK_DEST_DEFAULT_ALL,
-			  &target, 1, GDK_ACTION_MOVE);
+	widget_enable_dnd_uri(view);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
 	gtk_tree_selection_set_mode(GTK_TREE_SELECTION(selection),
 				    GTK_SELECTION_NONE);
@@ -644,14 +650,14 @@ void MainWindow::UpdatePalTree(gpointer data)
 	MainWindow *mw;
 	GSList *tmp;
 
-	pthread_mutex_lock(&udt.mutex);
-	tmp = udt.pallist;
+	pthread_mutex_lock(udt.MutexQuote());
+	tmp = udt.PallistQuote();
 	while (tmp) {
-		FLAG_CLR(((Pal *) tmp->data)->flags, 1);
+		FLAG_CLR(((Pal *) tmp->data)->FlagsQuote(), 1);
 		tmp = tmp->next;
 	}
-	g_queue_clear(udt.msgqueue);
-	pthread_mutex_unlock(&udt.mutex);
+	g_queue_clear(udt.MsgqueueQuote());
+	pthread_mutex_unlock(udt.MutexQuote());
 
 	mw = (MainWindow *)data;
 	gtk_tree_store_clear(GTK_TREE_STORE(mw->tree_model));
@@ -669,19 +675,19 @@ void MainWindow::DeletePal(gpointer data)
 	Pal *pal;
 
 	pal = (Pal *) data;
-	if (!udt.Ipv4GetPalPos(pal->ipv4))
+	if (!udt.Ipv4GetPalPos(pal->Ipv4Quote()))
 		return;
 
 	if (mwp->PalGetModelIter(pal, &iter))
 		gtk_tree_store_remove(GTK_TREE_STORE(mwp->tree_model), &iter);
 	tmp = (GList *) udt.PalGetMsgPos(pal);
 	if (tmp) {
-		pthread_mutex_lock(&udt.mutex);
-		g_queue_delete_link(udt.msgqueue, tmp);
-		pthread_mutex_unlock(&udt.mutex);
+		pthread_mutex_lock(udt.MutexQuote());
+		g_queue_delete_link(udt.MsgqueueQuote(), tmp);
+		pthread_mutex_unlock(udt.MutexQuote());
 	}
-	FLAG_CLR(pal->flags, 1);
-	FLAG_SET(pal->flags, 3);
+	FLAG_CLR(pal->FlagsQuote(), 1);
+	FLAG_SET(pal->FlagsQuote(), 3);
 }
 
 gboolean MainWindow::TreeQueryTooltip(GtkWidget * view, gint x, gint y,
@@ -796,16 +802,16 @@ void MainWindow::TreeItemChangeStatus(gpointer data)
 	mw = (MainWindow *) data;
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(mw->pal_tree));
 	path = gtk_tree_model_get_path(model, &mw->opt_iter);
-	gtk_tree_model_get(model, &mw->opt_iter, 1, &expend, -1);
+	gtk_tree_model_get(model, &mw->opt_iter, 8, &expend, -1);
 	if (expend) {
-		pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/hide.png", NULL);
+		pixbuf = gdk_pixbuf_new_from_file(__TIP_PATH "/hide.png", NULL);
 		gtk_tree_store_set(GTK_TREE_STORE(model), &mw->opt_iter, 0,
-						   pixbuf, 1, FALSE, -1);
+						   pixbuf, 8, FALSE, -1);
 		gtk_tree_view_collapse_row(GTK_TREE_VIEW(mw->pal_tree), path);
 	} else {
-		pixbuf = gdk_pixbuf_new_from_file(__TIP_DIR "/show.png", NULL);
+		pixbuf = gdk_pixbuf_new_from_file(__TIP_PATH "/show.png", NULL);
 		gtk_tree_store_set(GTK_TREE_STORE(model), &mw->opt_iter, 0,
-						   pixbuf, 1, TRUE, -1);
+						   pixbuf, 8, TRUE, -1);
 		gtk_tree_view_expand_row(GTK_TREE_VIEW(mw->pal_tree), path,
 								 FALSE);
 	}
@@ -854,7 +860,7 @@ void MainWindow::SortSectionByIP(gpointer data)
 	count = 0;
 	do {
 		gtk_tree_model_get(model, &iter, 7, &pal, -1);
-		*(ipv4 + count) = ntohl(pal->ipv4);
+		*(ipv4 + count) = ntohl(pal->Ipv4Quote());
 		*(table + count) = count;
 		count++;
 	} while (gtk_tree_model_iter_next(model, &iter));
@@ -900,7 +906,7 @@ void MainWindow::SortSectionByNickname(gpointer data)
 	count = 0;
 	do {
 		gtk_tree_model_get(model, &iter, 7, &pal, -1);
-		*(name + count) = pal->name;
+		*(name + count) = pal->NameQuote();
 		*(table + count) = count;
 		count++;
 	} while (gtk_tree_model_iter_next(model, &iter));
@@ -946,7 +952,7 @@ void MainWindow::SortSectionByGroup(gpointer data)
 	count = 0;
 	do {
 		gtk_tree_model_get(model, &iter, 7, &pal, -1);
-		*(group + count) = pal->group;
+		*(group + count) = pal->GroupQuote();
 		*(table + count) = count;
 		count++;
 	} while (gtk_tree_model_iter_next(model, &iter));
@@ -992,7 +998,7 @@ void MainWindow::SortSectionByCommunication(gpointer data)
 	count = 0;
 	do {
 		gtk_tree_model_get(model, &iter, 7, &pal, -1);
-		*(packetno + count) = pal->packetn;
+		*(packetno + count) = pal->PacketnQuote();
 		*(table + count) = count;
 		count++;
 	} while (gtk_tree_model_iter_next(model, &iter));
@@ -1039,7 +1045,7 @@ void MainWindow::AttachFindArea(gpointer data)
 	gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 0);
 	button = gtk_button_new();
 	g_object_set(button, "relief", GTK_RELIEF_NONE, NULL);
-	image = gtk_image_new_from_file(__TIP_DIR "/cancel.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_CLOSE, GTK_ICON_SIZE_MENU);
 	gtk_button_set_image(GTK_BUTTON(button), image);
 	gtk_widget_show(button);
 	g_signal_connect_swapped(button, "clicked", G_CALLBACK(g_object_unref),
@@ -1080,29 +1086,30 @@ void MainWindow::FindEntryChanged(GtkWidget * entry, GtkWidget * view)
 	model = gtk_tree_view_get_model(GTK_TREE_VIEW(view));
 	gtk_list_store_clear(GTK_LIST_STORE(model));
 	text = gtk_entry_get_text(GTK_ENTRY(entry));
-	pthread_mutex_lock(&udt.mutex);
-	tmp = udt.pallist;
+	pthread_mutex_lock(udt.MutexQuote());
+	tmp = udt.PallistQuote();
 	while (tmp) {
 		pal = (Pal *) tmp->data;
 		tmp = tmp->next;
-		inet_ntop(AF_INET, &pal->ipv4, ipstr, INET_ADDRSTRLEN);
-		if (FLAG_ISSET(pal->flags, 1) && (*text == '\0'
-						  || strstr(pal->name, text)
-						  || strstr(pal->group, text)
-						  || strstr(ipstr, text)
-						  || strstr(pal->user, text)
-						  || strstr(pal->host, text))) {
+		inet_ntop(AF_INET, &pal->Ipv4Quote(), ipstr, INET_ADDRSTRLEN);
+		if (FLAG_ISSET(pal->FlagsQuote(), 1) && (*text == '\0'
+					  || strstr(pal->NameQuote(), text)
+					  || strstr(pal->GroupQuote(), text)
+					  || strstr(ipstr, text)
+					  || strstr(pal->UserQuote(), text)
+					  || strstr(pal->HostQuote(), text))) {
 			pixbuf = pal->GetIconPixbuf();
 			gtk_list_store_append(GTK_LIST_STORE(model), &iter);
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
-					   0, pixbuf, 1, pal->name, 2, pal->group,
-					   3, ipstr, 4, pal->user, 5, pal->host,
-					   6, pal, -1);
+					   0, pixbuf, 1, pal->NameQuote(),
+					   2, pal->GroupQuote(), 3, ipstr,
+					   4, pal->UserQuote(),
+					   5, pal->HostQuote(), 6, pal, -1);
 			if (pixbuf)
 				g_object_unref(pixbuf);
 		}
 	}
-	pthread_mutex_unlock(&udt.mutex);
+	pthread_mutex_unlock(udt.MutexQuote());
 	gtk_tree_view_columns_autosize(GTK_TREE_VIEW(view));
 }
 

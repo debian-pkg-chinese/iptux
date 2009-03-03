@@ -12,10 +12,6 @@
 #ifndef UDT_H
 #define UDT_H
 
-#ifdef HAVE_CONFIG_H
-#  include <config.h>
-#endif
-
 #include "sys.h"
 #include "net.h"
 #include "face.h"
@@ -56,6 +52,7 @@ struct interactive {
 struct recvfile_para {
 	gpointer data;
 	char *msg;
+	uint32_t commandn;
 	uint32_t packetn;
 };
 

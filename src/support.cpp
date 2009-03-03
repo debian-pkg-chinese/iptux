@@ -15,8 +15,11 @@
 #include "SendFile.h"
 #include "Transport.h"
 #include "Log.h"
+#include "Sound.h"
+#include "MainWindow.h"
 #include "baling.h"
 #include "output.h"
+#include "dialog.h"
 #include "utils.h"
 
 void iptux_init()
@@ -26,6 +29,8 @@ void iptux_init()
 	extern SendFile sfl;
 	extern Transport trans;
 	extern Log mylog;
+	extern Sound sound;
+	extern MainWindow *mwp;
 
 	bind_iptux_port();
 	init_iptux_environment();
@@ -35,20 +40,22 @@ void iptux_init()
 	sfl.InitSelf();
 	trans.InitSelf();
 	mylog.InitSelf();
+	sound.InitSelf();
+	mwp->InitSelf();
 
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGHUP, (sighandler_t) iptux_quit);
 	signal(SIGINT, (sighandler_t) iptux_quit);
 	signal(SIGQUIT, (sighandler_t) iptux_quit);
 	signal(SIGTERM, (sighandler_t) iptux_quit);
+	mylog.SystemLog(_("Loading process to succeed!"));
 }
 
 void iptux_gui_quit()
 {
 	extern Transport trans;
-	extern struct interactive inter;
 
-	if (trans.TransportActive() && !pop_request_quit(inter.window))
+	if (trans.TransportActive() && !pop_request_quit())
 		return;
 	gtk_main_quit();
 	iptux_quit();
@@ -56,33 +63,10 @@ void iptux_gui_quit()
 
 void iptux_quit()
 {
-	pmessage(_("The messenger is quit!\n"));
+	extern Log mylog;
+
+	mylog.SystemLog(_("Process is about to quit!"));
 	exit(0);
-}
-
-void update_widget_bg(GtkWidget * widget, const gchar * file)
-{
-	GtkStyle *style;
-	GdkPixbuf *pixbuf;
-	GdkPixmap *pixmap;
-	gint width, height;
-
-	pixbuf = gdk_pixbuf_new_from_file(file, NULL);
-	if (!pixbuf)
-		return;
-
-	width = gdk_pixbuf_get_width(pixbuf);
-	height = gdk_pixbuf_get_height(pixbuf);
-	pixmap = gdk_pixmap_new(NULL, width, height, 8);
-	gdk_pixbuf_render_pixmap_and_mask(pixbuf, &pixmap, NULL, 255);
-	g_object_unref(pixbuf);
-
-	style = gtk_style_copy(GTK_WIDGET(widget)->style);
-	if (style->bg_pixmap[GTK_STATE_NORMAL])
-		g_object_unref(style->bg_pixmap[GTK_STATE_NORMAL]);
-	style->bg_pixmap[GTK_STATE_NORMAL] = pixmap;
-	gtk_widget_set_style(GTK_WIDGET(widget), style);
-	g_object_unref(style);
 }
 
 void pixbuf_shrink_scale_1(GdkPixbuf ** pixbuf, int width, int height)
@@ -108,6 +92,71 @@ void pixbuf_shrink_scale_1(GdkPixbuf ** pixbuf, int width, int height)
 	}
 }
 
+GdkPixbuf *obtain_pixbuf_from_stock(const gchar * stock_id)
+{
+	GtkWidget *widget;
+	GdkPixbuf *pixbuf;
+
+	widget = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+	pixbuf = gtk_widget_render_icon(widget, stock_id,
+					GTK_ICON_SIZE_MENU, NULL);
+	gtk_widget_destroy(widget);
+
+	return pixbuf;
+}
+
+void widget_enable_dnd_uri(GtkWidget *widget)
+{
+	static const GtkTargetEntry target = {(gchar *)"text/uri-list", 0, 0};
+
+	gtk_drag_dest_set(widget, GTK_DEST_DEFAULT_ALL,
+				  &target, 1, GDK_ACTION_MOVE);
+}
+
+GSList *selection_data_get_path(GtkSelectionData *data)
+{
+	const char *prl = "file://";
+	gchar **uris, **ptr, *uri;
+	GSList *filelist;
+
+	if (!(uris = gtk_selection_data_get_uris(data)))
+		return NULL;
+
+	ptr = uris, filelist = NULL;
+	while (*ptr) {
+		uri = g_uri_unescape_string(*ptr, NULL);
+		if (strncasecmp(uri, prl, strlen(prl)) == 0)
+			filelist = g_slist_append(filelist, Strdup(uri + strlen(prl)));
+		else
+			filelist = g_slist_append(filelist, Strdup(uri));
+		g_free(uri);
+		ptr++;
+	}
+	g_strfreev(uris);
+
+	return filelist;
+}
+
+char *assert_file_inexistent(const char *path)
+{
+	uint16_t count;
+	char buf[MAX_PATHBUF];
+
+	if (access(path, F_OK) != 0)
+		return Strdup(path);
+
+	count = 1;
+	while (count) {
+		snprintf(buf, MAX_PATHBUF, "%s(%" PRIu16 ")", path, count);
+		if (access(buf, F_OK) != 0)
+			break;
+		count++;
+	}
+
+	//概率极低，不妨忽略错误情形
+	return Strdup(buf);
+}
+
 /**
  * cache iptux {ads, icon, pic}
  * config iptux {log, complex}
@@ -120,29 +169,29 @@ void init_iptux_environment()
 	env = g_get_user_cache_dir();
 	if (access(env, F_OK) != 0)
 		Mkdir(env, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux", env);
+	snprintf(path, MAX_PATHBUF, "%s" IPTUX_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux/ads", env);
+	snprintf(path, MAX_PATHBUF, "%s" ADS_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux/icon", env);
+	snprintf(path, MAX_PATHBUF, "%s" ICON_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux/pic", env);
+	snprintf(path, MAX_PATHBUF, "%s" PIC_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
 
 	env = g_get_user_config_dir();
 	if (access(env, F_OK) != 0)
 		Mkdir(env, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux", env);
+	snprintf(path, MAX_PATHBUF, "%s" IPTUX_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux/log", env);
+	snprintf(path, MAX_PATHBUF, "%s" LOG_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
-	snprintf(path, MAX_PATHBUF, "%s/iptux/complex", env);
+	snprintf(path, MAX_PATHBUF, "%s" COMPLEX_PATH, env);
 	if (access(path, F_OK) != 0)
 		Mkdir(path, 0777);
 }

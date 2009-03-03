@@ -36,10 +36,10 @@ void StatusIcon::CreateStatusIcon()
 	GdkPixbuf *pixbuf;
 	GdkScreen *screen;
 
-	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_DIR "/ip-tux.png",
+	pixbuf = gdk_pixbuf_new_from_file_at_size(__LOGO_PATH "/ip-tux.png",
 						  20, 20, NULL);
 	if (!pixbuf) {
-		pop_error("\n%s \"" __LOGO_DIR "/ip-tux.png\" %s",
+		pop_error("\n%s \"" __LOGO_PATH "/ip-tux.png\" %s",
 			  _("The notify icon"), _("is lost!"));
 		exit(1);
 	}
@@ -64,10 +64,10 @@ void StatusIcon::UpdateTips()
 	char *ipstr;
 	guint len;
 
-	pthread_mutex_lock(&udt.mutex);
-	if (len = g_queue_get_length(udt.msgqueue)) {
+	pthread_mutex_lock(udt.MutexQuote());
+	if ( (len = g_queue_get_length(udt.MsgqueueQuote()))) {
 		gtk_status_icon_set_blinking(inter.status_icon, TRUE);
-		ipstr = g_strdup_printf(_("Undealt: %u messages"), len);
+		ipstr = g_strdup_printf(_("Undealt: %" PRIu32 " messages"), len);
 		gtk_status_icon_set_tooltip(inter.status_icon, ipstr);
 	} else {
 		gtk_status_icon_set_blinking(inter.status_icon, FALSE);
@@ -76,7 +76,7 @@ void StatusIcon::UpdateTips()
 					    ipstr ? ipstr : _("iptux"));
 	}
 	free(ipstr);
-	pthread_mutex_unlock(&udt.mutex);
+	pthread_mutex_unlock(udt.MutexQuote());
 }
 
 GtkWidget *StatusIcon::CreatePopupMenu()
@@ -92,7 +92,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 		menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Hide"));
 	else
 		menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Show"));
-	image = gtk_image_new_from_file(__TIP_DIR "/desk.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/board.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(SwitchWindowMode), NULL);
@@ -104,7 +104,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_widget_show(menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Transport"));
-	image = gtk_image_new_from_file(__TIP_DIR "/trans.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_CONNECT, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(Transport::TransportEntry), NULL);
@@ -112,7 +112,8 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Settings"));
-	image = gtk_image_new_from_file(__TIP_DIR "/setting.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_PREFERENCES,
+						 GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(IptuxSetting::SettingEntry), NULL);
@@ -120,7 +121,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Public"));
-	image = gtk_image_new_from_file(__TIP_DIR "/share.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/share.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(ShareFile::ShareEntry), NULL);
@@ -128,7 +129,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Group"));
-	image = gtk_image_new_from_file(__TIP_DIR "/net.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/group.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(DialogGroup::DialogEntry), NULL);
@@ -140,7 +141,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_widget_show(menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Detect"));
-	image = gtk_image_new_from_file(__TIP_DIR "/detect.png");
+	image = gtk_image_new_from_file(__MENU_PATH "/detect.png");
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(DetectPal::DetectEntry), NULL);
@@ -148,7 +149,7 @@ GtkWidget *StatusIcon::CreatePopupMenu()
 	gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
 
 	menu_item = gtk_image_menu_item_new_with_mnemonic(_("_Quit"));
-	image = gtk_image_new_from_file(__TIP_DIR "/out.png");
+	image = gtk_image_new_from_stock(GTK_STOCK_QUIT, GTK_ICON_SIZE_MENU);
 	gtk_image_menu_item_set_image(GTK_IMAGE_MENU_ITEM(menu_item), image);
 	g_signal_connect(menu_item, "activate",
 			 G_CALLBACK(iptux_gui_quit), NULL);
@@ -166,22 +167,22 @@ void StatusIcon::SwitchWindowMode()
 	if (GTK_WIDGET_VISIBLE(inter.window)) {
 		gtk_widget_hide(inter.window);
 		pixbuf = gdk_pixbuf_new_from_file_at_size(
-				__LOGO_DIR"/ip-penguin.png", 20, 20, NULL);
+				__LOGO_PATH "/i-tux.png", 20, 20, NULL);
 		if (pixbuf) {
 			gtk_status_icon_set_from_pixbuf(inter.status_icon, pixbuf);
 			g_object_unref(pixbuf);
 		} else
-			pwarning(Fail, "%s \"" __LOGO_DIR "/ip-penguin.png\" %s",
+			pwarning(Fail, "%s \"" __LOGO_PATH "/i-tux.png\" %s",
 				 _("The notify icon"), _("is lost!"));
 	} else {
 		gtk_widget_show(inter.window);
 		pixbuf = gdk_pixbuf_new_from_file_at_size(
-				__LOGO_DIR "/ip-tux.png", 20, 20, NULL);
+				__LOGO_PATH "/ip-tux.png", 20, 20, NULL);
 		if (pixbuf) {
 			gtk_status_icon_set_from_pixbuf(inter.status_icon, pixbuf);
 			g_object_unref(pixbuf);
 		} else
-			pwarning(Fail, "%s \"" __LOGO_DIR "/ip-tux.png\" %s",
+			pwarning(Fail, "%s \"" __LOGO_PATH "/ip-tux.png\" %s",
 				 _("The notify icon"), _("is lost!"));
 	}
 }
@@ -191,9 +192,9 @@ void StatusIcon::StatusIconActivate()
 	extern UdpData udt;
 	Pal *pal;
 
-	pthread_mutex_lock(&udt.mutex);
-	pal = (Pal *) g_queue_peek_head(udt.msgqueue);
-	pthread_mutex_unlock(&udt.mutex);
+	pthread_mutex_lock(udt.MutexQuote());
+	pal = (Pal *) g_queue_peek_head(udt.MsgqueueQuote());
+	pthread_mutex_unlock(udt.MutexQuote());
 	if (pal)
 		DialogPeer::DialogEntry(pal);
 	else
