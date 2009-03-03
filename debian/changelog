@@ -1,3 +1,9 @@
+iptux (0.4.5-0ubuntu1) jaunty; urgency=low
+
+  * ne upstream release.
+
+ -- LI Daobing <lidaobing@gmail.com>  Tue, 03 Mar 2009 13:16:56 +0800
+
 iptux (0.4.4-1) unstable; urgency=low
 
   * Intial release to Debian (closes: #507451)
