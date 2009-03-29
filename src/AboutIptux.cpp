@@ -5,7 +5,7 @@
 //
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
-//          Jally <jallyx@163.com> & Pentie <pentie@gmail.com>, (C) 2009
+//          Jally <jallyx@163.com> & ManPT <pentie@gmail.com>, (C) 2009
 //
 // Copyright: See COPYING file that comes with this distribution
 //
@@ -50,11 +50,11 @@ void AboutIptux::CreateAbout()
 		NULL
 	};
 	const char *artists[] = {
+		"ManPT\tpentie@gmail.com",
 		"Jally\t\tjallyx@163.com",
-		"Pentie\tpentie@gmail.com",
 		NULL
 	};
-	const char *translators = _("LiJinhui\nLiuTao\nPentie\tpentie@gmail.com");
+	const char *translators = _("LiJinhui\nLiuTao");
 	GdkPixbuf *pixbuf;
 
 	about = gtk_about_dialog_new();
@@ -64,6 +64,8 @@ void AboutIptux::CreateAbout()
 				       "Copyright © 2008-2009 by Jally");
 	gtk_about_dialog_set_comments(GTK_ABOUT_DIALOG(about),
 				      _("A GTK+ based LAN Messenger."));
+	gtk_about_dialog_set_url_hook(DialogOpenUrl, NULL, NULL);
+
 	gtk_about_dialog_set_website(GTK_ABOUT_DIALOG(about),
 				     "http://code.google.com/p/iptux/");
 	gtk_about_dialog_set_license(GTK_ABOUT_DIALOG(about), "GPL 2+");
@@ -91,14 +93,13 @@ void AboutIptux::CreateMore()
 		_("It's an honor that iptux was contributed voluntarilly by many people. "
 		  "Without your help, iptux could never make it.\n\n"
 		  "Especially, Here's some we would like to thank much:\n\n"
-		  "ChenGang\n"
+		  "<ChenGang>\n"
 		  "<liangsuilong@gmail.com>\n"
 		  "<lidaobing@gmail.com>\n"
 		  "<mdjhu@sina.com>\n"
 		  "<omegao.hu@gmail.com>\n"
 		  "<syranosun@gmail.com>\n"
-		  "<weijian_li88@qq.com>\n"
-		  "..."),
+		  "<weijian_li88@qq.com>"),
 		_("...")
 	};
 	GtkWidget *frame, *notebook, *sw, *label, *view;
@@ -164,4 +165,11 @@ bool AboutIptux::CheckExist(GtkWidget *dialog)
 void AboutIptux::DialogDestroy(GtkWidget **dialog)
 {
 	*dialog = NULL;
+}
+void AboutIptux::DialogOpenUrl(GtkAboutDialog *about,
+	 const gchar *link_, gpointer data)
+{
+    g_print(link_); //for debug only
+    GdkScreen* screen = gdk_screen_get_default();
+    gtk_show_uri(screen, link_, GDK_CURRENT_TIME, NULL);
 }
