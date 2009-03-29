@@ -1,10 +1,10 @@
-iptux (0.4.5-0ubuntu1) jaunty; urgency=low
+iptux (0.4.5.2-1) unstable; urgency=low
 
   * ne upstream release.
   * debian/control: add libgstreamer0.10-dev to Build-Depends. 
   * debian/rules: remove the uninstall tool "ihateiptux".
 
- -- LI Daobing <lidaobing@gmail.com>  Tue, 03 Mar 2009 13:31:54 +0800
+ -- LI Daobing <lidaobing@gmail.com>  Sun, 29 Mar 2009 15:51:39 +0800
 
 iptux (0.4.4-1) unstable; urgency=low
 
