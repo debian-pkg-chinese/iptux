@@ -5,12 +5,13 @@ iptux (0.5.0-1) unstable; urgency=low
   * debian/control:
     - change maintainer's name.
     - bump standards version to 3.8.3. 
+    - update Vcs-* fields.
   * debian/docs: updated. 
   * debian/iptux.1: updated. 
   * debian/rules: remove dh_desktop 
   * debian/README.source: added. 
 
- -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:49:33 +0800
+ -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:52:29 +0800
 
 iptux (0.4.5.2-1) unstable; urgency=low
 

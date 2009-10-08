@@ -7,8 +7,8 @@ Build-Depends: debhelper (>= 5), dpatch, autotools-dev, libgtk2.0-dev,
  libgconf2-dev, libgstreamer0.10-dev
 Standards-Version: 3.8.3
 Homepage: http://code.google.com/p/iptux/
-Vcs-Browser: https://code.launchpad.net/~lidaobing/+junk/iptux
-Vcs-Bzr: lp:~lidaobing/+junk/iptux
+Vcs-Browser: https://code.launchpad.net/~lidaobing/iptux/iptux
+Vcs-Bzr: lp:~lidaobing/iptux/iptux
 
 Package: iptux
 Architecture: any
