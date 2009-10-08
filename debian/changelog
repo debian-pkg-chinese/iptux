@@ -2,8 +2,10 @@ iptux (0.5.0-1) unstable; urgency=low
 
   * new upstream release. 
   * debian/watch: updated. 
+  * debian/control:
+    - change maintainer's name.
 
- -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:37:44 +0800
+ -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:38:32 +0800
 
 iptux (0.4.5.2-1) unstable; urgency=low
 

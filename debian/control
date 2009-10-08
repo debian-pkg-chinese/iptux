@@ -1,7 +1,7 @@
 Source: iptux
 Section: net
 Priority: optional
-Maintainer: LI Daobing <lidaobing@gmail.com>
+Maintainer: LI Daobing <lidaobing@debian.org>
 Uploaders: Zhengpeng Hou <zhengpeng-hou@ubuntu.com>
 Build-Depends: debhelper (>= 5), dpatch, autotools-dev, libgtk2.0-dev,
  libgconf2-dev, libgstreamer0.10-dev
