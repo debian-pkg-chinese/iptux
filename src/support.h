@@ -12,21 +12,23 @@
 #ifndef SUPPORT_H
 #define SUPPORT_H
 
-#include "face.h"
+#include "mess.h"
 
-void iptux_init();		//初始化程序数据
-void iptux_gui_quit();		//图形用户界面退出
-void iptux_quit();		//底层退出
+void iptux_init();
+void iptux_gui_quit();
+void iptux_quit();
 
-void pixbuf_shrink_scale_1(GdkPixbuf ** pixbuf, int width, int height);
-GdkPixbuf *obtain_pixbuf_from_stock(const gchar * stock_id);
+void iptux_open_url(const char *url);
+void bind_iptux_port();
+void init_iptux_environment();
+
+void pixbuf_shrink_scale_1(GdkPixbuf **pixbuf, int width, int height);
+GdkPixbuf *obtain_pixbuf_from_stock(const gchar *stock_id);
+
 void widget_enable_dnd_uri(GtkWidget *widget);
 GSList *selection_data_get_path(GtkSelectionData *data);
 
-char *assert_file_inexistent(const char *path);
-
-void init_iptux_environment();
-void bind_iptux_port();
+char *ipv4_get_lan_name(in_addr_t ipv4);
 
 void socket_enable_broadcast(int sock);
 void socket_enable_reuse(int sock);

@@ -10,276 +10,269 @@
 //
 //
 #include "SendFile.h"
+#include "SendFileData.h"
+#include "CoreThread.h"
 #include "Command.h"
-#include "UdpData.h"
-#include "Transport.h"
-#include "DialogPeer.h"
-#include "Log.h"
-#include "my_file.h"
-#include "baling.h"
+#include "AnalogFS.h"
 #include "utils.h"
+extern CoreThread cthrd;
 
- SendFile::SendFile():dirty(false), pbn(0), pblist(NULL), passwd(NULL),
-prn(MAX_SHAREDFILE), prlist(NULL)
+SendFile::SendFile()
 {
-	pthread_mutex_init(&mutex, NULL);
 }
 
 SendFile::~SendFile()
 {
-	free(passwd);
-	pthread_mutex_lock(&mutex);
-	g_slist_foreach(pblist, GFunc(remove_foreach),
-			GINT_TO_POINTER(FILEINFO));
-	g_slist_free(pblist);
-	g_slist_foreach(prlist, GFunc(remove_foreach),
-			GINT_TO_POINTER(FILEINFO));
-	g_slist_free(prlist);
-	pthread_mutex_unlock(&mutex);
-	pthread_mutex_destroy(&mutex);
 }
 
-void SendFile::InitSelf()
+/**
+ * 发送本机共享文件信息入口.
+ * @param pal class PalInfo
+ */
+void SendFile::SendSharedInfoEntry(PalInfo *pal)
 {
-	my_file mf(false);
-	GConfClient *client;
-	GSList *filelist, *tmp;
-	FileInfo *file;
+	GSList *list;
+
+	pthread_mutex_lock(cthrd.GetMutex());
+	list = cthrd.GetPublicFileList();
+	SendFileInfo(pal, IPTUX_SHAREDOPT, list);
+	pthread_mutex_unlock(cthrd.GetMutex());
+}
+
+/**
+ * 发送文件信息入口.
+ * @param pal class PalInfo
+ * @param flist 文件路径链表
+ * @note 文件路径链表中的数据将被本函数处理掉
+ */
+void SendFile::SendFileInfoEntry(PalInfo *pal, GSList *flist)
+{
 	struct stat64 st;
-
-	client = gconf_client_get_default();
-	filelist = gconf_client_get_list(client, GCONF_PATH "/shared_file_list",
-					 GCONF_VALUE_STRING, NULL);
-	if (!(passwd =
-	      gconf_client_get_string(client, GCONF_PATH "/shared_passwd", NULL)))
-		passwd = Strdup("");
-	g_object_unref(client);
-
-	pthread_mutex_lock(&mutex);
-	pblist = NULL, tmp = filelist;
-	while (tmp) {
-		if (Stat((const char *)tmp->data, &st) == -1
-			  || (!S_ISREG(st.st_mode) && !S_ISDIR(st.st_mode))) {
-			free(tmp->data), tmp = tmp->next;
-			continue;
-		}
-		if (S_ISDIR(st.st_mode))
-			st.st_size = mf.ftw((const char *)tmp->data);
-		file = new FileInfo(PbnQuote(), (char *)tmp->data, st.st_size,
-		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
-		pblist = g_slist_append(pblist, file);
-		tmp = tmp->next;
-	}
-	pthread_mutex_unlock(&mutex);
-	g_slist_free(filelist);
-
-	dirty = true;
-}
-
-void SendFile::WriteShared()
-{
-	GConfClient *client;
-	GSList *filelist, *tmp;
-
-	pthread_mutex_lock(&mutex);
-	filelist = NULL, tmp = pblist;
-	while (tmp) {
-		filelist = g_slist_append(filelist,
-			  ((FileInfo *) tmp->data)->filename);
-		tmp = tmp->next;
-	}
-	client = gconf_client_get_default();
-	gconf_client_set_list(client, GCONF_PATH "/shared_file_list",
-				      GCONF_VALUE_STRING, filelist, NULL);
-	gconf_client_set_string(client, GCONF_PATH "/shared_passwd",
-						    passwd, NULL);
-	g_object_unref(client);
-	pthread_mutex_unlock(&mutex);
-	g_slist_free(filelist);
-
-	dirty = false;
-}
-
-void SendFile::SendRegular(gpointer data)
-{
-	extern SendFile sfl;
-
-	sfl.PickFile(IPMSG_FILE_REGULAR, data);
-}
-
-void SendFile::SendFolder(gpointer data)
-{
-	extern SendFile sfl;
-
-	sfl.PickFile(IPMSG_FILE_DIR, data);
-}
-
-void SendFile::RequestData(int sock, uint32_t fileattr, char *buf)
-{
-	extern Transport trans;
-	extern UdpData udt;
-	const char *filename;
-	GdkPixbuf *pixbuf;
-	GtkTreeIter iter;
-	uint32_t fileid;
-	socklen_t len;
 	FileInfo *file;
-	char *ptr;
-	Pal *pal;
-	SI addr;
+	GSList *tlist, *list;
 
-	fileid = iptux_get_hex_number(buf, 6);
-	file = (FileInfo *) FindFileinfo(fileid);
+	/* 将文件路径链表转换为文件信息链表 */
+	list = NULL;
+	tlist = flist;
+	while (tlist) {
+		if (stat64((char *)tlist->data, &st) == -1
+			 || !(S_ISREG(st.st_mode) || S_ISDIR(st.st_mode))) {
+			g_free(tlist->data);
+			tlist = g_slist_next(tlist);
+		}
+		/* 加入文件信息到链表 */
+		file = new FileInfo;
+		list = g_slist_append(list, file);
+		file->fileid = cthrd.PrnQuote()++;
+		/* file->packetn = 0;//没必要设置此字段 */
+		file->fileattr = S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
+							 IPMSG_FILE_DIR;
+		/* file->filesize = 0;//我喜欢延后处理 */
+		/* file->fileown = NULL;//没必要设置此字段 */
+		file->filepath = (char *)tlist->data;
+		tlist = g_slist_next(tlist);
+	}
+
+	/* 发送文件信息 */
+	SendFileInfo(pal, 0, list);
+
+	/* 添加文件信息到中心点 */
+	tlist = list;
+	pthread_mutex_lock(cthrd.GetMutex());
+	while (tlist) {
+		cthrd.AttachFileToPrivate((FileInfo *)tlist->data);
+		tlist = g_slist_next(tlist);
+	}
+	pthread_mutex_unlock(cthrd.GetMutex());
+	g_slist_free(list);
+}
+
+/**
+ * 广播文件信息入口.
+ * @param plist 好友链表
+ * @param flist 文件路径链表
+ * @note 文件路径链表中的数据将被本函数处理掉
+ */
+void SendFile::BcstFileInfoEntry(GSList *plist, GSList *flist)
+{
+	struct stat64 st;
+	FileInfo *file;
+	GSList *tlist, *list;
+
+	/* 将文件路径链表转换为文件信息链表 */
+	list = NULL;
+	tlist = flist;
+	while (tlist) {
+		if (stat64((char *)tlist->data, &st) == -1
+			 || !(S_ISREG(st.st_mode) || S_ISDIR(st.st_mode))) {
+			g_free(tlist->data);
+			tlist = g_slist_next(tlist);
+		}
+		/* 加入文件信息到链表 */
+		file = new FileInfo;
+		list = g_slist_append(list, file);
+		file->fileid = cthrd.PrnQuote()++;
+		/* file->packetn = 0;//没必要设置此字段 */
+		file->fileattr = S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR :
+							 IPMSG_FILE_DIR;
+		/* file->filesize = 0;//我喜欢延后处理 */
+		/* file->fileown = NULL;//没必要设置此字段 */
+		file->filepath = (char *)tlist->data;
+		tlist = g_slist_next(tlist);
+	}
+
+	/* 发送文件信息 */
+	BcstFileInfo(plist, 0, list);
+
+	/* 添加文件信息到中心点 */
+	tlist = list;
+	pthread_mutex_lock(cthrd.GetMutex());
+	while (tlist) {
+		cthrd.AttachFileToPrivate((FileInfo *)tlist->data);
+		tlist = g_slist_next(tlist);
+	}
+	pthread_mutex_unlock(cthrd.GetMutex());
+	g_slist_free(list);
+}
+
+/**
+ * 请求文件数据入口.
+ * @param sock tcp socket
+ * @param fileattr 文件类型
+ * @param attach 附加数据
+ */
+void SendFile::RequestDataEntry(int sock, uint32_t fileattr, char *attach)
+{
+	struct sockaddr_in addr;
+	socklen_t len;
+	PalInfo *pal;
+	FileInfo *file, *nfile;
+	uint32_t fileid;
+
+	/* 检查文件属性是否匹配 */
+	fileid = iptux_get_hex_number(attach, ':', 1);
+	file = (FileInfo *)cthrd.GetFileFromAll(fileid);
 	if (!file || GET_MODE(file->fileattr) != GET_MODE(fileattr))
 		return;
 
+	/* 检查好友数据是否存在 */
 	len = sizeof(addr);
-	getpeername(sock, (SA *) & addr, &len);
-	if (!(pal = (Pal *) udt.Ipv4GetPal(addr.sin_addr.s_addr)))
+	getpeername(sock, (struct sockaddr *)&addr, &len);
+	if (!(pal = cthrd.GetPalFromList(addr.sin_addr.s_addr)))
 		return;
 
-	ptr = number_to_string_size(file->filesize);
-	filename = ipmsg_set_filename_self(file->filename);
-	gdk_threads_enter();
-	pixbuf = gdk_pixbuf_new_from_file(__TIP_PATH "/send.png", NULL);
-	gtk_list_store_append(GTK_LIST_STORE(trans.TransModelQuote()), &iter);
-	gtk_list_store_set(GTK_LIST_STORE(trans.TransModelQuote()), &iter,
-			   0, pixbuf, 1, _("send"), 2, filename,
-			   3, pal->NameQuote(), 4, "0B", 5, ptr,
-			   6, "0B/s", 7, 0, 8, 0, 9, 0, 10, file->fileid,
-			   11, file->filesize, 12, file->fileattr,
-			   13, file->filename, 14, pal, -1);
-	if (pixbuf)
-		g_object_unref(pixbuf);
-	gdk_threads_leave();
-	if (filename != file->filename)
-		*(file->filename + strlen(file->filename)) = '/';
-	free(ptr);
-
-	Transport::SendFileEntry(sock, &iter, fileattr);
+	/* 发送文件数据 */
+	/**
+	 *文件信息可能被删除或修改，必须单独复制一份.
+	 */
+	nfile = new FileInfo(*file);
+	nfile->fileown = pal;
+	nfile->filepath = g_strdup(file->filepath);
+	ThreadSendFile(sock, nfile);
 }
 
-void SendFile::SendFileInfo(GSList * list, gpointer data)
+/**
+ * 发送文件信息.
+ * @param pal class PalInfo
+ * @param opttype 命令字选项
+ * @param filist 文件信息链表
+ */
+void SendFile::SendFileInfo(PalInfo *pal, uint32_t opttype, GSList *filist)
 {
-	extern struct interactive inter;
-	extern Log mylog;
-	my_file mf(false);
-	char buf[MAX_UDPBUF], *ptr, *filename;
-	struct stat64 st;
+	AnalogFS afs;
 	Command cmd;
-	FileInfo *file;
+	char buf[MAX_UDPLEN];
 	size_t len;
+	char *ptr, *name;
+	GSList *tlist;
+	FileInfo *file;
 
-	ptr = buf, len = 0, buf[0] = '\0';
-	pthread_mutex_lock(&mutex);
-	while (list) {
-		if (Stat((char *)list->data, &st) == -1) {
-			free(list->data), list = list->next;
+	/* 初始化 */
+	len = 0;
+	ptr = buf;
+	buf[0] = '\0';
+
+	/* 将文件信息写入缓冲区 */
+	tlist = filist;
+	while (tlist) {
+		file = (FileInfo *)tlist->data;
+		if (access(file->filepath, F_OK) == -1) {
+			tlist = g_slist_next(tlist);
 			continue;
 		}
-		if (S_ISDIR(st.st_mode))
-			st.st_size = mf.ftw((const char *)list->data);
-		filename = ipmsg_set_filename_pal((char *)list->data);
-		snprintf(ptr, MAX_UDPBUF - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
-		    PRIx32 ":%" PRIx32 ":\a:",
-		    prn, filename, st.st_size, st.st_mtime,
-		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
-		free(filename), len += strlen(ptr), ptr = buf + len;
-		file = new FileInfo(prn, (char *)list->data, st.st_size,
-		    S_ISREG(st.st_mode) ? IPMSG_FILE_REGULAR : IPMSG_FILE_DIR);
-		prlist = g_slist_prepend(prlist, file);
-		list = list->next, prn++;
+		name = ipmsg_get_filename_pal(file->filepath);	//获取面向好友的文件名
+		file->filesize = afs.ftwsize(file->filepath);	//不得不计算文件长度了
+		snprintf(ptr, MAX_UDPLEN - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
+				 PRIx32 ":%" PRIx32 ":\a:", file->fileid, name,
+				 file->filesize, 0, file->fileattr);
+		g_free(name);
+		len += strlen(ptr);
+		ptr = buf + len;
+		tlist = g_slist_next(tlist);
 	}
-	pthread_mutex_unlock(&mutex);
 
-	cmd.SendFileInfo(inter.udpsock, data, 0, buf);
-	mylog.SystemLog(_("Send some files' information to a pal!"));
+	/* 发送文件信息 */
+	cmd.SendFileInfo(cthrd.UdpSockQuote(), pal, opttype, buf);
 }
 
-void SendFile::SendSharedInfo(gpointer data)
+/**
+ * 广播文件信息.
+ * @param plist 好友链表
+ * @param opttype 命令字选项
+ * @param filist 文件信息链表
+ */
+void SendFile::BcstFileInfo(GSList *plist, uint32_t opttype, GSList *filist)
 {
-	extern struct interactive inter;
-	extern SendFile sfl;
-	extern Log mylog;
-	char buf[MAX_UDPBUF], *ptr, *filename;
-	GSList *tmp, *tmp1;
+	AnalogFS afs;
 	Command cmd;
-	FileInfo *file;
+	char buf[MAX_UDPLEN];
 	size_t len;
+	char *ptr, *name;
+	GSList *tlist;
+	FileInfo *file;
 
-	ptr = buf, len = 0, buf[0] = '\0';
-	pthread_mutex_lock(&sfl.mutex);
-	tmp = sfl.pblist;
-	while (tmp) {
-		file = (FileInfo *) tmp->data;
-		if (access(file->filename, F_OK) == -1) {
-			delete file, tmp1 = tmp->next;
-			sfl.pblist = g_slist_delete_link(sfl.pblist, tmp);
-			tmp = tmp1;
+	/* 初始化 */
+	len = 0;
+	ptr = buf;
+	buf[0] = '\0';
+
+	/* 将文件信息写入缓冲区 */
+	tlist = filist;
+	while (tlist) {
+		file = (FileInfo *)tlist->data;
+		if (access(file->filepath, F_OK) == -1) {
+			tlist = g_slist_next(tlist);
 			continue;
 		}
-		filename = ipmsg_set_filename_pal(file->filename);
-		snprintf(ptr, MAX_UDPBUF - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
-			    PRIx32 ":%" PRIx32 ":\a:", file->fileid, filename,
-			    file->filesize, 0, file->fileattr);
-		free(filename), len += strlen(ptr), ptr = buf + len;
-		tmp = tmp->next;
+		name = ipmsg_get_filename_pal(file->filepath);	//获取面向好友的文件名
+		file->filesize = afs.ftwsize(file->filepath);	//不得不计算文件长度了
+		snprintf(ptr, MAX_UDPLEN - len, "%" PRIu32 ":%s:%" PRIx64 ":%"
+				 PRIx32 ":%" PRIx32 ":\a:", file->fileid, name,
+				 file->filesize, 0, file->fileattr);
+		g_free(name);
+		len += strlen(ptr);
+		ptr = buf + len;
+		tlist = g_slist_next(tlist);
 	}
-	pthread_mutex_unlock(&sfl.mutex);
 
-	cmd.SendFileInfo(inter.udpsock, data, IPTUX_SHAREDOPT, buf);
-	mylog.SystemLog(_("Send some shared files' information to a pal!"));
+	/* 发送文件信息 */
+	tlist = plist;
+	while (tlist) {
+		cmd.SendFileInfo(cthrd.UdpSockQuote(), (PalInfo *)tlist->data,
+								 opttype, buf);
+		tlist = g_slist_next(tlist);
+	}
 }
 
-void SendFile::PickFile(uint32_t fileattr, gpointer data)
+/**
+ * 发送文件数据.
+ * @param sock tcp socket
+ * @param file 文件信息
+ */
+void SendFile::ThreadSendFile(int sock, FileInfo *file)
 {
-	extern struct interactive inter;
-	GtkFileChooserAction action;
-	GtkWidget *dialog, *parent;
-	gchar *title;
-	GSList *list;
-	Pal *pal;
+	SendFileData sfdt(sock, file);
 
-	pal = (Pal *) data;
-	parent = pal->DialogQuote() ? pal->DialogQuote()->DialogQuote()
-					  : inter.window;
-	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-		    _("Choose sending files") : _("Choose sending folders");
-	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-		    GTK_FILE_CHOOSER_ACTION_OPEN :
-		    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
-
-	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(parent), action,
-				     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-				     GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
-					GTK_RESPONSE_ACCEPT);
-	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
-						    g_get_home_dir());
-
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
-		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		SendFileInfo(list, data);
-		g_slist_free(list);	//他处释放
-	}
-	gtk_widget_destroy(dialog);
-}
-
-pointer SendFile::FindFileinfo(uint32_t fileid)
-{
-	GSList *tmp;
-
-	pthread_mutex_lock(&mutex);
-	tmp = (fileid < MAX_SHAREDFILE) ? pblist : prlist;
-	while (tmp) {
-		if (((FileInfo *) tmp->data)->fileid == fileid)
-			break;
-		tmp = tmp->next;
-	}
-	pthread_mutex_unlock(&mutex);
-
-	if (tmp)
-		return tmp->data;
-	return NULL;
+	sfdt.SendFileDataEntry();
+	delete file;
 }

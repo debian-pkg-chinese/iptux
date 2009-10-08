@@ -155,34 +155,42 @@
 ///*	@(#)Copyright (C) Jally 2008   iptux.h    Version 0.4 *///
 #ifdef __IP_TUX__
 
-/*  macro  */
+/* macro */
 #define GET_MODE(command)		(command & 0x000000ffUL)
 #define GET_OPT(command)		(command & 0xffffff00UL)
 
-/*  header  */
-#define IPTUX_VERSION			"1_iptux_0#4#5"
+/* header */
+#define IPTUX_VERSION			"1_iptux_0#5#0"
 #define IPTUX_DEFAULT_PORT		IPMSG_PORT
 
-/*command*/
+/* command */
 #define IPTUX_ASKSHARED		0x000000FFUL
 #define IPTUX_SENDICON		0x000000FEUL
 #define IPTUX_SENDSUBLAYER		0x000000FDUL
 #define IPTUX_SENDSIGN		0x000000FCUL
-/*  option for command  */
-#define IPTUX_ADPICOPT		0x00000100UL
+#define IPTUX_SENDMSG		0x000000FBUL
+/* option for IPTUX_SENDSUBLAYER */
+#define IPTUX_PHOTOPICOPT		0x00000100UL
 #define IPTUX_MSGPICOPT		0x00000200UL
+/* option for IPMSG_SENDMSG */
 #define IPTUX_SHAREDOPT		0x80000000UL
+/* option for IPMSG_SENDMSG & IPTUX_ASKSHARED */
 #define IPTUX_PASSWDOPT		0x40000000UL
+/* option for IPTUX_SENDMSG */
+#define IPTUX_REGULAROPT		0x00000100UL
+#define IPTUX_SEGMENTOPT		0x00000200UL
+#define IPTUX_GROUPOPT		0x00000300UL
+#define IPTUX_BROADCASTOPT		0x00000400UL
 
-/*data*/
-#define MAX_SOCKBUF			8192
-#define MAX_UDPBUF			8192
-#define MAX_BUF			1024
-#define MAX_PATHBUF			1024
+/* data */
+#define MAX_SOCKLEN			8192
+#define MAX_UDPLEN			8192
+#define MAX_BUFLEN			1024
+#define MAX_PATHLEN			1024
 #define MAX_SHAREDFILE		10000
 #define MAX_ICONSIZE			30
 #define MAX_PREVIEWSIZE		150
-#define MAX_ADSIZE			300
+#define MAX_PHOTOSIZE		300
 #define MAX_RETRYTIMES		4
 
 #endif

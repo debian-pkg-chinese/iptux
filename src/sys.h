@@ -37,6 +37,7 @@
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/queue.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <ftw.h>
@@ -45,7 +46,6 @@
 #include <pwd.h>
 #include <locale.h>
 #include <libintl.h>
-typedef void *pointer;
 
 #ifndef _
 #define _(string) gettext(string)

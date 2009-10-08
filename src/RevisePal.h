@@ -12,24 +12,35 @@
 #ifndef REVISEPAL_H
 #define REVISEPAL_H
 
-#include "Pal.h"
+#include "mess.h"
 
 class RevisePal {
- public:
-	RevisePal(gpointer data);	//Pal
+public:
+	RevisePal(PalInfo *pl);
 	~RevisePal();
 
-	static void ReviseEntry(gpointer data);	//
- private:
-	void InitRevise();
-	void CreateRevise();
-	void RunRevise();
-	void ApplyRevise();
+	static void ReviseEntry(PalInfo *pal);
+private:
+	void InitSublayer();
+	void ClearSublayer();
 
-	GtkWidget *revise;
-	GtkTreeModel *icon_model;
-	GtkWidget *name, *group, *encode, *icon, *compatible;
-	Pal *pal;
+	GtkWidget *CreateMainDialog();
+	GtkWidget *CreateAllArea();
+	void SetAllValue();
+	void ApplyReviseData();
+
+	GtkTreeModel *CreateIconModel();
+	void FillIconModel(GtkTreeModel *model);
+	GtkWidget *CreateIconTree(GtkTreeModel *model);
+
+	GData *widset;
+	GData *mdlset;
+	PalInfo *pal;
+private:
+	static gint IconfileGetItemPos(GtkTreeModel *model, const char *pathname);
+//回调处理部分
+private:
+	static void AddNewIcon(GtkWidget *button, GData **widset);
 };
 
 #endif

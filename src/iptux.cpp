@@ -17,19 +17,23 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-#include "common.h"
-#include "MainWindow.h"
-#include "StatusIcon.h"
+#include "ProgramData.h"
 #include "CoreThread.h"
+#include "StatusIcon.h"
+#include "MainWindow.h"
+#include "LogSystem.h"
+#include "SoundSystem.h"
 #include "support.h"
-#include "utils.h"
+ProgramData progdt;
+CoreThread cthrd;
+StatusIcon sicon;
+MainWindow mwin;
+LogSystem lgsys;
+SoundSystem sndsys;
 
 int main(int argc, char *argv[])
 {
-	StatusIcon icon;
-	MainWindow window;
-
-	mwp = &window;
+	setlocale(LC_ALL, "");
 	bindtextdomain(GETTEXT_PACKAGE, __LOCALE_PATH);
 	bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
 	textdomain(GETTEXT_PACKAGE);
@@ -41,9 +45,9 @@ int main(int argc, char *argv[])
 	gtk_init(&argc, &argv);
 
 	iptux_init();
-	icon.CreateStatusIcon();
-	thread_create(ThreadFunc(CoreThread::CoreThreadEntry), NULL, false);
-	window.CreateWindow();
+	sicon.CreateStatusIcon();
+	mwin.CreateWindow();
+	cthrd.CoreThreadEntry();
 
 	gtk_main();
 	gdk_threads_leave();

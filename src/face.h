@@ -27,16 +27,16 @@
 #include <gconf/gconf-client.h>
 
 #define ATOM_OBJECT 0xFFFC
-#define OCCUPY_OBJECT 0x0001
+#define OCCUPY_OBJECT 0x01
+#define NULL_OBJECT 0x02
 #define GINT(x) ((gint)(x))
 
 #define GCONF_PATH "/apps/iptux"
 #define IPTUX_PATH "/iptux"
-#define ADS_PATH "/iptux/ads"
-#define ICON_PATH "/iptux/icon"
-#define PIC_PATH "/iptux/pic"
 #define LOG_PATH "/iptux/log"
-#define COMPLEX_PATH "/iptux/complex"
+#define PIC_PATH "/iptux/pic"
+#define ICON_PATH "/iptux/icon"
+#define PHOTO_PATH "/iptux/photo"
 
 #ifndef _
 #define _(string) gettext(string)

@@ -1,10 +1,11 @@
 # main program
 bin_PROGRAMS = iptux
-iptux_SOURCES = AboutIptux.cpp Command.cpp Control.cpp CoreThread.cpp \
-	DetectPal.cpp DialogGroup.cpp DialogPeer.cpp IptuxSetting.cpp Log.cpp MainWindow.cpp \
-	Pal.cpp RecvFile.cpp RevisePal.cpp SendFile.cpp ShareFile.cpp Sound.cpp \
-	StatusIcon.cpp TcpData.cpp Transport.cpp UdpData.cpp baling.cpp dialog.cpp iptux.cpp \
-	my_chooser.cpp my_entry.cpp my_file.cpp output.cpp support.cpp utils.cpp
+iptux_SOURCES = AnalogFS.cpp Command.cpp CoreThread.cpp DataSettings.cpp \
+	DetectPal.cpp DialogGroup.cpp DialogPeer.cpp HelpDialog.cpp LogSystem.cpp \
+	MainWindow.cpp ProgramData.cpp RecvFile.cpp RecvFileData.cpp RevisePal.cpp \
+	SendFile.cpp SendFileData.cpp ShareFile.cpp SoundSystem.cpp StatusIcon.cpp \
+	TcpData.cpp UdpData.cpp callback.cpp dialog.cpp iptux.cpp mess.cpp output.cpp \
+	support.cpp utils.cpp wrapper.cpp
 
 AM_CXXFLAGS = -Wall
 
@@ -15,10 +16,10 @@ INCLUDES= $(all_includes) @PACKAGE_CFLAGS@
 iptux_LDADD = $(INTLLIBS) @PACKAGE_LIBS@
 iptux_LDFLAGS = $(all_libraries)
 
-noinst_HEADERS = AboutIptux.h Command.h Control.h CoreThread.h DetectPal.h \
-	DialogGroup.h DialogPeer.h IptuxSetting.h Log.h MainWindow.h Pal.h RecvFile.h \
-	RevisePal.h SendFile.h ShareFile.h Sound.h StatusIcon.h TcpData.h Transport.h \
-	UdpData.h baling.h common.h dialog.h face.h ipmsg.h my_chooser.h my_entry.h \
-	my_file.h net.h output.h support.h sys.h udt.h utils.h
+noinst_HEADERS = AnalogFS.h Command.h CoreThread.h DataSettings.h DetectPal.h \
+	DialogGroup.h DialogPeer.h HelpDialog.h LogSystem.h MainWindow.h ProgramData.h \
+	RecvFile.h RecvFileData.h RevisePal.h SendFile.h SendFileData.h ShareFile.h \
+	SoundSystem.h StatusIcon.h TcpData.h UdpData.h callback.h dialog.h face.h ipmsg.h \
+	mess.h net.h output.h support.h sys.h utils.h wrapper.h
 
 SUBDIRS = uninstall
