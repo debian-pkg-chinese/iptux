@@ -1,4 +1,4 @@
 version=3
 opts="dversionmangle=s/\+dfsg.//" \
 http://code.google.com/p/iptux/downloads/list \
-http://iptux.googlecode.com/files/iptux-(.*)\.tar\.gz
+http://iptux.googlecode.com/files/iptux-([\d.]+)\.tar\.gz
