@@ -6,8 +6,9 @@ iptux (0.5.0-1) unstable; urgency=low
     - change maintainer's name.
     - bump standards version to 3.8.3. 
   * debian/docs: updated. 
+  * debian/iptux.1: updated. 
 
- -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:42:27 +0800
+ -- LI Daobing <lidaobing@debian.org>  Thu, 08 Oct 2009 17:46:35 +0800
 
 iptux (0.4.5.2-1) unstable; urgency=low
 
