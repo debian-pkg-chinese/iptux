@@ -1,8 +1,8 @@
 //
 // C++ Interface: ShareFile
 //
-// Description:添加或删除共享文件,即管理共享文件
-//
+// Description:
+// 添加或删除共享文件,即管理共享文件
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
 //
@@ -12,44 +12,44 @@
 #ifndef SHAREFILE_H
 #define SHAREFILE_H
 
-#include "face.h"
-#include "sys.h"
+#include "mess.h"
 
 class ShareFile {
- public:
+public:
 	ShareFile();
 	~ShareFile();
 
-	static void ShareEntry();
- private:
-	void InitShare();
-	void CreateShare();
-	void AddSharedFiles(GSList * list);
-	void FindInsertPosition(const gchar * path, uint32_t fileattr,
-				GtkTreeIter * iter);
-	GtkTreeModel *CreateSharedModel();
-	GtkWidget *CreateSharedView();
-	static bool CheckExist();
+	static void ShareEntry(GtkWidget *parent);
+private:
+	void InitSublayer();
+	void ClearSublayer();
 
-	GtkWidget *share_view;
-	GtkTreeModel *share_model;
-	static GtkWidget *share;
- private:
-	void PickFile(uint32_t fileattr);
+	GtkWidget *CreateMainDialog(GtkWidget *parent);
+	GtkWidget *CreateAllArea();
+
+	GtkTreeModel *CreateFileModel();
+	void FillFileModel(GtkTreeModel *model);
+	GtkWidget *CreateFileTree(GtkTreeModel *model);
+
+	void ApplySharedData();
+	void AttachSharedFiles(GSList *list);
+	GSList *PickSharedFile(uint32_t fileattr);
+
+	GData *widset;
+	GData *mdlset;
 //回调处理部分
- private:
-	static void AddRegular(gpointer data);	//ShareFile
-	static void AddFolder(gpointer data);	//
-	static void DeleteFiles(gpointer data);	//
-	static void ClickOk(gpointer data);	//
-	static void ClickApply(gpointer data);	//
-	static void ShareDestroy(gpointer data);	//
-	static void DragDataReceived(gpointer data, GdkDragContext * context,
-				     gint x, gint y, GtkSelectionData * select,
-				     guint info, guint time);	//
+private:
+	static void AddRegular(ShareFile *sfile);
+	static void AddFolder(ShareFile *sfile);
+	static void DeleteFiles(GData **widset);
+	static void SetPassword(GData **widset);
+	static void ClearPassword(GData **widset);
 
-	static void SetPasswd();
-	static void ClearPasswd();
+	static void DragDataReceived(ShareFile *sfile, GdkDragContext *context,
+					 gint x, gint y, GtkSelectionData *data,
+					 guint info, guint time);
+	static gint FileTreeCompareFunc(GtkTreeModel *model, GtkTreeIter *a,
+							 GtkTreeIter *b);
 };
 
 #endif

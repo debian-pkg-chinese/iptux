@@ -1,8 +1,8 @@
 //
 // C++ Interface: UdpData
 //
-// Description:处理接收到的UDP数据
-//
+// Description:
+// 处理接收到的UDP数据
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
 //
@@ -12,51 +12,48 @@
 #ifndef UDPDATA_H
 #define UDPDATA_H
 
-#include "face.h"
-#include "net.h"
-#include "sys.h"
+#include "mess.h"
 
 class UdpData {
- public:
-	 UdpData();
+public:
+	UdpData();
 	~UdpData();
 
-	void InitSelf();
-	void AdjustMemory();
-	void MsgBlinking();
-	void UdpDataEntry(in_addr_t ipv4, char *msg, size_t size);
-	void SublayerEntry(gpointer data, uint32_t command, const char *path);	//Pal
+	static void UdpDataEntry(in_addr_t ipv4, const char buf[], size_t size);
+private:
+	void DispatchUdpData();
 
-	gpointer Ipv4GetPal(in_addr_t ipv4);
-	gpointer Ipv4GetPalPos(in_addr_t ipv4);
-	gpointer PalGetMsgPos(gpointer data);
- private:
-	void SomeoneLost(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneEntry(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneExit(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneAnsentry(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneAbsence(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneSendmsg(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneRecvmsg(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneAskShared(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneSendIcon(in_addr_t ipv4, char *msg, size_t size);
-	void SomeoneSendSign(in_addr_t ipv4, char *msg, size_t size);
+	void SomeoneLost();
+	void SomeoneEntry();
+	void SomeoneExit();
+	void SomeoneAnsentry();
+	void SomeoneAbsence();
+	void SomeoneSendmsg();
+	void SomeoneRecvmsg();
+	void SomeoneAskShared();
+	void SomeoneSendIcon();
+	void SomeoneSendSign();
+	void SomeoneBcstmsg();
 
-	static void ThreadAskShared(gpointer data);	//
+	PalInfo *CreatePalInfo();
+	void UpdatePalInfo(PalInfo *pal);
 
-	GSList *pallist;	//好友链表，只能添加，不能删除
-	GQueue *msgqueue;	//消息队列
-	pthread_mutex_t mutex;
- public:
-	inline GSList *&PallistQuote() {
-		return pallist;
-	} inline GQueue *&MsgqueueQuote() {
-		return msgqueue;
-	}
+	void InsertMessage(PalInfo *pal, BELONG_TYPE btype, const char *msg);
+	void ConvertEncode(const char *enc);
+	char *GetPalGroup();
+	char *GetPalIcon();
+	char *GetPalEncode();
+	char *RecvPalIcon();
+	PalInfo *AssertPalOnline();
+	void RecvPalFile();
 
-	inline pthread_mutex_t *MutexQuote() {
-		return &mutex;
-	}
+	in_addr_t ipv4;			//数据来自
+	size_t size;			//缓冲区数据有效长度
+	char buf[MAX_UDPLEN];	//数据缓冲区
+	char *encode;			//原数据编码(NULL意味着utf8)
+private:
+	static void ThreadAskSharedPasswd(PalInfo *pal);
+	static void ThreadAskSharedFile(PalInfo *pal);
 };
 
 #endif

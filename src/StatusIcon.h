@@ -1,8 +1,8 @@
 //
 // C++ Interface: StatusIcon
 //
-// Description:创建状态栏图标
-//
+// Description:
+// 创建状态栏图标
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
 //
@@ -12,27 +12,26 @@
 #ifndef STATUSICON_H
 #define STATUSICON_H
 
-#include "face.h"
+#include "mess.h"
 
 class StatusIcon {
- public:
+public:
 	StatusIcon();
 	~StatusIcon();
 
 	void CreateStatusIcon();
- private:
-	 GtkStatusIcon * status_icon;
- public:
-	static void UpdateTips();
- private:
-	 GtkWidget * CreatePopupMenu();
+	void AlterStatusIconMode();
+private:
+	GtkStatusIcon *statusicon;
+	guint timerid;
+private:
+	static gboolean UpdateUI(StatusIcon *sicon);
+	static GtkWidget *CreatePopupMenu(GtkStatusIcon *statusicon);
 //回调处理部分
- public:
-	static void SwitchWindowMode();
- private:
+private:
+	static void ShowTransWindow();
 	static void StatusIconActivate();
-	static void PopupWorkMenu(GtkStatusIcon * status_icon, guint button,
-				  guint activate_time, gpointer data);	//StatusIcon
+	static void PopupWorkMenu(GtkStatusIcon *statusicon, guint button, guint time);
 };
 
 #endif

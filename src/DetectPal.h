@@ -15,22 +15,17 @@
 #include "face.h"
 
 class DetectPal {
- public:
+public:
 	DetectPal();
 	~DetectPal();
 
-	static void DetectEntry();
- private:
-	void CreateDetect();
-	void RunDetect();
+	static void DetectEntry(GtkWidget *parent);
+private:
+	GtkWidget *CreateMainDialog(GtkWidget *parent);
+	GtkWidget *CreateInputArea();
 	void SendDetectPacket();
-	static bool CheckExsit();
 
-	GtkWidget *ipstr;
-	static GtkWidget *detect;
-//回调处理部分
- private:
-	static void DetectDestroy();
+	GData *widset;
 };
 
 #endif

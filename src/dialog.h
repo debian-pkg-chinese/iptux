@@ -2,7 +2,7 @@
 // C++ Interface: dialog
 //
 // Description:
-//
+// 常见对话框构建
 //
 // Author: Jally <jallyx@163.com>, (C) 2009
 //
@@ -12,11 +12,11 @@
 #ifndef DIALOG_H
 #define DIALOG_H
 
-#include "udt.h"
+#include "mess.h"
 
 bool pop_request_quit();
-bool pop_request_shared(gpointer data);	//Pal
-char *pop_obtain_passwd();
-char *pop_passwd_setting(GtkWidget *parent);
+bool pop_request_shared_file(PalInfo *pal);
+char *pop_obtain_shared_passwd(PalInfo *pal);
+char *pop_password_settings(GtkWidget *parent);
 
 #endif

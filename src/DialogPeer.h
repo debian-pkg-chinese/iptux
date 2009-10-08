@@ -1,8 +1,8 @@
 //
 // C++ Interface: DialogPeer
 //
-// Description:好友对话框
-//
+// Description:
+// 与单个好友对话
 //
 // Author: Jally <jallyx@163.com>, (C) 2008
 //
@@ -12,60 +12,81 @@
 #ifndef DIALOGPEER_H
 #define DIALOGPEER_H
 
-#include "face.h"
-#include "Pal.h"
+#include "mess.h"
 
-class DialogPeer {
- public:
-	DialogPeer(gpointer data);	//Pal
+class DialogPeer: public SessionAbstract {
+public:
+	DialogPeer(GroupInfo *grp);
 	~DialogPeer();
 
-	static void DialogEntry(gpointer data);	//
- private:
-	void CreateDialog();
-	void CreateAllArea();
-	void CreateInfoArea(GtkWidget * paned);
-	void CreateRecordArea(GtkWidget * paned);
-	void CreateInputArea(GtkWidget * paned);
+	static void PeerDialogEntry(GroupInfo *grpinf);
+
+	virtual void UpdatePalData(PalInfo *pal);
+	virtual void InsertPalData(PalInfo *pal);
+	virtual void DelPalData(PalInfo *pal);
+	virtual void ClearAllPalData();
+	virtual void ShowEnclosure();
+	virtual void AttachEnclosure(const GSList *list);
+	virtual void ScrollHistoryTextview();
+private:
+	void InitSublayer();
+	void ClearSublayer();
+	void ReadUILayout();
+	void WriteUILayout();
+	void ClearHistoryTextView();
+
+	GtkWidget *CreateMainWindow();
+	GtkWidget *CreateAllArea();
+
 	GtkWidget *CreateMenuBar();
-	void CreateFileMenu(GtkWidget * menu_bar);
-	void CreateToolMenu(GtkWidget * menu_bar);
-	void CreateHelpMenu(GtkWidget * menu_bar);
-	static bool CheckExist(gpointer data);	//
+	GtkWidget *CreateInfoArea();
+	GtkWidget *CreateEnclosureArea();
+	GtkWidget *CreateHistoryArea();
+	GtkWidget *CreateInputArea();
 
-	GtkWidget *dialog;	//主窗口
-	GtkWidget *focus;	//焦点
-	GtkWidget *scroll;	//滚动
-	GtkTextBuffer *infobuf;
-	GtkAccelGroup *accel;
-	Pal *pal;
- public:
-	inline GtkWidget *DialogQuote() {
-		return dialog;
-	} inline GtkWidget *ScrollQuote() {
-		return scroll;
-	}
+	GtkTreeModel *CreateEnclosureModel();
+	GtkWidget *CreateEnclosureTree(GtkTreeModel *model);
 
-	static void FillPalInfoToBuffer(gpointer data, GtkTextBuffer * buffer,
-					bool sad = true);	//
+	GtkWidget *CreateFileMenu();
+	GtkWidget *CreateToolMenu();
+	GtkWidget *CreateHelpMenu();
+
+	void FillPalInfoToBuffer(GtkTextBuffer *buffer, PalInfo *pal);
+	GSList *PickEnclosure(uint32_t fileattr);
+
+	GData *widset;		//窗体集
+	GData *mdlset;		//数据model集
+	GData *dtset;		//通用数据集
+	GtkAccelGroup *accel;	//快捷键组
+	GroupInfo *grpinf;	//群组信息
+private:
+	bool SendEnclosureMsg();
+	bool SendTextMsg();
+	void FeedbackMsg(const GSList *dtlist);
+	MsgPara *PackageMsg(GSList *dtlist);
 //回调处理部分
- public:
-	static void DragDataReceived(gpointer data, GdkDragContext * context,
-				     gint x, gint y, GtkSelectionData * select,
-				     guint info, guint time);	//
-	static void AskSharedFiles(gpointer data);	//
- private:
-	static void DragPicReceived(GtkWidget * view, GdkDragContext * context,
-				    gint x, gint y, GtkSelectionData * select,
-				    guint info, guint time,
-				    GtkTextBuffer * buffer);
-	static void DialogDestroy(gpointer data);	//DialogPeer
-	static void InsertPixbuf(gpointer data);	//
-	static void ClearRecordBuffer(GtkTextBuffer * buffer);
-	static void SendMessage(gpointer data);	//
+private:
+	static void DragDataReceived(DialogPeer *dlgpr, GdkDragContext *context,
+					 gint x, gint y, GtkSelectionData *data,
+					 guint info, guint time);
+	static void DragPicReceived(DialogPeer *dlgpr, GdkDragContext *context,
+					 gint x, gint y, GtkSelectionData *data,
+					 guint info, guint time);
+	static void AttachRegular(DialogPeer *dlgpr);
+	static void AttachFolder(DialogPeer *dlgpr);
+	static void AskSharedFiles(GroupInfo *grpinf);
+	static void InsertPicture(DialogPeer *dlgpr);
+	static void ClearHistoryBuffer(DialogPeer *dlgpr);
+	static void SendMessage(DialogPeer *dlgpr);
+
+	static gboolean WindowConfigureEvent(GtkWidget *window,
+				 GdkEventConfigure *event, GData **dtset);
+	static void PanedDivideChanged(GtkWidget *paned, GParamSpec *pspec,
+							 GData **dtset);
+	static void DialogPeerDestroy(DialogPeer *dlgpr);
 //线程处理
- private:
-	static void ThreadSendMessage(gpointer data);	//struct sendmsg_para
+private:
+	static void ThreadSendTextMsg(MsgPara *para);
 };
 
 #endif

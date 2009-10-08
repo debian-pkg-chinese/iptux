@@ -10,411 +10,569 @@
 //
 //
 #include "ShareFile.h"
-#include "SendFile.h"
-#include "my_file.h"
-#include "output.h"
-#include "dialog.h"
-#include "baling.h"
+#include "ProgramData.h"
+#include "CoreThread.h"
+#include "AnalogFS.h"
 #include "support.h"
+#include "dialog.h"
 #include "utils.h"
+extern ProgramData progdt;
+extern CoreThread cthrd;
 
-GtkWidget *ShareFile::share = NULL;
- ShareFile::ShareFile():share_view(NULL), share_model(NULL)
+/**
+ * 类构造函数.
+ */
+ShareFile::ShareFile():widset(NULL), mdlset(NULL)
 {
+	InitSublayer();
 }
 
+/**
+ * 类析构函数.
+ */
 ShareFile::~ShareFile()
 {
-	g_object_unref(share_model);
+	ClearSublayer();
 }
 
-void ShareFile::ShareEntry()
+/**
+ * 共享文件浏览、更新入口.
+ * @param parent 父窗口指针
+ */
+void ShareFile::ShareEntry(GtkWidget *parent)
 {
-	ShareFile *sf;
+	ShareFile sfile;
+	GtkWidget *dialog;
 
-	if (ShareFile::CheckExist())
-		return;
-	sf = new ShareFile;
-	sf->InitShare();
-	sf->CreateShare();
-}
+	/* 创建对话框 */
+	dialog = sfile.CreateMainDialog(parent);
+	gtk_box_pack_start(GTK_BOX(GTK_DIALOG(dialog)->vbox),
+			 sfile.CreateAllArea(), TRUE, TRUE, 0);
 
-void ShareFile::InitShare()
-{
-	share_model = CreateSharedModel();
-}
-
-void ShareFile::CreateShare()
-{
-	GtkWidget *vbox, *hbox;
-	GtkWidget *bb, *button;
-	GtkWidget *sw;
-
-	share = create_window(_("Shared files management"), 132, 79);
-	gtk_container_set_border_width(GTK_CONTAINER(share), 5);
-	widget_enable_dnd_uri(share);
-	g_signal_connect_swapped(share, "drag-data-received",
-				 G_CALLBACK(DragDataReceived), this);
-	g_signal_connect_swapped(share, "destroy",
-				 G_CALLBACK(ShareDestroy), this);
-	vbox = create_box();
-	gtk_container_add(GTK_CONTAINER(share), vbox);
-
-	hbox = create_box(FALSE);
-	gtk_box_pack_start(GTK_BOX(vbox), hbox, TRUE, TRUE, 0);
-	sw = create_scrolled_window();
-	gtk_box_pack_end(GTK_BOX(hbox), sw, TRUE, TRUE, 0);
-	share_view = CreateSharedView();
-	gtk_container_add(GTK_CONTAINER(sw), share_view);
-	bb = create_box();
-	gtk_box_pack_start(GTK_BOX(hbox), bb, FALSE, FALSE, 0);
-	button = create_button(_("Add Files"));
-	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(AddRegular), this);
-	gtk_box_pack_start(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Add Folders"));
-	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(AddFolder), this);
-	gtk_box_pack_start(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Delete Shared"));
-	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(DeleteFiles), this);
-	gtk_box_pack_start(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Clear Password"));
-	g_signal_connect(button, "clicked", G_CALLBACK(ClearPasswd), NULL);
-	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Set Password"));
-	g_signal_connect(button, "clicked", G_CALLBACK(SetPasswd), NULL);
-	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
-
-	bb = create_button_box(FALSE);
-	gtk_box_pack_start(GTK_BOX(vbox), bb, FALSE, FALSE, 0);
-	button = create_button(_("OK"));
-	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClickOk), this);
-	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Apply"));
-	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(ClickApply), this);
-	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
-	button = create_button(_("Cancel"));
-	g_signal_connect_swapped(button, "clicked",
-				 G_CALLBACK(gtk_widget_destroy), share);
-	gtk_box_pack_end(GTK_BOX(bb), button, FALSE, FALSE, 0);
-}
-
-void ShareFile::AddSharedFiles(GSList * list)
-{
-	my_file mf(false);
-	GdkPixbuf *pixbuf1, *pixbuf2;
-	GtkTreeIter iter;
-	struct stat64 st;
-	char *ptr;
-
-	pixbuf1 = obtain_pixbuf_from_stock(GTK_STOCK_FILE);
-	pixbuf2 = obtain_pixbuf_from_stock(GTK_STOCK_DIRECTORY);
-	while (list) {
-		if (Stat((char *)list->data, &st) == -1)
-			continue;
-		if (S_ISDIR(st.st_mode))
-			st.st_size = mf.ftw((const char *)list->data);
-		ptr = number_to_string_size(st.st_size);
-		FindInsertPosition((char *)list->data, S_ISREG(st.st_mode) ?
-				   IPMSG_FILE_REGULAR : IPMSG_FILE_DIR, &iter);
-		gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
-				   1, (char *)list->data, 2, ptr,
-				   4, st.st_size, 5, S_ISREG(st.st_mode) ?
-				   IPMSG_FILE_REGULAR : IPMSG_FILE_DIR, -1);
-		if (S_ISREG(st.st_mode))
-			gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
-					   0, pixbuf1, 3, _("regular"), -1);
-		else
-			gtk_list_store_set(GTK_LIST_STORE(share_model), &iter,
-					   0, pixbuf2, 3, _("directory"), -1);
-		free(ptr);
-		list = list->next;
+	/* 运行对话框 */
+	gtk_widget_show_all(dialog);
+mark:	switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+	case GTK_RESPONSE_OK:
+		sfile.ApplySharedData();
+		break;
+	case GTK_RESPONSE_APPLY:
+		sfile.ApplySharedData();
+		goto mark;
+	case GTK_RESPONSE_CANCEL:
+	default:
+		break;
 	}
-	if (pixbuf1)
-		g_object_unref(pixbuf1);
-	if (pixbuf2)
-		g_object_unref(pixbuf2);
+	gtk_widget_destroy(dialog);
 }
 
-void ShareFile::FindInsertPosition(const gchar * path, uint32_t fileattr,
-				   GtkTreeIter * iter)
+/**
+ * 初始化底层数据.
+ */
+void ShareFile::InitSublayer()
 {
-	GtkTreeIter sibling;
-	gchar *tmp;
-	guint attr;
+	GtkTreeModel *model;
 
-	if (!gtk_tree_model_get_iter_first(share_model, iter)) {
-		gtk_list_store_append(GTK_LIST_STORE(share_model), iter);
-		return;
-	}
-	do {
-		gtk_tree_model_get(share_model, iter, 1, &tmp, 5, &attr, -1);
-		if ((GET_MODE(fileattr) == IPMSG_FILE_DIR
-				  && GET_MODE(attr) != IPMSG_FILE_DIR)
-		     || (GET_MODE(fileattr) == attr && strcmp(tmp, path) > 0)) {
-			g_free(tmp), sibling = *iter;
-			gtk_list_store_insert_before(GTK_LIST_STORE (share_model),
-								iter, &sibling);
-			return;
-		}
-		g_free(tmp);
-	} while (gtk_tree_model_iter_next(share_model, iter));
-	gtk_list_store_append(GTK_LIST_STORE(share_model), iter);
+	g_datalist_init(&widset);
+	g_datalist_init(&mdlset);
+
+	model = CreateFileModel();
+	g_datalist_set_data_full(&mdlset, "file-model", model,
+				 GDestroyNotify(g_object_unref));
+	FillFileModel(model);
 }
 
-// 6,0 icon,1 path,2 size,3 type,4 size,5 type
-GtkTreeModel *ShareFile::CreateSharedModel()
+/**
+ * 清空底层数据.
+ */
+void ShareFile::ClearSublayer()
 {
-	extern SendFile sfl;
-	GdkPixbuf *pixbuf1, *pixbuf2;
+	g_datalist_clear(&widset);
+	g_datalist_clear(&mdlset);
+}
+
+/**
+ * 创建主对话框窗口.
+ * @param parent 父窗口指针
+ * @return 对话框
+ */
+GtkWidget *ShareFile::CreateMainDialog(GtkWidget *parent)
+{
+	GtkWidget *dialog;
+
+	dialog = gtk_dialog_new_with_buttons(_("Shared Files Management"),
+			 GTK_WINDOW(parent),
+			 GtkDialogFlags(GTK_DIALOG_MODAL | GTK_DIALOG_NO_SEPARATOR),
+			 _("OK"), GTK_RESPONSE_OK,
+			 _("Apply"), GTK_RESPONSE_APPLY,
+			 _("Cancel"), GTK_RESPONSE_CANCEL, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_OK);
+	gtk_window_set_resizable(GTK_WINDOW(dialog), FALSE);
+	gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+	gtk_container_set_border_width(GTK_CONTAINER(dialog), 5);
+	gtk_widget_set_size_request(dialog, 500, 350);
+	g_datalist_set_data(&widset, "dialog-widget", dialog);
+
+	widget_enable_dnd_uri(dialog);
+	g_signal_connect_swapped(dialog, "drag-data-received",
+			 G_CALLBACK(DragDataReceived), this);
+
+	return dialog;
+
+}
+
+/**
+ * 创建对话框中所有的窗体.
+ * @return 主窗体
+ */
+GtkWidget *ShareFile::CreateAllArea()
+{
+	GtkWidget *box, *vbox;
+	GtkWidget *sw, *button, *widget;
+	GtkTreeModel *model;
+
+	box = gtk_hbox_new(FALSE, 0);
+
+	/* 加入文件树 */
+	sw = gtk_scrolled_window_new(NULL, NULL);
+	gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(sw),
+		 GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+	gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(sw),
+					 GTK_SHADOW_ETCHED_IN);
+	gtk_box_pack_end(GTK_BOX(box), sw, TRUE, TRUE, 0);
+	model = GTK_TREE_MODEL(g_datalist_get_data(&mdlset, "file-model"));
+	widget = CreateFileTree(model);
+	gtk_container_add(GTK_CONTAINER(sw), widget);
+	g_datalist_set_data(&widset, "file-treeview-widget", widget);
+
+	/* 加入N多垃圾按钮 */
+	vbox = gtk_vbox_new(FALSE, 0);
+	gtk_box_pack_start(GTK_BOX(box), vbox, FALSE, FALSE, 0);
+	button = gtk_button_new_with_label(_("Add Files"));
+	gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddRegular), this);
+	button = gtk_button_new_with_label(_("Add Folders"));
+	gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(AddFolder), this);
+	button = gtk_button_new_with_label(_("Delete Resources"));
+	gtk_box_pack_start(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(DeleteFiles), &widset);
+	button = gtk_button_new_with_label(_("Clear Password"));
+	gtk_box_pack_end(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(ClearPassword), &widset);
+	button = gtk_button_new_with_label(_("Set Password"));
+	gtk_box_pack_end(GTK_BOX(vbox), button, FALSE, FALSE, 0);
+	g_signal_connect_swapped(button, "clicked", G_CALLBACK(SetPassword), &widset);
+	g_datalist_set_data(&widset, "password-button-widget", button);
+
+	return box;
+}
+
+/**
+ * 文件树(file-tree)底层数据结构.
+ * 5,0 logo,1 filepath,2 filesize,3 filetype,4 type
+ * 文件图标;文件路径;文件大小;文件类型(串);文件类型(数值)
+ * @return file-model
+ */
+GtkTreeModel *ShareFile::CreateFileModel()
+{
 	GtkListStore *model;
-	GtkTreeIter iter;
-	FileInfo *file;
-	GSList *tmp;
-	char *ptr;
 
-	model = gtk_list_store_new(6, GDK_TYPE_PIXBUF, G_TYPE_STRING,
-				   G_TYPE_STRING, G_TYPE_STRING,
-				   G_TYPE_UINT64, G_TYPE_UINT);
-	pixbuf1 = obtain_pixbuf_from_stock(GTK_STOCK_FILE);
-	pixbuf2 = obtain_pixbuf_from_stock(GTK_STOCK_DIRECTORY);
-	pthread_mutex_lock(sfl.MutexQuote());
-	tmp = sfl.PblistQuote();
-	while (tmp) {
-		file = (FileInfo *) tmp->data;
-		ptr = number_to_string_size(file->filesize);
-		gtk_list_store_append(model, &iter);
-		gtk_list_store_set(model, &iter, 1, file->filename, 2, ptr,
-				   4, file->filesize, 5, file->fileattr, -1);
-		if (GET_MODE(file->fileattr) == IPMSG_FILE_REGULAR)
-			gtk_list_store_set(model, &iter, 0, pixbuf1, 3,
-					   _("regular"), -1);
-		else
-			gtk_list_store_set(model, &iter, 0, pixbuf2, 3,
-					   _("directory"), -1);
-		free(ptr);
-		tmp = tmp->next;
-	}
-	pthread_mutex_unlock(sfl.MutexQuote());
-	if (pixbuf1)
-		g_object_unref(pixbuf1);
-	if (pixbuf2)
-		g_object_unref(pixbuf2);
+	model = gtk_list_store_new(5, GDK_TYPE_PIXBUF, G_TYPE_STRING,
+			 G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT);
+	gtk_tree_sortable_set_default_sort_func(GTK_TREE_SORTABLE(model),
+			 GtkTreeIterCompareFunc(FileTreeCompareFunc),
+			 NULL, NULL);
+	gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model),
+			 GTK_TREE_SORTABLE_DEFAULT_SORT_COLUMN_ID,
+			 GTK_SORT_ASCENDING);
 
 	return GTK_TREE_MODEL(model);
 }
 
-GtkWidget *ShareFile::CreateSharedView()
+/**
+ * 为文件树(file-tree)填充底层数据.
+ * @param model file-model
+ */
+void ShareFile::FillFileModel(GtkTreeModel *model)
+{
+	AnalogFS afs;
+	GdkPixbuf *pixbuf, *rpixbuf, *dpixbuf;
+	GtkTreeIter iter;
+	char *filesize;
+	const char *filetype;
+	FileInfo *file;
+	GSList *tlist;
+
+	/* 先获取两个文件图标 */
+	rpixbuf = obtain_pixbuf_from_stock(GTK_STOCK_FILE);
+	dpixbuf = obtain_pixbuf_from_stock(GTK_STOCK_DIRECTORY);
+
+	/* 将现在的共享文件填入model */
+	tlist = cthrd.GetPublicFileList();
+	while (tlist) {
+		file = (FileInfo *)tlist->data;
+		/* 获取文件大小 */
+		file->filesize = afs.ftwsize(file->filepath);
+		filesize = numeric_to_size(file->filesize);
+		/* 获取文件类型 */
+		switch (GET_MODE(file->fileattr)) {
+		case IPMSG_FILE_REGULAR:
+			filetype = _("regular");
+			pixbuf = rpixbuf;
+			break;
+		case IPMSG_FILE_DIR:
+			filetype = _("directory");
+			pixbuf = dpixbuf;
+			break;
+		default:
+			filetype = _("unknown");
+			pixbuf = NULL;
+			break;
+		}
+		/* 填入数据 */
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, pixbuf,
+				 1, file->filepath, 2, filesize, 3, filetype,
+				 4, file->fileattr, -1);
+		/* 烦，释放资源 */
+		g_free(filesize);
+		/* 转入下一个节点 */
+		tlist = g_slist_next(tlist);
+	}
+
+	/* 释放文件图标 */
+	if (rpixbuf)
+		g_object_unref(rpixbuf);
+	if (dpixbuf)
+		g_object_unref(dpixbuf);
+}
+
+/**
+ * 创建文件树(file-tree).
+ * @param model file-model
+ * @return 文件树
+ */
+GtkWidget *ShareFile::CreateFileTree(GtkTreeModel *model)
 {
 	GtkWidget *view;
 	GtkTreeViewColumn *column;
-	GtkCellRenderer *renderer;
+	GtkCellRenderer *cell;
 	GtkTreeSelection *selection;
 
-	view = gtk_tree_view_new_with_model(share_model);
+	view = gtk_tree_view_new_with_model(model);
+	gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(view), TRUE);
 	gtk_tree_view_set_rubber_banding(GTK_TREE_VIEW(view), TRUE);
-	gtk_widget_show(view);
 	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(view));
 	gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
 
 	column = gtk_tree_view_column_new();
 	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_title(column, _("file"));
-	renderer = gtk_cell_renderer_pixbuf_new();
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "pixbuf", 0, NULL);
-	renderer = gtk_cell_renderer_text_new();
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "text", 1, NULL);
+	gtk_tree_view_column_set_title(column, _("File"));
+	cell = gtk_cell_renderer_pixbuf_new();
+	gtk_tree_view_column_pack_start(column, cell, FALSE);
+	gtk_tree_view_column_set_attributes(column, cell, "pixbuf", 0, NULL);
+	cell = gtk_cell_renderer_text_new();
+	gtk_tree_view_column_pack_start(column, cell, FALSE);
+	gtk_tree_view_column_set_attributes(column, cell, "text", 1, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
 
-	column = gtk_tree_view_column_new();
+	cell = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes(_("Size"), cell,
+							 "text", 2, NULL);
 	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_title(column, _("length"));
-	renderer = gtk_cell_renderer_text_new();
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "text", 2, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
 
-	column = gtk_tree_view_column_new();
+	cell = gtk_cell_renderer_text_new();
+	column = gtk_tree_view_column_new_with_attributes(_("Type"), cell,
+							 "text", 3, NULL);
 	gtk_tree_view_column_set_resizable(column, TRUE);
-	gtk_tree_view_column_set_title(column, _("type"));
-	renderer = gtk_cell_renderer_text_new();
-	gtk_tree_view_column_pack_start(column, renderer, FALSE);
-	gtk_tree_view_column_set_attributes(column, renderer, "text", 3, NULL);
 	gtk_tree_view_append_column(GTK_TREE_VIEW(view), column);
 
 	return view;
 }
 
-bool ShareFile::CheckExist()
+/**
+ * 应用共享文件数据.
+ */
+void ShareFile::ApplySharedData()
 {
-	if (!share)
-		return false;
-	gtk_window_present(GTK_WINDOW(share));
-	return true;
+	GtkWidget *widget;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	FileInfo *file;
+	uint32_t fileattr;
+	gchar *filepath;
+	const gchar *passwd;
+
+	/* 更新共享文件链表 */
+	pthread_mutex_lock(cthrd.GetMutex());
+	cthrd.ClearFileFromPublic();
+	cthrd.PbnQuote() = 1;
+	widget = GTK_WIDGET(g_datalist_get_data(&widset, "file-treeview-widget"));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+	if (gtk_tree_model_get_iter_first(model, &iter)) {
+		do {
+			gtk_tree_model_get(model, &iter, 1, &filepath, 4, &fileattr, -1);
+			file = new FileInfo;
+			file->fileid = cthrd.PbnQuote()++;
+			/* file->packetn = 0;//没必要设置此字段 */
+			file->fileattr = fileattr;
+			/* file->filesize = 0;//我喜欢延后处理 */
+			/* file->fileown = NULL;//没必要设置此字段 */
+			file->filepath = filepath;
+			cthrd.AttachFileToPublic(file);
+		} while (gtk_tree_model_iter_next(model, &iter));
+	}
+	pthread_mutex_unlock(cthrd.GetMutex());
+
+	/* 更新密码 */
+	widget = GTK_WIDGET(g_datalist_get_data(&widset, "password-button-widget"));
+	passwd = (const gchar *)g_object_get_data(G_OBJECT(widget), "password");
+	cthrd.SetAccessPublicLimit(passwd);
+
+	/* 写出共享文件 */
+	cthrd.WriteSharedData();
 }
 
-void ShareFile::PickFile(uint32_t fileattr)
+/**
+ * 增加新的共享文件.
+ * @param list 文件链表
+ */
+void ShareFile::AttachSharedFiles(GSList *list)
 {
+	AnalogFS afs;
+	GtkWidget *widget;
+	GtkTreeModel *model;
+	GtkTreeIter iter;
+	GdkPixbuf *pixbuf, *rpixbuf, *dpixbuf;
+	struct stat64 st;
+	int64_t pathsize;
+	GSList *tlist;
+	char *filesize;
+	const char *filetype;
+	uint32_t fileattr;
+
+	/* 获取文件图标 */
+	rpixbuf = obtain_pixbuf_from_stock(GTK_STOCK_FILE);
+	dpixbuf = obtain_pixbuf_from_stock(GTK_STOCK_DIRECTORY);
+
+	/* 插入文件树 */
+	widget = GTK_WIDGET(g_datalist_get_data(&widset, "file-treeview-widget"));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+	tlist = list;
+	while (tlist) {
+		if (stat64((const char *)tlist->data, &st) == -1
+			 || !(S_ISREG(st.st_mode) || S_ISDIR(st.st_mode))) {
+			tlist = g_slist_next(tlist);
+			continue;
+		}
+		/* 获取文件大小 */
+		pathsize = afs.ftwsize((const char *)tlist->data);
+		filesize = numeric_to_size(pathsize);
+		/* 获取文件类型 */
+		if (S_ISREG(st.st_mode)) {
+			filetype = _("regular");
+			fileattr = IPMSG_FILE_REGULAR;
+			pixbuf = rpixbuf;
+		} else if (S_ISDIR(st.st_mode)) {
+			filetype = _("directory");
+			fileattr = IPMSG_FILE_DIR;
+			pixbuf = dpixbuf;
+		} else {
+			filetype = _("unknown");
+			fileattr = 0;
+			pixbuf = NULL;
+		}
+		/* 添加数据 */
+		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
+		gtk_list_store_set(GTK_LIST_STORE(model), &iter, 0, pixbuf,
+				 1, tlist->data, 2, filesize, 3, filetype,
+				 4, fileattr, -1);
+		/* 释放资源 */
+		g_free(filesize);
+		/* 转到下一个节点 */
+		tlist = g_slist_next(tlist);
+	}
+
+	/* 释放文件图标 */
+	if (rpixbuf)
+		g_object_unref(rpixbuf);
+	if (dpixbuf)
+		g_object_unref(dpixbuf);
+}
+
+/**
+ * 选择新的共享文件.
+ * @param fileattr 文件类型
+ * @return 文件链表
+ */
+GSList *ShareFile::PickSharedFile(uint32_t fileattr)
+{
+	GtkWidget *dialog, *parent;
 	GtkFileChooserAction action;
-	gchar *title;
-	GtkWidget *dialog;
+	const char *title;
 	GSList *list;
 
-	title = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-	    _("Choose shared files") : _("Choose shared folders");
-	action = (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) ?
-	    GTK_FILE_CHOOSER_ACTION_OPEN :
-	    GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+	if (GET_MODE(fileattr) == IPMSG_FILE_REGULAR) {
+		action = GTK_FILE_CHOOSER_ACTION_OPEN;
+		title = _("Choose the files to share");
+	} else {
+		action = GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER;
+		title = _("Choose the folders to share");
+	}
+	parent = GTK_WIDGET(g_datalist_get_data(&widset, "dialog-widget"));
 
-	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(share), action,
-			     GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL,
-			     GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT, NULL);
-	gtk_dialog_set_default_response(GTK_DIALOG(dialog),
-					GTK_RESPONSE_ACCEPT);
+	dialog = gtk_file_chooser_dialog_new(title, GTK_WINDOW(parent), action,
+				 GTK_STOCK_OPEN, GTK_RESPONSE_ACCEPT,
+				 GTK_STOCK_CANCEL, GTK_RESPONSE_CANCEL, NULL);
+	gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_ACCEPT);
+	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(dialog), FALSE);
 	gtk_file_chooser_set_select_multiple(GTK_FILE_CHOOSER(dialog), TRUE);
-	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog),
-					    g_get_home_dir());
+	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), g_get_home_dir());
 
-	if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+	switch (gtk_dialog_run(GTK_DIALOG(dialog))) {
+	case GTK_RESPONSE_ACCEPT:
 		list = gtk_file_chooser_get_filenames(GTK_FILE_CHOOSER(dialog));
-		AddSharedFiles(list);
-		g_slist_foreach(list, GFunc(remove_foreach),
-				GINT_TO_POINTER(UNKNOWN));
-		g_slist_free(list);
+		break;
+	case GTK_RESPONSE_CANCEL:
+	default:
+		list = NULL;
+		break;
 	}
 	gtk_widget_destroy(dialog);
+
+	return list;
 }
 
-void ShareFile::AddRegular(gpointer data)
+/**
+ * 增添常规文件.
+ * @param sfile 共享文件类
+ */
+void ShareFile::AddRegular(ShareFile *sfile)
 {
-	ShareFile *sf;
+	GSList *list;
 
-	sf = (ShareFile *) data;
-	sf->PickFile(IPMSG_FILE_REGULAR);
+	list = sfile->PickSharedFile(IPMSG_FILE_REGULAR);
+	sfile->AttachSharedFiles(list);
+	g_slist_foreach(list, GFunc(glist_delete_foreach), GINT_TO_POINTER(UNKNOWN));
+	g_slist_free(list);
 }
 
-void ShareFile::AddFolder(gpointer data)
+/**
+ * 增添目录文件.
+ * @param sfile 共享文件类
+ */
+void ShareFile::AddFolder(ShareFile *sfile)
 {
-	ShareFile *sf;
+	GSList *list;
 
-	sf = (ShareFile *) data;
-	sf->PickFile(IPMSG_FILE_DIR);
+	list = sfile->PickSharedFile(IPMSG_FILE_DIR);
+	sfile->AttachSharedFiles(list);
+	g_slist_foreach(list, GFunc(glist_delete_foreach), GINT_TO_POINTER(UNKNOWN));
+	g_slist_free(list);
 }
 
-void ShareFile::DeleteFiles(gpointer data)
+/**
+ * 删除被选中的共享文件.
+ * @param widset widget set
+ */
+void ShareFile::DeleteFiles(GData **widset)
 {
+	GtkWidget *widget;
 	GtkTreeSelection *selection;
-	gboolean status, result;
+	GtkTreeModel *model;
 	GtkTreeIter iter;
-	ShareFile *sf;
 
-	sf = (ShareFile *) data;
-	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(sf->share_view));
-	if (!gtk_tree_model_get_iter_first(sf->share_model, &iter))
+	widget = GTK_WIDGET(g_datalist_get_data(widset, "file-treeview-widget"));
+	selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(widget));
+	model = gtk_tree_view_get_model(GTK_TREE_VIEW(widget));
+	if (!gtk_tree_model_get_iter_first(model, &iter))
 		return;
 	do {
- mark:		status = gtk_tree_selection_iter_is_selected(selection, &iter);
-		if (status) {
-			result = gtk_list_store_remove(
-				GTK_LIST_STORE(sf->share_model), &iter);
-			if (result)
+mark:		if (gtk_tree_selection_iter_is_selected(selection, &iter)) {
+			if (gtk_list_store_remove(GTK_LIST_STORE(model), &iter))
 				goto mark;
 			break;
 		}
-	} while (gtk_tree_model_iter_next(sf->share_model, &iter));
+	} while (gtk_tree_model_iter_next(model, &iter));
 }
 
-void ShareFile::ClickOk(gpointer data)
+void ShareFile::SetPassword(GData **widset)
 {
-	ClickApply(data);
-	gtk_widget_destroy(share);
-}
+	GtkWidget *widget, *parent;
+	char *passwd, *epasswd;
 
-void ShareFile::ClickApply(gpointer data)
-{
-	extern SendFile sfl;
-	uint64_t filesize;
-	uint32_t fileattr;
-	gchar *pathname;
-	GtkTreeIter iter;
-	ShareFile *sf;
-	FileInfo *file;
-
-	pthread_mutex_lock(sfl.MutexQuote());
-	g_slist_foreach(sfl.PblistQuote(), GFunc(remove_foreach),
-				GINT_TO_POINTER(FILEINFO));
-	g_slist_free(sfl.PblistQuote());
-	sfl.PblistQuote() = NULL;
-	pthread_mutex_unlock(sfl.MutexQuote());
-	sfl.dirty = true;
-
-	sf = (ShareFile *) data;
-	if (!gtk_tree_model_get_iter_first(sf->share_model, &iter))
+	parent = GTK_WIDGET(g_datalist_get_data(widset, "dialog-widget"));
+	if (!(passwd = pop_password_settings(parent)))
 		return;
-	sfl.PbnQuote() = 0;
-	pthread_mutex_lock(sfl.MutexQuote());
-	do {
-		gtk_tree_model_get(sf->share_model, &iter, 1, &pathname,
-					   4, &filesize, 5, &fileattr, -1);
-		file = new FileInfo(sfl.PbnQuote(), pathname, filesize,
-							    fileattr);
-		sfl.PblistQuote() = g_slist_append(sfl.PblistQuote(), file);
-	} while (gtk_tree_model_iter_next(sf->share_model, &iter));
-	pthread_mutex_unlock(sfl.MutexQuote());
+	widget = GTK_WIDGET(g_datalist_get_data(widset, "password-button-widget"));
+	epasswd = g_base64_encode((guchar *)passwd, strlen(passwd));
+	g_object_set_data_full(G_OBJECT(widget), "password", epasswd,
+						 GDestroyNotify(g_free));
+	g_free(passwd);
 }
 
-void ShareFile::ShareDestroy(gpointer data)
+void ShareFile::ClearPassword(GData **widset)
 {
-	delete(ShareFile *) data;
-	share = NULL;
+	GtkWidget *widget;
+
+	widget = GTK_WIDGET(g_datalist_get_data(widset, "password-button-widget"));
+	g_object_set_data(G_OBJECT(widget), "password", NULL);
 }
 
-void ShareFile::DragDataReceived(gpointer data, GdkDragContext * context,
-				 gint x, gint y, GtkSelectionData * select,
+/**
+ * 接收拖拽文件信息.
+ * @param sfile 共享文件类
+ * @param context the drag context
+ * @param x where the drop happened
+ * @param y where the drop happened
+ * @param data the received data
+ * @param info the info that has been registered with the target in the GtkTargetList
+ * @param time the timestamp at which the data was received
+ */
+void ShareFile::DragDataReceived(ShareFile *sfile, GdkDragContext *context,
+				 gint x, gint y, GtkSelectionData *data,
 				 guint info, guint time)
 {
-	ShareFile *sf;
 	GSList *list;
 
-	if (select->length <= 0 || select->format != 8) {
+	if (data->length <= 0 || data->format != 8) {
 		gtk_drag_finish(context, FALSE, FALSE, time);
 		return;
 	}
 
-	sf = (ShareFile *) data;
-	list = selection_data_get_path(select);
-	sf->AddSharedFiles(list);
-	g_slist_foreach(list, GFunc(remove_foreach), GINT_TO_POINTER(UNKNOWN));
+	list = selection_data_get_path(data);
+	sfile->AttachSharedFiles(list);
+	g_slist_foreach(list, GFunc(glist_delete_foreach), GINT_TO_POINTER(UNKNOWN));
 	g_slist_free(list);
+
 	gtk_drag_finish(context, TRUE, FALSE, time);
 }
 
-void ShareFile::SetPasswd()
+/**
+ * 文件树(file-tree)排序比较函数.
+ * @param model network-model
+ * @param a A GtkTreeIter in model
+ * @param b Another GtkTreeIter in model
+ * @return 比较值
+ */
+gint ShareFile::FileTreeCompareFunc(GtkTreeModel *model, GtkTreeIter *a,
+							 GtkTreeIter *b)
 {
-	extern SendFile sfl;
-	char *passwd;
+	gchar *afilepath, *bfilepath;
+	uint32_t afileattr, bfileattr;
+	gint result;
 
-	if (!(passwd = pop_passwd_setting(share)))
-		return;
-	if (*passwd != '\0') {
-		free(sfl.PasswdQuote());
-		sfl.PasswdQuote() =
-			     g_base64_encode((guchar *)passwd, strlen(passwd));
-		sfl.dirty = true;
-	}
-	free(passwd);
+	gtk_tree_model_get(model, a, 1, &afilepath, 4, &afileattr, -1);
+	gtk_tree_model_get(model, b, 1, &bfilepath, 4, &bfileattr, -1);
+	if (GET_MODE(afileattr) == GET_MODE(bfileattr))
+		result = strcmp(afilepath, bfilepath);
+	else if (GET_MODE(afileattr) == IPMSG_FILE_REGULAR)
+		result = 1;
+	else
+		result = -1;
+	g_free(afilepath);
+	g_free(bfilepath);
+
+	return result;
 }
-
-void ShareFile::ClearPasswd()
-{
-	extern SendFile sfl;
-
-	*sfl.PasswdQuote() = '\0';
-	sfl.dirty = true;
-}
-
