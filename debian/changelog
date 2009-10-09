@@ -1,3 +1,9 @@
+iptux (0.5.0-1ubuntu1) karmic; urgency=low
+
+  * debian/watch: updated. 
+
+ -- LI Daobing <lidaobing@debian.org>  Fri, 09 Oct 2009 20:07:56 +0800
+
 iptux (0.5.0-1) unstable; urgency=low
 
   * new upstream release. 
