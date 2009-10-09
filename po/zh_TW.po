@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zh_TW\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-10-08 16:22+0800\n"
+"POT-Creation-Date: 2009-10-09 10:37+0800\n"
 "PO-Revision-Date: 2009-10-08 11:39+0800\n"
 "Last-Translator: \n"
 "Language-Team: Chinese Traditional\n"
@@ -40,7 +40,7 @@ msgstr "打開目錄\"%s\"失敗，%s"
 msgid "Your pal didn't receive the packet. He or she is offline maybe."
 msgstr "你的好友沒有收到傳送的資料，他可能已經下線。"
 
-#: src/CoreThread.cpp:230 src/DialogPeer.cpp:1257 src/RecvFileData.cpp:143
+#: src/CoreThread.cpp:231 src/DialogPeer.cpp:1257 src/RecvFileData.cpp:143
 #: src/RecvFileData.cpp:197 src/support.cpp:110
 #, c-format
 msgid ""
@@ -52,22 +52,22 @@ msgstr ""
 "建立新的連接失敗！\n"
 "%s"
 
-#: src/CoreThread.cpp:530 src/CoreThread.cpp:555 src/CoreThread.cpp:1061
-#: src/CoreThread.cpp:1087
+#: src/CoreThread.cpp:531 src/CoreThread.cpp:556 src/CoreThread.cpp:1052
+#: src/CoreThread.cpp:1078
 msgid "Others"
 msgstr "其他"
 
-#: src/CoreThread.cpp:920 src/RecvFile.cpp:313 src/RecvFileData.cpp:126
+#: src/CoreThread.cpp:911 src/RecvFile.cpp:313 src/RecvFileData.cpp:126
 #: src/RecvFileData.cpp:245 src/SendFileData.cpp:125 src/SendFileData.cpp:212
 #: src/ShareFile.cpp:228 src/ShareFile.cpp:382
 msgid "unknown"
 msgstr "未知"
 
-#: src/CoreThread.cpp:934
+#: src/CoreThread.cpp:925
 msgid "<ERROR>"
 msgstr "<錯誤>"
 
-#: src/CoreThread.cpp:1111
+#: src/CoreThread.cpp:1102
 msgid "Broadcast"
 msgstr "廣播"
 
@@ -360,7 +360,7 @@ msgstr ""
 msgid "Confirm Exit"
 msgstr "確認退出"
 
-#: src/dialog.cpp:55 src/DialogPeer.cpp:653 src/MainWindow.cpp:1546
+#: src/dialog.cpp:55 src/DialogPeer.cpp:653 src/MainWindow.cpp:1548
 msgid "Request Shared Resources"
 msgstr "請求共享資源"
 
@@ -454,7 +454,7 @@ msgstr "傳送"
 msgid "Pals"
 msgstr "好友"
 
-#: src/DialogGroup.cpp:799 src/DialogPeer.cpp:641 src/MainWindow.cpp:808
+#: src/DialogGroup.cpp:799 src/DialogPeer.cpp:641 src/MainWindow.cpp:810
 msgid "_File"
 msgstr "檔案(_F)"
 
@@ -466,7 +466,7 @@ msgstr "新增檔案"
 msgid "Attach Folder"
 msgstr "新增目錄"
 
-#: src/DialogGroup.cpp:833 src/DialogPeer.cpp:678 src/MainWindow.cpp:850
+#: src/DialogGroup.cpp:833 src/DialogPeer.cpp:678 src/MainWindow.cpp:852
 msgid "_Tools"
 msgstr "工具(_T)"
 
@@ -478,23 +478,23 @@ msgstr "清空暫存"
 msgid "Sort"
 msgstr "排序"
 
-#: src/DialogGroup.cpp:852 src/MainWindow.cpp:889
+#: src/DialogGroup.cpp:852 src/MainWindow.cpp:891
 msgid "By Nickname"
 msgstr "依暱稱"
 
-#: src/DialogGroup.cpp:859 src/MainWindow.cpp:896
+#: src/DialogGroup.cpp:859 src/MainWindow.cpp:898
 msgid "By IP"
 msgstr "依 IP"
 
-#: src/DialogGroup.cpp:869 src/MainWindow.cpp:906
+#: src/DialogGroup.cpp:869 src/MainWindow.cpp:908
 msgid "Ascending"
 msgstr "升冪"
 
-#: src/DialogGroup.cpp:876 src/MainWindow.cpp:913
+#: src/DialogGroup.cpp:876 src/MainWindow.cpp:915
 msgid "Descending"
 msgstr "降冪"
 
-#: src/DialogGroup.cpp:894 src/DialogPeer.cpp:703 src/MainWindow.cpp:940
+#: src/DialogGroup.cpp:894 src/DialogPeer.cpp:703 src/MainWindow.cpp:942
 msgid "_Help"
 msgstr "幫助(_H)"
 
@@ -527,57 +527,57 @@ msgstr "資訊"
 msgid "Insert Picture"
 msgstr "插入圖片"
 
-#: src/DialogPeer.cpp:727 src/MainWindow.cpp:1602
+#: src/DialogPeer.cpp:727 src/MainWindow.cpp:1604
 #, c-format
 msgid "Version: %s\n"
 msgstr "版本: %s\n"
 
-#: src/DialogPeer.cpp:731 src/MainWindow.cpp:1606
+#: src/DialogPeer.cpp:731 src/MainWindow.cpp:1608
 #, c-format
 msgid "Nickname: %s@%s\n"
 msgstr "暱稱: %s@%s\n"
 
-#: src/DialogPeer.cpp:733 src/MainWindow.cpp:1608
+#: src/DialogPeer.cpp:733 src/MainWindow.cpp:1610
 #, c-format
 msgid "Nickname: %s\n"
 msgstr "暱稱: %s\n"
 
-#: src/DialogPeer.cpp:736 src/MainWindow.cpp:1611
+#: src/DialogPeer.cpp:736 src/MainWindow.cpp:1613
 #, c-format
 msgid "User: %s\n"
 msgstr "用戶: %s\n"
 
-#: src/DialogPeer.cpp:739 src/MainWindow.cpp:1614
+#: src/DialogPeer.cpp:739 src/MainWindow.cpp:1616
 #, c-format
 msgid "Host: %s\n"
 msgstr "主機: %s\n"
 
-#: src/DialogPeer.cpp:744 src/MainWindow.cpp:1619
+#: src/DialogPeer.cpp:744 src/MainWindow.cpp:1621
 #, c-format
 msgid "Address: %s(%s)\n"
 msgstr "位址: %s(%s)\n"
 
-#: src/DialogPeer.cpp:746 src/MainWindow.cpp:1621
+#: src/DialogPeer.cpp:746 src/MainWindow.cpp:1623
 #, c-format
 msgid "Address: %s\n"
 msgstr "位址: %s\n"
 
-#: src/DialogPeer.cpp:750 src/MainWindow.cpp:1625
+#: src/DialogPeer.cpp:750 src/MainWindow.cpp:1627
 #, c-format
 msgid "Compatibility: Microsoft\n"
 msgstr "相容性: Microsoft\n"
 
-#: src/DialogPeer.cpp:752 src/MainWindow.cpp:1627
+#: src/DialogPeer.cpp:752 src/MainWindow.cpp:1629
 #, c-format
 msgid "Compatibility: GNU/Linux\n"
 msgstr "相容性: GNU/Linux\n"
 
-#: src/DialogPeer.cpp:755 src/MainWindow.cpp:1630
+#: src/DialogPeer.cpp:755 src/MainWindow.cpp:1632
 #, c-format
 msgid "System coding: %s\n"
 msgstr "系統編碼: %s\n"
 
-#: src/DialogPeer.cpp:759 src/MainWindow.cpp:1634
+#: src/DialogPeer.cpp:759 src/MainWindow.cpp:1636
 msgid "Signature:\n"
 msgstr "個性簽名:\n"
 
@@ -614,7 +614,7 @@ msgstr ""
 "ManPT <pentie@gmail.com>\n"
 "村仔 <tw.chi.ming@gmail.com>"
 
-#: src/HelpDialog.cpp:80 src/MainWindow.cpp:567 src/StatusIcon.cpp:61
+#: src/HelpDialog.cpp:80 src/MainWindow.cpp:567 src/StatusIcon.cpp:60
 #: src/StatusIcon.cpp:99
 msgid "iptux"
 msgstr "信使(iptux)"
@@ -702,139 +702,139 @@ msgstr "檔案傳輸管理器"
 msgid "Pals Online: 0"
 msgstr "線上好友: 0"
 
-#: src/MainWindow.cpp:790
+#: src/MainWindow.cpp:792
 msgid "Search Pals"
 msgstr "搜尋好友"
 
-#: src/MainWindow.cpp:813 src/StatusIcon.cpp:164
+#: src/MainWindow.cpp:815 src/StatusIcon.cpp:164
 msgid "_Detect"
 msgstr "搜尋(_D)"
 
-#: src/MainWindow.cpp:820
+#: src/MainWindow.cpp:822
 msgid "_Find"
 msgstr "尋找(_F)"
 
-#: src/MainWindow.cpp:830 src/StatusIcon.cpp:173
+#: src/MainWindow.cpp:832 src/StatusIcon.cpp:173
 msgid "_Quit"
 msgstr "退出(_Q)"
 
-#: src/MainWindow.cpp:856 src/StatusIcon.cpp:143
+#: src/MainWindow.cpp:858 src/StatusIcon.cpp:143
 msgid "_Preferences"
 msgstr "偏好設定(_P)"
 
-#: src/MainWindow.cpp:865 src/StatusIcon.cpp:135
+#: src/MainWindow.cpp:867 src/StatusIcon.cpp:135
 msgid "_Transmission"
 msgstr "傳輸管理器(_T)"
 
-#: src/MainWindow.cpp:874 src/StatusIcon.cpp:152
+#: src/MainWindow.cpp:876 src/StatusIcon.cpp:152
 msgid "_Shared Management"
 msgstr "共享管理器(_S)"
 
-#: src/MainWindow.cpp:883
+#: src/MainWindow.cpp:885
 msgid "_Sort"
 msgstr "排序(_S)"
 
-#: src/MainWindow.cpp:921
+#: src/MainWindow.cpp:923
 msgid "_Update"
 msgstr "更新(_U)"
 
-#: src/MainWindow.cpp:936
+#: src/MainWindow.cpp:938
 msgid "http://code.google.com/p/iptux/wiki/FAQ_EnglishVersion"
 msgstr "http://code.google.com/p/iptux/wiki/FAQ"
 
-#: src/MainWindow.cpp:948
+#: src/MainWindow.cpp:950
 msgid "_More"
 msgstr "更多(_M)"
 
-#: src/MainWindow.cpp:952
+#: src/MainWindow.cpp:954
 msgid "_FAQ"
 msgstr "FAQ(_F)"
 
-#: src/MainWindow.cpp:1102
+#: src/MainWindow.cpp:1104
 msgid "Nickname"
 msgstr "暱稱"
 
-#: src/MainWindow.cpp:1113
+#: src/MainWindow.cpp:1115
 msgid "Group"
 msgstr "群組名稱"
 
-#: src/MainWindow.cpp:1119
+#: src/MainWindow.cpp:1121
 msgid "IPv4"
 msgstr "IPv4"
 
-#: src/MainWindow.cpp:1125
+#: src/MainWindow.cpp:1127
 msgid "User"
 msgstr "用戶"
 
-#: src/MainWindow.cpp:1131
+#: src/MainWindow.cpp:1133
 msgid "Host"
 msgstr "主機"
 
-#: src/MainWindow.cpp:1164
+#: src/MainWindow.cpp:1166
 msgid "State"
 msgstr "狀態"
 
-#: src/MainWindow.cpp:1170
+#: src/MainWindow.cpp:1172
 msgid "Task"
 msgstr "任務"
 
-#: src/MainWindow.cpp:1176
+#: src/MainWindow.cpp:1178
 msgid "Peer"
 msgstr "好友"
 
-#: src/MainWindow.cpp:1182 src/RecvFile.cpp:360
+#: src/MainWindow.cpp:1184 src/RecvFile.cpp:360
 msgid "Filename"
 msgstr "檔案名"
 
-#: src/MainWindow.cpp:1188 src/RecvFile.cpp:367 src/ShareFile.cpp:280
+#: src/MainWindow.cpp:1190 src/RecvFile.cpp:367 src/ShareFile.cpp:280
 msgid "Size"
 msgstr "大小"
 
-#: src/MainWindow.cpp:1194
+#: src/MainWindow.cpp:1196
 msgid "Completed"
 msgstr "已完成"
 
-#: src/MainWindow.cpp:1200
+#: src/MainWindow.cpp:1202
 msgid "Progress"
 msgstr "進度"
 
-#: src/MainWindow.cpp:1206
+#: src/MainWindow.cpp:1208
 msgid "Cost"
 msgstr "花費時間"
 
-#: src/MainWindow.cpp:1212
+#: src/MainWindow.cpp:1214
 msgid "Remaining"
 msgstr "剩餘時間"
 
-#: src/MainWindow.cpp:1218
+#: src/MainWindow.cpp:1220
 msgid "Rate"
 msgstr "速率"
 
-#: src/MainWindow.cpp:1495
+#: src/MainWindow.cpp:1497
 msgid "Terminate Task"
 msgstr "終止任務"
 
-#: src/MainWindow.cpp:1500
+#: src/MainWindow.cpp:1502
 msgid "Terminate All"
 msgstr "終止所有"
 
-#: src/MainWindow.cpp:1505
+#: src/MainWindow.cpp:1507
 msgid "Clear Tasklist"
 msgstr "清理任務"
 
-#: src/MainWindow.cpp:1526
+#: src/MainWindow.cpp:1528
 msgid "Send Message"
 msgstr "傳送訊息"
 
-#: src/MainWindow.cpp:1560
+#: src/MainWindow.cpp:1562
 msgid "Change Info."
 msgstr "更改資訊"
 
-#: src/MainWindow.cpp:1575
+#: src/MainWindow.cpp:1577
 msgid "Delete Pal"
 msgstr "刪除好友"
 
-#: src/MainWindow.cpp:1664
+#: src/MainWindow.cpp:1666
 #, c-format
 msgid "Pals Online: %<PRIu32>"
 msgstr "線上好友: %<PRIu32>"

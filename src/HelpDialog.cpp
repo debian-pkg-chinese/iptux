@@ -194,7 +194,9 @@ void HelpDialog::DialogOpenEmail(GtkWidget *dialog, const gchar *link)
 		ptr = g_strdup_printf("%s%s", prefix, link);
 	else
 		ptr = g_strdup(link);
+#if GTK_CHECK_VERSION(2,14,0)
 	if (!gtk_show_uri(NULL, ptr, GDK_CURRENT_TIME, NULL))
+#endif
 		iptux_open_url(ptr);
 	g_free(ptr);
 }
@@ -206,7 +208,9 @@ void HelpDialog::DialogOpenEmail(GtkWidget *dialog, const gchar *link)
  */
 void HelpDialog::DialogOpenUrl(GtkWidget *dialog, const gchar *link)
 {
+#if GTK_CHECK_VERSION(2,14,0)
 	if (!gtk_show_uri(NULL, link, GDK_CURRENT_TIME, NULL))
+#endif
 		iptux_open_url(link);
 }
 

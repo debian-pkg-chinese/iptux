@@ -73,7 +73,6 @@ public:
 private:
 	void InitSublayer();
 	void ClearSublayer();
-	void InitSublayerData();
 	void InitThemeSublayerData();
 	void ReadSharedData();
 
@@ -95,7 +94,7 @@ private:
 	GSList *pallist;		//好友链表(成员不能被删除)
 	GSList *rgllist, *sgmlist, *grplist, *brdlist;	//群组链表(成员不能被删除)
 	GSList *blacklist;	//黑名单链表
-	GQueue *msgline;	//消息队列
+	GQueue msgline;	//消息队列
 
 	uint32_t pbn, prn;	//当前已使用的文件编号(共享/私有)
 	GSList *pblist, *prlist;	//文件链表(共享/私有)

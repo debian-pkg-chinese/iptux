@@ -29,9 +29,10 @@ extern LogSystem lgsys;
  */
 CoreThread::CoreThread():tcpsock(-1), udpsock(-1), server(true),
  pallist(NULL), rgllist(NULL), sgmlist(NULL), grplist(NULL), brdlist(NULL),
- blacklist(NULL), msgline(NULL), pbn(1), prn(MAX_SHAREDFILE), pblist(NULL),
- prlist(NULL), passwd(NULL), timerid(0)
+ blacklist(NULL), pbn(1), prn(MAX_SHAREDFILE), pblist(NULL), prlist(NULL),
+ passwd(NULL), timerid(0)
 {
+	g_queue_init(&msgline);
 	pthread_mutex_init(&mutex, NULL);
 }
 
@@ -608,7 +609,7 @@ void CoreThread::ClearBlacklist()
  */
 guint CoreThread::GetMsglineItems()
 {
-	return g_queue_get_length(msgline);
+	return g_queue_get_length(&msgline);
 }
 
 /**
@@ -617,7 +618,7 @@ guint CoreThread::GetMsglineItems()
  */
 GroupInfo *CoreThread::GetMsglineHeadItem()
 {
-	return (GroupInfo *)g_queue_peek_head(msgline);
+	return (GroupInfo *)g_queue_peek_head(&msgline);
 }
 
 /**
@@ -627,7 +628,7 @@ GroupInfo *CoreThread::GetMsglineHeadItem()
  */
 bool CoreThread::MsglineContainItem(GroupInfo *grpinf)
 {
-	return g_queue_find(msgline, grpinf);
+	return g_queue_find(&msgline, grpinf);
 }
 
 /**
@@ -636,7 +637,7 @@ bool CoreThread::MsglineContainItem(GroupInfo *grpinf)
  */
 void CoreThread::PushItemToMsgline(GroupInfo *grpinf)
 {
-	g_queue_push_tail(msgline, grpinf);
+	g_queue_push_tail(&msgline, grpinf);
 }
 
 /**
@@ -645,7 +646,7 @@ void CoreThread::PushItemToMsgline(GroupInfo *grpinf)
  */
 void CoreThread::PopItemFromMsgline(GroupInfo *grpinf)
 {
-	g_queue_remove(msgline, grpinf);
+	g_queue_remove(&msgline, grpinf);
 }
 
 /**
@@ -776,7 +777,6 @@ void CoreThread::SetAccessPublicLimit(const char *limit)
  */
 void CoreThread::InitSublayer()
 {
-	InitSublayerData();
 	InitThemeSublayerData();
 	ReadSharedData();
 }
@@ -809,8 +809,7 @@ void CoreThread::ClearSublayer()
 				 GINT_TO_POINTER(GROUP_INFO));
 	g_slist_free(brdlist);
 	g_slist_free(blacklist);
-	g_queue_clear(msgline);
-	g_queue_free(msgline);
+	g_queue_clear(&msgline);
 
 	g_slist_foreach(pblist, GFunc(glist_delete_foreach), GINT_TO_POINTER(FILE_INFO));
 	g_slist_free(pblist);
@@ -820,14 +819,6 @@ void CoreThread::ClearSublayer()
 
 	g_source_remove(timerid);
 	pthread_mutex_destroy(&mutex);
-}
-
-/**
- * 初始化底层数据.
- */
-void CoreThread::InitSublayerData()
-{
-	msgline = g_queue_new();
 }
 
 /**
@@ -1211,7 +1202,7 @@ gboolean CoreThread::WatchCoreStatus(CoreThread *pcthrd)
 
 	/* 让等待队列中的群组信息项闪烁 */
 	pthread_mutex_lock(&pcthrd->mutex);
-	tlist = pcthrd->msgline->head;
+	tlist = pcthrd->msgline.head;
 	while (tlist) {
 		mwin.MakeItemBlinking((GroupInfo *)tlist->data, true);
 		tlist = g_list_next(tlist);
