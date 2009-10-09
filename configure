@@ -2238,7 +2238,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=iptux
- VERSION=0.5.0
+ VERSION=0.5.0-1
 
 
 cat >>confdefs.h <<_ACEOF
@@ -7102,7 +7102,7 @@ else
 $as_echo "yes" >&6; }
 	:
 fi
-gtk_modules="gtk+-2.0 >= 2.16.0"
+gtk_modules="gtk+-2.0 >= 2.12.0"
 
 pkg_failed=no
 { $as_echo "$as_me:$LINENO: checking for GTK" >&5

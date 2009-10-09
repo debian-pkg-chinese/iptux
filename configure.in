@@ -5,7 +5,7 @@ AC_PREREQ(2.63)
 AC_INIT(configure.in)
 AC_CONFIG_SRCDIR(src/iptux.cpp)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(iptux, 0.5.0)
+AM_INIT_AUTOMAKE(iptux, 0.5.0-1)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -90,7 +90,7 @@ glib_modules="glib-2.0 >= 2.16.0"
 PKG_CHECK_MODULES(GLIB, [$glib_modules])
 gthread_modules="gthread-2.0 >= 2.14.0"
 PKG_CHECK_MODULES(GTHREAD, [$gthread_modules])
-gtk_modules="gtk+-2.0 >= 2.16.0"
+gtk_modules="gtk+-2.0 >= 2.12.0"
 PKG_CHECK_MODULES(GTK, [$gtk_modules])
 gconf_modules="gconf-2.0 >= 2.4.0"
 PKG_CHECK_MODULES(GCONF, [$gconf_modules])

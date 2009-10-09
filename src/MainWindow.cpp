@@ -781,8 +781,10 @@ GtkWidget *MainWindow::CreatePallistArea()
 	/*/* 输入框 */
 	widget = gtk_entry_new();
 	gtk_entry_set_activates_default(GTK_ENTRY(widget), TRUE);
+#if GTK_CHECK_VERSION(2,16,0)
 	gtk_entry_set_icon_from_stock(GTK_ENTRY(widget),
 			 GTK_ENTRY_ICON_SECONDARY, GTK_STOCK_FIND);
+#endif
 	gtk_widget_add_events(widget, GDK_KEY_PRESS_MASK);
 	g_object_set(widget, "has-tooltip", TRUE, NULL);
 	gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
