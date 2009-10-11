@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: zh_TW\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-10-09 10:37+0800\n"
+"POT-Creation-Date: 2009-10-10 09:25+0800\n"
 "PO-Revision-Date: 2009-10-08 11:39+0800\n"
 "Last-Translator: \n"
 "Language-Team: Chinese Traditional\n"
@@ -891,7 +891,7 @@ msgstr "來源"
 msgid "Type"
 msgstr "類型"
 
-#: src/RecvFile.cpp:504
+#: src/RecvFile.cpp:505
 #, c-format
 msgid "Free:%s Total:%s"
 msgstr "空閒:%s 總計:%s"
