@@ -477,7 +477,8 @@ void RecvFile::FiletreeSelectItemChanged(GtkTreeSelection *selection, GData **wi
 	gchar *path;
 
 	widget = GTK_WIDGET(g_datalist_get_data(widset, "file-chooser-widget"));
-	gtk_tree_selection_get_selected(selection, &model, &iter);
+	if (!gtk_tree_selection_get_selected(selection, &model, &iter))
+		return;
 	gtk_tree_model_get(model, &iter, 5, &path, -1);
 	gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(widget), path);
 	g_free(path);

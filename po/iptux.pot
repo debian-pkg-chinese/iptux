@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-10-09 10:37+0800\n"
+"POT-Creation-Date: 2009-10-10 09:25+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -858,7 +858,7 @@ msgstr ""
 msgid "Type"
 msgstr ""
 
-#: src/RecvFile.cpp:504
+#: src/RecvFile.cpp:505
 #, c-format
 msgid "Free:%s Total:%s"
 msgstr ""

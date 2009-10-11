@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: iptux\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-10-09 10:37+0800\n"
+"POT-Creation-Date: 2009-10-10 09:25+0800\n"
 "PO-Revision-Date: 2009-01-27 14:10+0000\n"
 "Last-Translator: Jen Ockwell <jenfraggleubuntu@googlemail.com>\n"
 "Language-Team: English (United Kingdom) <en_GB@li.org>\n"
@@ -976,7 +976,7 @@ msgstr "Sort"
 msgid "Type"
 msgstr "type"
 
-#: src/RecvFile.cpp:504
+#: src/RecvFile.cpp:505
 #, c-format
 msgid "Free:%s Total:%s"
 msgstr "Free:%s Total:%s"
