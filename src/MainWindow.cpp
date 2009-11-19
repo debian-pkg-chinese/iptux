@@ -112,8 +112,9 @@ bool MainWindow::PaltreeContainItem(in_addr_t ipv4)
 	PalInfo *pal;
 	bool exist;
 
-	pal = cthrd.GetPalFromList(ipv4);
-	grpinf = cthrd.GetPalRegularItem(pal);
+	if (!(pal = cthrd.GetPalFromList(ipv4))
+		 || !(grpinf = cthrd.GetPalRegularItem(pal)))
+		return false;
 	model = GTK_TREE_MODEL(g_datalist_get_data(&mdlset, "regular-paltree-model"));
 	exist = GroupGetPaltreeItem(model, &iter, grpinf);
 
@@ -131,8 +132,9 @@ void MainWindow::UpdateItemToPaltree(in_addr_t ipv4)
 	GroupInfo *pgrpinf, *grpinf;
 	PalInfo *pal;
 
-	pal = cthrd.GetPalFromList(ipv4);
-	grpinf = cthrd.GetPalRegularItem(pal);
+	if (!(pal = cthrd.GetPalFromList(ipv4))
+		 || !(grpinf = cthrd.GetPalRegularItem(pal)))
+		return;
 
 	/* 更新常规模式树 */
 	model = GTK_TREE_MODEL(g_datalist_get_data(&mdlset, "regular-paltree-model"));
@@ -179,8 +181,9 @@ void MainWindow::AttachItemToPaltree(in_addr_t ipv4)
 	GroupInfo *pgrpinf, *grpinf;
 	PalInfo *pal;
 
-	pal = cthrd.GetPalFromList(ipv4);
-	grpinf = cthrd.GetPalRegularItem(pal);
+	if (!(pal = cthrd.GetPalFromList(ipv4))
+		 || !(grpinf = cthrd.GetPalRegularItem(pal)))
+		return;
 
 	/* 添加到常规模式树 */
 	model = GTK_TREE_MODEL(g_datalist_get_data(&mdlset, "regular-paltree-model"));
@@ -229,8 +232,9 @@ void MainWindow::DelItemFromPaltree(in_addr_t ipv4)
 	GroupInfo *pgrpinf, *grpinf;
 	PalInfo *pal;
 
-	pal = cthrd.GetPalFromList(ipv4);
-	grpinf = cthrd.GetPalRegularItem(pal);
+	if (!(pal = cthrd.GetPalFromList(ipv4))
+		 || !(grpinf = cthrd.GetPalRegularItem(pal)))
+		return;
 
 	/* 从常规模式树移除 */
 	model = GTK_TREE_MODEL(g_datalist_get_data(&mdlset, "regular-paltree-model"));
@@ -486,8 +490,10 @@ void MainWindow::ClearSublayer()
 	g_datalist_clear(&mdlset);
 	g_datalist_clear(&dtset);
 	g_list_free(tmdllist);
-	g_object_unref(accel);
-	g_source_remove(timerid);
+	if (accel)
+		g_object_unref(accel);
+	if (timerid > 0)
+		g_source_remove(timerid);
 }
 
 /**
