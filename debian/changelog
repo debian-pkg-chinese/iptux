@@ -1,8 +1,8 @@
-iptux (0.5.1-1-1) unstable; urgency=low
+iptux (0.5.1-2-1) unstable; urgency=low
 
   * new upstream release.
 
- -- LI Daobing <lidaobing@debian.org>  Thu, 19 Nov 2009 22:18:26 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sun, 29 Nov 2009 10:39:10 +0800
 
 iptux (0.5.1-1) unstable; urgency=low
 
