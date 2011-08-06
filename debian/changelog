@@ -2,8 +2,10 @@ iptux (0.5.2-1) unstable; urgency=low
 
   * new upstream release.
   * debian/source/format: debian format 3.0. 
+  * debian/control:
+    - fix debhelper-but-no-misc-depends
 
- -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:24:41 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:27:34 +0800
 
 iptux (0.5.1-2-1) unstable; urgency=low
 
