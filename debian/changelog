@@ -7,11 +7,12 @@ iptux (0.5.2-1) unstable; urgency=low
     - use debhelper 7
     - bump standards version to 3.9.2.
     - new maintainer.
+    - update Vcs-* fields.
   * debian/rules: rewrite
   * debian/compat: 7
   * debian/patches/series: new patch system.
 
- -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:47:50 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:50:15 +0800
 
 iptux (0.5.1-2-1) unstable; urgency=low
 
