@@ -15,9 +15,9 @@
 #include "mess.h"
 
 #define difftimeval(val2,val1) \
-	((((val2).tv_sec-(val1).tv_sec)*1000000 \
-	+ (val2).tv_usec-(val1).tv_usec) \
-	/ 1000000.0f)
+        ((((val2).tv_sec-(val1).tv_sec)*1000000 \
+        + (val2).tv_usec-(val1).tv_usec) \
+        / 1000000.0f)
 #define percent(num1,num2) (100.0f*(num1)/(num2))
 
 #define FLAG_ISSET(num,bit) ((num)&(1<<(bit)))
@@ -29,7 +29,7 @@
 
 #define NO_OPERATION_C while(0);
 
-typedef void *(*ThreadFunc) (void *);
+typedef void *(*ThreadFunc)(void *);
 void ipv4_order(in_addr_t *ip1, in_addr_t *ip2);
 
 char *iptux_string_validate(const char *string, const char *codeset, char **encode);
@@ -41,9 +41,8 @@ void get_file_system_info(const char *path, int64_t *avail, int64_t *total);
 
 char *iptux_string_getline(const char *str);
 char *assert_filename_inexist(const char *path);
-char *getformattime(const char *format, ...);
+char *getformattime(gboolean date, const char *format, ...);
 
-void glist_delete_foreach(gpointer data, POINTER_TYPE type);
 gboolean giter_compare_foreach(gunichar src, gunichar dst);
 
 char *numeric_to_size(int64_t numeric);
