@@ -1,16 +1,10 @@
-#! /bin/sh /usr/share/dpatch/dpatch-run
-## 01_desktop-patch.dpatch by LI Daobing <lidaobing@gmail.com>
-##
-## All lines beginning with `## DP:' are a description of the patch.
-## DP: patch desktop file to fullfill the desktop-file-validate
-
-@DPATCH@
-
---- iptux-0.4.orig/desktop/iptux.desktop
-+++ iptux-0.4/desktop/iptux.desktop
+Index: iptux/desktop/iptux.desktop
+===================================================================
+--- iptux.orig/desktop/iptux.desktop	2011-08-06 10:54:07.685525817 +0800
++++ iptux/desktop/iptux.desktop	2011-08-06 10:54:18.525541717 +0800
 @@ -1,5 +1,4 @@
  [Desktop Entry]
 -Encoding=UTF-8
  Name=iptux
  Name[zh_CN]=信使(iptux)
- Comment=Lan communication software
+ Name[zh_TW]=信使(iptux)

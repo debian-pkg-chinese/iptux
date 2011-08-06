@@ -15,7 +15,7 @@ Vcs-Git: git://anonscm.debian.org/chinese/iptux.git
 Package: iptux
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}
-Description: an intranet communication tool for Linux
+Description: intranet communication tool for Linux
  iptux is an IP Messenger client for Linux.
  . 
  It support:

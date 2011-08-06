@@ -8,11 +8,12 @@ iptux (0.5.2-1) unstable; urgency=low
     - bump standards version to 3.9.2.
     - new maintainer.
     - update Vcs-* fields.
+    - update Description.
   * debian/rules: rewrite
   * debian/compat: 7
   * debian/patches/series: new patch system.
 
- -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:50:15 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:58:00 +0800
 
 iptux (0.5.1-2-1) unstable; urgency=low
 
