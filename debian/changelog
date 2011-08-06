@@ -4,8 +4,11 @@ iptux (0.5.2-1) unstable; urgency=low
   * debian/source/format: debian format 3.0. 
   * debian/control:
     - fix debhelper-but-no-misc-depends
+    - use debhelper 7
+  * debian/rules: rewrite
+  * debian/compat: 7
 
- -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:27:34 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:36:26 +0800
 
 iptux (0.5.1-2-1) unstable; urgency=low
 
