@@ -5,10 +5,11 @@ iptux (0.5.2-1) unstable; urgency=low
   * debian/control:
     - fix debhelper-but-no-misc-depends
     - use debhelper 7
+    - bump standards version to 3.9.2. 
   * debian/rules: rewrite
   * debian/compat: 7
 
- -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:36:26 +0800
+ -- LI Daobing <lidaobing@debian.org>  Sat, 06 Aug 2011 10:38:30 +0800
 
 iptux (0.5.1-2-1) unstable; urgency=low
 
