@@ -10,7 +10,7 @@
 //
 //
 #include "wrapper.h"
-#include "face.h"
+#include "deplib.h"
 
 /**
  * 保证new运算符申请内存一定成功.
@@ -19,7 +19,7 @@
  */
 void *operator new(size_t size)
 {
-	return g_malloc(size);
+        return g_malloc(size);
 }
 
 /**
@@ -31,21 +31,21 @@ void *operator new(size_t size)
  */
 ssize_t xwrite(int fd, const void *buf, size_t count)
 {
-	size_t offset;
-	ssize_t size;
+        size_t offset;
+        ssize_t size;
 
-	size = -1;
-	offset = 0;
-	while ((offset != count) && (size != 0)) {
-		if ((size = write(fd, (char *)buf + offset, count - offset)) == -1) {
-			if (errno == EINTR)
-				continue;
-			return -1;
-		}
-		offset += size;
-	}
+        size = -1;
+        offset = 0;
+        while ((offset != count) && (size != 0)) {
+                if ((size = write(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        return -1;
+                }
+                offset += size;
+        }
 
-	return offset;
+        return offset;
 }
 
 /**
@@ -57,28 +57,26 @@ ssize_t xwrite(int fd, const void *buf, size_t count)
  */
 ssize_t xread(int fd, void *buf, size_t count)
 {
-	size_t offset;
-	ssize_t size;
+        size_t offset;
+        ssize_t size;
 
-	size = -1;
-	offset = 0;
-	while ((offset != count) && (size != 0)) {
-		if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
-			if (errno == EINTR)
-				continue;
-			return -1;
-		}
-		offset += size;
-	}
+        size = -1;
+        offset = 0;
+        while ((offset != count) && (size != 0)) {
+                if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        return -1;
+                }
+                offset += size;
+        }
 
-	return offset;
+        return offset;
 }
 
 /**
  * 读取ipmsg消息前缀.
- * 由于不方便确定ipmsg消息前缀的长度，所以我们这儿采取了时间限制的方法，
- * 也就是在距上一次为t的时间段里，如果没有数据到达，则认为消息前缀已经被
- * 完全读出。 \n
+ * Ver(1):PacketNo:SenderName:SenderHost:CommandNo:AdditionalSection.\n
  * @param fd 文件描述符
  * @param buf 缓冲区
  * @param count 缓冲区长度
@@ -86,29 +84,104 @@ ssize_t xread(int fd, void *buf, size_t count)
  */
 ssize_t read_ipmsg_prefix(int fd, void *buf, size_t count)
 {
-	struct timeval tval;
-	fd_set rset;
-	size_t offset;
-	ssize_t size;
+        uint number;
+        size_t offset;
+        ssize_t size;
 
-	offset = 0;	//当前缓冲区已有字符数为0
-	do {
-		/* 先尝试着读取一次 */
-mark:		if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
-			if (errno == EINTR)
-				goto mark;
-			return -1;
-		}
-		if ((offset += size) == count)	//如果已经读满则可以跳出循环了
-			break;
-		/* 为考察文件描述符做准备工作 */
-		FD_ZERO(&rset);
-		FD_SET(fd, &rset);
-		tval.tv_sec = 0;
-		tval.tv_usec = 100000;
-	} while (size && (select(fd + 1, &rset, NULL, NULL, &tval) == 1));
+        size = -1;
+        offset = 0;
+        number = 0;
+        while ((offset != count) && (size != 0)) {
+                if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        return -1;
+                }
+                offset += size;
+                const char *endptr = (const char *)buf + offset;
+                for (const char *curptr = endptr - size; curptr < endptr; ++curptr) {
+                        if (*curptr == ':')
+                                ++number;
+                }
+                if (number >= 5)
+                        break;
+        }
 
-	return offset;
+        return offset;
+}
+
+/**
+ * 读取ipmsg文件请求消息前缀.
+ * packetID:fileID:offset.\n
+ * @param fd 文件描述符
+ * @param buf 缓冲区
+ * @param count 缓冲区长度
+ * @param offset 缓冲区无效数据偏移量
+ * @return 成功读取的消息长度，-1表示读取消息出错
+ */
+ssize_t read_ipmsg_filedata(int fd, void *buf, size_t count, size_t offset)
+{
+        const char *curptr;
+        uint number;
+        ssize_t size;
+
+        size = -1;
+        number = 0;
+        curptr = (const char *)buf;
+        while ((offset != count) && (size != 0)) {
+                const char *endptr = (const char *)buf + offset;
+                for (; curptr < endptr; ++curptr) {
+                        if (*curptr == ':')
+                                ++number;
+                }
+                if (number > 2 || (number == 2 && *(curptr - 1) != ':'))
+                        break;
+                if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        return -1;
+                }
+                offset += size;
+        }
+
+        return offset;
+}
+
+/**
+ * 读取ipmsg目录请求消息前缀.
+ * packetID:fileID.\n
+ * @param fd 文件描述符
+ * @param buf 缓冲区
+ * @param count 缓冲区长度
+ * @param offset 缓冲区无效数据偏移量
+ * @return 成功读取的消息长度，-1表示读取消息出错
+ */
+ssize_t read_ipmsg_dirfiles(int fd, void *buf, size_t count, size_t offset)
+{
+        const char *curptr;
+        uint number;
+        ssize_t size;
+
+        size = -1;
+        number = 0;
+        curptr = (const char *)buf;
+        while ((offset != count) && (size != 0)) {
+                const char *endptr = (const char *)buf + offset;
+                for (; curptr < endptr; ++curptr) {
+                        if (*curptr == ':')
+                                ++number;
+                }
+                if (number > 1 || (number == 1 && *(curptr - 1) != ':'))
+                        break;
+                if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                continue;
+                        return -1;
+                }
+                offset += size;
+        }
+
+        return offset;
 }
 
 /**
@@ -126,24 +199,24 @@ mark:		if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
  */
 ssize_t read_ipmsg_fileinfo(int fd, void *buf, size_t count, size_t offset)
 {
-	ssize_t size;
-	uint32_t headsize;
+        ssize_t size;
+        uint32_t headsize;
 
-	if (offset < count)	//注意不要写到缓冲区外了
-		((char *)buf)[offset] = '\0';
-	while (!offset || !strchr((char *)buf, ':')
-		 || sscanf((char *)buf, "%" SCNx32, &headsize) != 1
-		 || headsize > offset) {
-mark:		if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
-			if (errno == EINTR)
-				goto mark;
-			return -1;
-		} else if (size == 0)
-			return -1;
-		if ((offset += size) == count)
-			break;
-		((char *)buf)[offset] = '\0';
-	}
+        if (offset < count)     //注意不要写到缓冲区外了
+                ((char *)buf)[offset] = '\0';
+        while (!offset || !strchr((char *)buf, ':')
+                 || sscanf((char *)buf, "%" SCNx32, &headsize) != 1
+                 || headsize > offset) {
+mark:           if ((size = read(fd, (char *)buf + offset, count - offset)) == -1) {
+                        if (errno == EINTR)
+                                goto mark;
+                        return -1;
+                } else if (size == 0)
+                        return -1;
+                if ((offset += size) == count)
+                        break;
+                ((char *)buf)[offset] = '\0';
+        }
 
-	return offset;
+        return offset;
 }
