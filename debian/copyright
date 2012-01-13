@@ -1,41 +1,38 @@
-This package was debianized by LI Daobing <lidaobing@gmail.com> on
-Sun, 02 Nov 2008 16:36:26 +0800.
+Format: http://dep.debian.net/deps/dep5/
+Upstream-Name: iptux
+Source: http://code.google.com/p/iptux/
 
-It was downloaded from http://code.google.com/p/iptux/
+Files: *
+Copyright: 2007-2011 Jally <jallyx@163.com>
+	   2011 huifengfuliu <huifengfuliu@gmail.com>
+	   2011 cwll2009@126.com
+License: GPL-2
 
-Upstream Author:
-	
-	Jally <jallyx@163.com>
+Files: debian/*
+Copyright: 2009-2011 Li Daobing <lidaobing@debian.org>
+	   2012 Aron Xu <aron@debian.org>
+License: GPL-2
 
-Copyright:
+License: GPL-2
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this package; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
+ .
+ On Debian systems, the complete text of the GNU General Public
+ License can be found in `/usr/share/common-licenses/GPL-2'.
 
-    Copyright (C) 2008 Jally
-
+Files: src/ipmsg.h:
+Copyright: 2006 Takeharu KATO
 License:
-
-    This package is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License version 2 as
-    published by the Free Software Foundation.
-
-    This package is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this package; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301 USA
-
-On Debian systems, the complete text of the GNU General
-Public License can be found in `/usr/share/common-licenses/GPL-2'.
-
-The Debian packaging is (C) 2008, LI Daobing <lidaobing@gmail.com> and
-is licensed under the GPL-2, see above.
-
-
-copyright information of src/ipmsg.h:
-	Copyright (C) 2006 Takeharu KATO
-license information of src/ipmsg.h:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:

@@ -1,3 +1,15 @@
+iptux (0.5.3-1) unstable; urgency=low
+
+  * New upstream release, fix FTBFS with ld --as-needed
+    (Closes: #647085).
+  * Add myself to Uploaders.
+  * Rewrite debian/copyright to DEP5 format.
+  * Use dh 8, compat 8.
+  * Convert patch to quilt system.
+  * Remove useless README.source
+
+ -- Aron Xu <aron@debian.org>  Sat, 14 Jan 2012 00:15:11 +0800
+
 iptux (0.5.2-1) unstable; urgency=low
 
   * new upstream release.

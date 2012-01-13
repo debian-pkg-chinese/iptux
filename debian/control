@@ -3,9 +3,8 @@ Section: net
 Priority: optional
 Maintainer: Debian Chinese Team <chinese-developers@lists.alioth.debian.org>
 Uploaders:
- LI Daobing <lidaobing@debian.org>,
- Zhengpeng Hou <zhengpeng-hou@ubuntu.com>
-Build-Depends: debhelper (>= 7.0.50~), autotools-dev, libgtk2.0-dev,
+ Aron Xu <aron@debian.org>, LI Daobing <lidaobing@debian.org>
+Build-Depends: debhelper (>= 8), autotools-dev, libgtk2.0-dev,
  libgconf2-dev, libgstreamer0.10-dev
 Standards-Version: 3.9.2
 Homepage: http://code.google.com/p/iptux/
