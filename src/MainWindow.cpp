@@ -1513,7 +1513,33 @@ GtkWidget *MainWindow::CreateTransPopupMenu(GtkTreeModel *model)
 {
         GtkWidget *menu, *menuitem;
 
+        GtkTreePath *path;
+        GtkTreeIter iter;
+        gchar *remaining;
+        gboolean sensitive = TRUE;
+
+        if (!(path = (GtkTreePath *)(g_object_get_data(G_OBJECT(model),
+                                                 "selected-path"))))
+                return NULL;
+        gtk_tree_model_get_iter(model, &iter, path);
+        gtk_tree_model_get(model, &iter, 10, &remaining, -1);
+
+        if (g_strcmp0(remaining,'\0'))
+                sensitive = FALSE;
+
         menu = gtk_menu_new();
+
+        menuitem = gtk_menu_item_new_with_label(_("Open This File"));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+        g_signal_connect_swapped(menuitem, "activate",
+                         G_CALLBACK(OpenThisFile), model);
+        gtk_widget_set_sensitive(GTK_WIDGET(menuitem),sensitive);
+
+        menuitem = gtk_menu_item_new_with_label(_("Open Containing Folder"));
+        gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
+        g_signal_connect_swapped(menuitem, "activate",
+                         G_CALLBACK(OpenContainingFolder), model);
+        gtk_widget_set_sensitive(GTK_WIDGET(menuitem),sensitive);
 
         menuitem = gtk_menu_item_new_with_label(_("Terminate Task"));
         gtk_menu_shell_append(GTK_MENU_SHELL(menu), menuitem);
@@ -1763,7 +1789,7 @@ gboolean MainWindow::UpdateTransUI(GtkWidget *treeview)
 
         /* 更新UI */
         do {
-                gtk_tree_model_get(model, &iter, TRANS_TREE_MAX-1, &trans, -1);
+                gtk_tree_model_get(model, &iter, TRANS_TREE_MAX - 1, &trans, -1);
                 if (trans) {    //当文件传输类存在时才能更新
                         para = trans->GetTransFilePara();       //获取参数
                         /* 更新数据 */
@@ -1866,24 +1892,11 @@ void MainWindow::ClearTransWindow(GData **widset)
 {
         GtkWidget *treeview;
         GtkTreeModel *model;
-        GtkTreeIter iter;
-        gpointer data;
 
         /* 考察是否需要清理UI */
         treeview = GTK_WIDGET(g_datalist_get_data(widset, "trans-treeview-widget"));
         model = gtk_tree_view_get_model(GTK_TREE_VIEW(treeview));
-        if (!gtk_tree_model_get_iter_first(model, &iter))
-                return;
-
-        /* 清理UI */
-        do {
-mark:           gtk_tree_model_get(model, &iter, 11, &data, -1);
-                if (!data) {
-                        if (gtk_list_store_remove(GTK_LIST_STORE(model), &iter))
-                                goto mark;
-                        break;
-                }
-        } while (gtk_tree_model_iter_next(model, &iter));
+        ClearTransTask(model);
 
         /* 重新调整UI */
         gtk_tree_view_columns_autosize(GTK_TREE_VIEW(treeview));
@@ -1903,9 +1916,58 @@ void MainWindow::TerminateTransTask(GtkTreeModel *model)
                                                  "selected-path"))))
                 return;
         gtk_tree_model_get_iter(model, &iter, path);
-        gtk_tree_model_get(model, &iter, 11, &trans, -1);
+        gtk_tree_model_get(model, &iter, 12, &trans, -1);
         if (trans)
                 trans->TerminateTrans();
+}
+
+/**
+ * 打开接收的文件.
+ * @param model trans-model
+ */
+void MainWindow::OpenThisFile(GtkTreeModel *model)
+{
+    GtkTreePath *path;
+    GtkTreeIter iter;
+    gchar *filename;
+
+    if (!(path = (GtkTreePath *)(g_object_get_data(G_OBJECT(model),
+                                             "selected-path"))))
+            return;
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_tree_model_get(model, &iter, 4, &filename, -1);
+    if (filename){
+        filename = g_strconcat(progdt.path,"/",filename,NULL);
+        if( !g_file_test(filename,G_FILE_TEST_EXISTS)){
+            GtkWidget *dialog = gtk_message_dialog_new(NULL,
+            GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR,
+            GTK_BUTTONS_OK, "The file you want to open not exist!");
+            gtk_window_set_title(GTK_WINDOW(dialog), "Iptux Error");
+            gtk_dialog_run(GTK_DIALOG(dialog));
+            gtk_widget_destroy(dialog);
+            return;
+        }
+        iptux_open_url(filename);
+    }
+}
+
+/**
+ * 打开接收文件所在文件夹.
+ * @param model trans-model
+ */
+void MainWindow::OpenContainingFolder(GtkTreeModel *model)
+{
+    GtkTreePath *path;
+    GtkTreeIter iter;
+    gchar *filename;
+
+    if (!(path = (GtkTreePath *)(g_object_get_data(G_OBJECT(model),
+                                             "selected-path"))))
+            return;
+    gtk_tree_model_get_iter(model, &iter, path);
+    gtk_tree_model_get(model, &iter, 4, &filename, -1);
+    if (filename)
+        iptux_open_url(progdt.path);
 }
 
 /**
@@ -1920,7 +1982,7 @@ void MainWindow::TerminateAllTransTask(GtkTreeModel *model)
         if (!gtk_tree_model_get_iter_first(model, &iter))
                 return;
         do {
-                gtk_tree_model_get(model, &iter, 11, &trans, -1);
+                gtk_tree_model_get(model, &iter, 12, &trans, -1);
                 if (trans)
                         trans->TerminateTrans();
         } while (gtk_tree_model_iter_next(model, &iter));
@@ -1938,7 +2000,7 @@ void MainWindow::ClearTransTask(GtkTreeModel *model)
         if (!gtk_tree_model_get_iter_first(model, &iter))
                 return;
         do {
-mark:           gtk_tree_model_get(model, &iter, 11, &data, -1);
+mark:           gtk_tree_model_get(model, &iter, 12, &data, -1);
                 if (!data) {
                         if (gtk_list_store_remove(GTK_LIST_STORE(model), &iter))
                                 goto mark;
@@ -2430,7 +2492,7 @@ void MainWindow::PallistEntryChanged(GtkWidget *entry,GData **widset)
                 }
                 tlist = g_slist_next(tlist);
         }
-        
+
         /* 重新调整好友清单UI */
         gtk_tree_view_columns_autosize(GTK_TREE_VIEW(treeview));
 }

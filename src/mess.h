@@ -108,6 +108,9 @@ public:
         int64_t filesize;       ///< 文件大小
         PalInfo *fileown;       ///< 文件拥有者(来自好友*)
         char *filepath; ///< 文件路径 *
+        uint32_t filectime;        ///<  文件创建时间
+        uint32_t filemtime;        ///<  文件最后修改时间
+        uint32_t filenum;          ///<  包内编号
 };
 
 /**

@@ -59,9 +59,8 @@ am_iptux_OBJECTS = AnalogFS.$(OBJEXT) Command.$(OBJEXT) \
 	iptux.$(OBJEXT) mess.$(OBJEXT) output.$(OBJEXT) \
 	support.$(OBJEXT) utils.$(OBJEXT) wrapper.$(OBJEXT)
 iptux_OBJECTS = $(am_iptux_OBJECTS)
-iptux_LDADD = $(LDADD)
-iptux_LINK = $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) $(iptux_LDFLAGS) \
-	$(LDFLAGS) -o $@
+am__DEPENDENCIES_1 =
+iptux_DEPENDENCIES = $(am__DEPENDENCIES_1)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -163,9 +162,10 @@ INSTOBJEXT = @INSTOBJEXT@
 INTLLIBS = @INTLLIBS@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
-LIBS = @LIBS@
+LIBS = $(all_libraries)
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
+MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 MKINSTALLDIRS = @MKINSTALLDIRS@
@@ -256,7 +256,7 @@ AM_CXXFLAGS = -Wall
 INCLUDES = $(all_includes) @PACKAGE_CFLAGS@
 
 # the library search path.
-iptux_LDFLAGS = $(all_libraries) @PACKAGE_LIBS@
+iptux_LDADD = $(INTLLIBS) @PACKAGE_LIBS@
 noinst_HEADERS = AnalogFS.h Command.h CoreThread.h DataSettings.h DetectPal.h DialogBase.h \
 	DialogGroup.h DialogPeer.h HelpDialog.h LogSystem.h MainWindow.h ProgramData.h \
 	RecvFile.h RecvFileData.h RevisePal.h SendFile.h SendFileData.h ShareFile.h \
@@ -268,7 +268,7 @@ all: all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .cpp .o .obj
-$(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
+$(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
 	    *$$dep*) \
@@ -293,9 +293,9 @@ Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 $(top_builddir)/config.status: $(top_srcdir)/configure $(CONFIG_STATUS_DEPENDENCIES)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 
-$(top_srcdir)/configure:  $(am__configure_deps)
+$(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
-$(ACLOCAL_M4):  $(am__aclocal_m4_deps)
+$(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
 install-binPROGRAMS: $(bin_PROGRAMS)
@@ -337,7 +337,7 @@ clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 iptux$(EXEEXT): $(iptux_OBJECTS) $(iptux_DEPENDENCIES) 
 	@rm -f iptux$(EXEEXT)
-	$(iptux_LINK) $(iptux_OBJECTS) $(iptux_LDADD) $(LIBS)
+	$(CXXLINK) $(iptux_OBJECTS) $(iptux_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

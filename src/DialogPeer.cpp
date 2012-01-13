@@ -359,6 +359,7 @@ GtkWidget *DialogPeer::CreateFileMenu()
         gtk_widget_add_accelerator(menuitem, "activate", accel,
                                    GDK_W, GDK_CONTROL_MASK, GTK_ACCEL_VISIBLE);
 
+        g_datalist_set_data(&widset, "file-menu",menu);
         return menushell;
 
 }
@@ -386,7 +387,6 @@ GtkWidget *DialogPeer::CreateToolMenu()
 
         return menushell;
 }
-
 
 /**
  * 将好友信息数据写入指定的缓冲区.

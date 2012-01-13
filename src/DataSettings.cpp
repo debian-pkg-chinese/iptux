@@ -305,6 +305,11 @@ GtkWidget *DataSettings::CreateSystem()
         gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
         g_datalist_set_data(&widset, "font-chooser-widget", widget);
 
+        /* 有消息时直接弹出聊天窗口 */
+        widget = gtk_check_button_new_with_label(
+                    _("Automatically open the chat dialog"));
+        gtk_box_pack_start(GTK_BOX(box), widget, FALSE, FALSE, 0);
+        g_datalist_set_data(&widset, "chat-check-widget", widget);
         /* 隐藏面板，只显示状态图标 */
         widget = gtk_check_button_new_with_label(
                          _("Automatically hide the panel after login"));
@@ -546,6 +551,9 @@ void DataSettings::SetSystemValue()
         gtk_combo_box_set_active(GTK_COMBO_BOX(widget), active);
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "font-chooser-widget"));
         gtk_font_button_set_font_name(GTK_FONT_BUTTON(widget), progdt.font);
+        widget = GTK_WIDGET(g_datalist_get_data(&widset, "chat-check-widget"));
+        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
+                                     FLAG_ISSET(progdt.flags, 7));
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "statusicon-check-widget"));
         gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
                                  FLAG_ISSET(progdt.flags, 6));
@@ -910,28 +918,30 @@ void DataSettings::ObtainPersonalValue()
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "myicon-combo-widget"));
         model = gtk_combo_box_get_model(GTK_COMBO_BOX(widget));
         active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-        snprintf(path, MAX_PATHLEN, "%d", active);
-        gtk_tree_model_get_iter_from_string(model, &iter, path);
-        gtk_tree_model_get(model, &iter, 1, &file, -1);
-        if (strcmp(progdt.myicon, file) != 0) {
-                snprintf(path, MAX_PATHLEN, __PIXMAPS_PATH "/icon/%s", file);
-                if (access(path, F_OK) != 0) {
-                        g_free(file);
-                        g_free(progdt.myicon);
-                        progdt.myicon = g_strdup("my-icon");
-                        snprintf(path, MAX_PATHLEN, "%s" ICON_PATH "/my-icon",
-                                                 g_get_user_config_dir());
-                        gtk_tree_model_get(model, &iter, 0, &pixbuf, -1);
-                        gdk_pixbuf_save(pixbuf, path, "png", NULL, NULL);
-                        gtk_icon_theme_add_builtin_icon(progdt.myicon,
-                                                 MAX_ICONSIZE, pixbuf);
-                        g_object_unref(pixbuf);
-                } else {
-                        g_free(progdt.myicon);
-                        progdt.myicon = file;
-                }
-        } else
-                g_free(file);
+        if (active != -1) {
+            snprintf(path, MAX_PATHLEN, "%d", active);
+            gtk_tree_model_get_iter_from_string(model, &iter, path);
+            gtk_tree_model_get(model, &iter, 1, &file, -1);
+            if (strcmp(progdt.myicon, file) != 0) {
+                    snprintf(path, MAX_PATHLEN, __PIXMAPS_PATH "/icon/%s", file);
+                    if (access(path, F_OK) != 0) {
+                            g_free(file);
+                            g_free(progdt.myicon);
+                            progdt.myicon = g_strdup("my-icon");
+                            snprintf(path, MAX_PATHLEN, "%s" ICON_PATH "/my-icon",
+                                                     g_get_user_config_dir());
+                            gtk_tree_model_get(model, &iter, 0, &pixbuf, -1);
+                            gdk_pixbuf_save(pixbuf, path, "png", NULL, NULL);
+                            gtk_icon_theme_add_builtin_icon(progdt.myicon,
+                                                     MAX_ICONSIZE, pixbuf);
+                            g_object_unref(pixbuf);
+                    } else {
+                            g_free(progdt.myicon);
+                            progdt.myicon = file;
+                    }
+            } else
+                    g_free(file);
+        }
 
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "archive-chooser-widget"));
         g_free(progdt.path);
@@ -978,32 +988,40 @@ void DataSettings::ObtainSystemValue()
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "palicon-combo-widget"));
         model = gtk_combo_box_get_model(GTK_COMBO_BOX(widget));
         active = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-        snprintf(path, MAX_PATHLEN, "%d", active);
-        gtk_tree_model_get_iter_from_string(model, &iter, path);
-        gtk_tree_model_get(model, &iter, 1, &file, -1);
-        if (strcmp(progdt.palicon, file) != 0) {
-                snprintf(path, MAX_PATHLEN, __PIXMAPS_PATH "/icon/%s", file);
-                if (access(path, F_OK) != 0) {
-                        g_free(file);
-                        g_free(progdt.palicon);
-                        progdt.palicon = g_strdup("pal-icon");
-                        snprintf(path, MAX_PATHLEN, "%s" ICON_PATH "/pal-icon",
-                                                 g_get_user_config_dir());
-                        gtk_tree_model_get(model, &iter, 0, &pixbuf, -1);
-                        gdk_pixbuf_save(pixbuf, path, "png", NULL, NULL);
-                        gtk_icon_theme_add_builtin_icon(progdt.palicon,
-                                                 MAX_ICONSIZE, pixbuf);
-                        g_object_unref(pixbuf);
-                } else {
-                        g_free(progdt.palicon);
-                        progdt.palicon = file;
-                }
-        } else
-                g_free(file);
+        if(active != -1) {
+            snprintf(path, MAX_PATHLEN, "%d", active);
+            gtk_tree_model_get_iter_from_string(model, &iter, path);
+            gtk_tree_model_get(model, &iter, 1, &file, -1);
+            if (strcmp(progdt.palicon, file) != 0) {
+                    snprintf(path, MAX_PATHLEN, __PIXMAPS_PATH "/icon/%s", file);
+                    if (access(path, F_OK) != 0) {
+                            g_free(file);
+                            g_free(progdt.palicon);
+                            progdt.palicon = g_strdup("pal-icon");
+                            snprintf(path, MAX_PATHLEN, "%s" ICON_PATH "/pal-icon",
+                                                     g_get_user_config_dir());
+                            gtk_tree_model_get(model, &iter, 0, &pixbuf, -1);
+                            gdk_pixbuf_save(pixbuf, path, "png", NULL, NULL);
+                            gtk_icon_theme_add_builtin_icon(progdt.palicon,
+                                                     MAX_ICONSIZE, pixbuf);
+                            g_object_unref(pixbuf);
+                    } else {
+                            g_free(progdt.palicon);
+                            progdt.palicon = file;
+                    }
+            } else
+                    g_free(file);
+        }
 
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "font-chooser-widget"));
         g_free(progdt.font);
         progdt.font = g_strdup(gtk_font_button_get_font_name(GTK_FONT_BUTTON(widget)));
+
+        widget = GTK_WIDGET(g_datalist_get_data(&widset, "chat-check-widget"));
+        if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
+            FLAG_SET(progdt.flags, 7);
+        else
+            FLAG_CLR(progdt.flags, 7);
 
         widget = GTK_WIDGET(g_datalist_get_data(&widset, "statusicon-check-widget"));
         if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
